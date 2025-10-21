@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Caleb University Resource Bank - Access past questions and study materials for all departments">
+  <meta name="theme-color" content="#0F9D58">
+  
+  <title>Caleb University Resource Bank (CURB)</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="assets/logo-placeholder.svg">
+  
+  <!-- Manifest for PWA -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- Preconnect to Google APIs -->
+  <link rel="preconnect" href="https://apis.google.com">
+</head>
+<body>
+  <!-- Announcement Banner -->
+  <div class="announcement-banner" id="announcement-banner" style="display: none;">
+    <div class="announcement-content">
+      <span id="announcement-message">Welcome to CURB! 🎉</span>
+    </div>
+    <button class="announcement-close" aria-label="Close announcement">✕</button>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <div class="logo-section">
+          <img src="assets/logo-placeholder.svg" alt="CURB Logo" class="logo">
+          <div>
+            <h1 class="site-title">CURB</h1>
+            <p class="site-subtitle">Caleb University Resource Bank</p>
+          </div>
+        </div>
+        
+        <div class="header-actions">
+          <button id="refresh-btn" class="btn btn-secondary" aria-label="Refresh content">
+            🔄 Refresh
+          </button>
+          <button id="back-btn" class="btn btn-icon btn-secondary" style="display: none;" aria-label="Go back">
+            ←
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="container">
+      <!-- Breadcrumbs -->
+      <nav class="breadcrumb" id="breadcrumb" aria-label="Breadcrumb"></nav>
+
+      <!-- Cache Status -->
+      <div id="cache-status" class="mb-2"></div>
+
+      <!-- Quick Start Guide -->
+      <div class="quick-start">
+        <div class="quick-start-header">
+          <h2 class="quick-start-title">📖 Quick Start Guide</h2>
+          <span>▼</span>
+        </div>
+        <div class="quick-start-content">
+          <ol>
+            <li>Click on your department from the grid below</li>
+            <li>Select your level (100, 200, 300, or 400)</li>
+            <li>Choose your semester (1st or 2nd)</li>
+            <li>Select the session (currently 2024/25)</li>
+            <li>View or download the PDF files you need</li>
+          </ol>
+          <p><strong>Tip:</strong> Click the "Refresh" button above to check for new content during update periods.</p>
+          <p><strong>Need help?</strong> <a href="#" id="contact-link">Contact us</a> if you can't find what you're looking for.</p>
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <div id="main-content">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading content...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3 class="footer-title">About CURB</h3>
+          <p class="footer-text">
+            Caleb University Resource Bank provides students with easy access to 
+            past questions and study materials across all departments.
+          </p>
+        </div>
+
+        <div class="footer-section">
+          <h3 class="footer-title">Quick Links</h3>
+          <ul class="footer-links">
+            <li><a href="#/">Home</a></li>
+            <li><a href="#" id="contact-btn">Contact Us</a></li>
+            <li><a href="https://calebuniversity.edu.ng" target="_blank">Caleb University Website</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-section">
+          <h3 class="footer-title">Need Help?</h3>
+          <p class="footer-text">
+            Can't find what you're looking for? Have materials to contribute? 
+            <a href="#" class="contact-link">Get in touch</a> with us.
+          </p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p class="footer-text">
+          ⚠️ <strong>Disclaimer:</strong> These materials are for educational purposes only. 
+          All content is sourced from publicly available resources and student contributions. 
+          For official course materials, consult your lecturers.
+        </p>
+        <p class="footer-text" style="margin-top: 1rem;">
+          © 2025 Caleb University Resource Bank (CURB) • Built with ❤️ for Caleb University Students
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Contact Modal -->
+  <div class="modal" id="contact-modal">
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">✕</button>
+      <h2 class="mb-2">Contact Us</h2>
+      
+      <div class="contact-form-container">
+        <!-- Placeholder for Google Form -->
+        <div class="empty-state" style="padding: 2rem;">
+          <p class="mb-2"><strong>Setup Required:</strong></p>
+          <p class="footer-text mb-2">
+            To enable the contact form, create a Google Form and embed it here. 
+            See <code>docs/GOOGLE_FORM_SETUP.md</code> for instructions.
+          </p>
+          <p class="footer-text">
+            <strong>Suggested form fields:</strong><br>
+            • Name<br>
+            • Email<br>
+            • Department<br>
+            • Request Type (Missing file, Broken link, Feedback, etc.)<br>
+            • Message
+          </p>
+          
+          <div style="margin-top: 2rem;">
+            <p><strong>Alternative Contact Methods:</strong></p>
+            <p class="footer-text">
+              📧 Email: <a href="mailto:curb@example.com">curb@example.com</a><br>
+              💬 WhatsApp: <a href="https://wa.me/1234567890" target="_blank">+234 XXX XXX XXXX</a>
+            </p>
+            <p class="footer-text" style="margin-top: 1rem; font-size: 0.875rem;">
+              <em>Update these contact details in index.html</em>
+            </p>
+          </div>
+        </div>
+        
+        <!-- When ready, replace above with Google Form iframe: -->
+        <!-- <iframe src="YOUR_GOOGLE_FORM_URL" width="100%" height="600" frameborder="0"></iframe> -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Environment Configuration -->
+  <script>
+    // Set environment variables here
+    // In production, these should come from your hosting platform's environment variables
+    window.ENV = {
+      GOOGLE_DRIVE_API_KEY: 'YOUR_API_KEY_HERE',
+      GOOGLE_DRIVE_ROOT_FOLDER_ID: 'YOUR_ROOT_FOLDER_ID_HERE'
+    };
+  </script>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/cache.js"></script>
+  <script src="js/drive-api.js"></script>
+  <script src="js/navigation.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => console.log('SW registered:', registration))
+          .catch(error => console.log('SW registration failed:', error));
+      });
+    }
+  </script>
+</body>
+</html>
+
