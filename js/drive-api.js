@@ -1,63 +1,44 @@
-// Google Drive API Integration
+// Google Drive API Integration (via Backend Proxy)
+// This now connects to our secure serverless function instead of directly to Google Drive
 class DriveAPI {
   constructor() {
-    this.apiKey = null;
-    this.rootFolderId = null;
+    this.apiEndpoint = null;
     this.loaded = false;
     this.loading = false;
   }
 
   /**
-   * Initialize the Drive API
-   * @param {string} apiKey - Google API key
-   * @param {string} rootFolderId - Root folder ID
+   * Initialize the Drive API client
+   * @param {string} apiEndpoint - Backend API endpoint URL
    */
-  async init(apiKey, rootFolderId) {
+  async init(apiEndpoint) {
     if (this.loading) return;
     if (this.loaded) return;
 
-    this.apiKey = apiKey;
-    this.rootFolderId = rootFolderId;
+    this.apiEndpoint = apiEndpoint || '/api/drive';
     this.loading = true;
 
     try {
-      await this.loadGapiClient();
-      await gapi.client.init({
-        apiKey: this.apiKey,
-        discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
-      });
+      // Test the connection
+      const response = await fetch(this.apiEndpoint);
+      if (!response.ok && response.status !== 500) {
+        throw new Error(`API endpoint not responding: ${response.status}`);
+      }
+      
       this.loaded = true;
       this.loading = false;
       return true;
     } catch (error) {
-      console.error('Failed to initialize Drive API:', error);
+      console.error('Failed to initialize Drive API client:', error);
       this.loading = false;
-      throw error;
+      // Don't throw - allow fallback to cached data
+      this.loaded = true; // Mark as loaded anyway to allow cached data usage
+      return false;
     }
   }
 
   /**
-   * Load the Google API client library
-   */
-  loadGapiClient() {
-    return new Promise((resolve, reject) => {
-      if (typeof gapi !== 'undefined' && gapi.client) {
-        resolve();
-        return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        gapi.load('client', resolve);
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
-
-  /**
-   * Fetch the complete folder structure from Drive
+   * Fetch the complete folder structure from backend proxy
    * @returns {Promise<Object>} Structured data organized by department/level/semester/session
    */
   async fetchStructure() {
@@ -66,111 +47,31 @@ class DriveAPI {
     }
 
     try {
-      const structure = {};
-
-      // Get all department folders
-      const departments = await this.listFolders(this.rootFolderId);
-      
-      for (const dept of departments) {
-        if (!CONFIG.departments.includes(dept.name)) continue;
-
-        structure[dept.name] = {};
-        const levels = getDepartmentLevels(dept.name);
-
-        // Get level folders for this department
-        const levelFolders = await this.listFolders(dept.id);
-
-        for (const levelFolder of levelFolders) {
-          // Parse level number (e.g., "100 Level" -> 100)
-          const levelMatch = levelFolder.name.match(/(\d+)/);
-          if (!levelMatch) continue;
-          const levelNum = parseInt(levelMatch[1]);
-          
-          // Check if this level is valid for this department
-          if (!levels.includes(levelNum)) continue;
-
-          structure[dept.name][levelFolder.name] = {};
-
-          // Get semester folders
-          const semesters = await this.listFolders(levelFolder.id);
-
-          for (const semester of semesters) {
-            structure[dept.name][levelFolder.name][semester.name] = {};
-
-            // Get session folders
-            const sessions = await this.listFolders(semester.id);
-
-            for (const session of sessions) {
-              // Get PDF files in this session
-              const files = await this.listFiles(session.id);
-              structure[dept.name][levelFolder.name][semester.name][session.name] = files;
-            }
-          }
+      const response = await fetch(this.apiEndpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
         }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
-      return structure;
+      const result = await response.json();
+      
+      // Log cache status
+      const cacheStatus = response.headers.get('X-Cache');
+      if (cacheStatus === 'HIT') {
+        console.log('Data served from server cache');
+      } else {
+        console.log('Fresh data fetched from Google Drive');
+      }
+
+      return result.data;
     } catch (error) {
       console.error('Failed to fetch structure:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * List folders in a directory
-   * @param {string} folderId - Parent folder ID
-   * @returns {Promise<Array>} Array of folder objects
-   */
-  async listFolders(folderId) {
-    try {
-      const response = await gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name, modifiedTime)',
-        orderBy: 'name'
-      });
-
-      return response.result.files || [];
-    } catch (error) {
-      console.error(`Failed to list folders in ${folderId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * List PDF files in a folder
-   * @param {string} folderId - Parent folder ID
-   * @returns {Promise<Array>} Array of file objects
-   */
-  async listFiles(folderId) {
-    try {
-      const response = await gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and mimeType='application/pdf' and trashed=false`,
-        fields: 'files(id, name, modifiedTime, size, webViewLink, webContentLink)',
-        orderBy: 'name'
-      });
-
-      return response.result.files || [];
-    } catch (error) {
-      console.error(`Failed to list files in ${folderId}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get file metadata
-   * @param {string} fileId - File ID
-   * @returns {Promise<Object>} File metadata
-   */
-  async getFile(fileId) {
-    try {
-      const response = await gapi.client.drive.files.get({
-        fileId: fileId,
-        fields: 'id, name, modifiedTime, size, webViewLink, webContentLink'
-      });
-
-      return response.result;
-    } catch (error) {
-      console.error(`Failed to get file ${fileId}:`, error);
       throw error;
     }
   }
@@ -217,13 +118,11 @@ class DriveAPI {
     try {
       if (!this.loaded) return false;
       
-      // Try to get root folder info
-      const response = await gapi.client.drive.files.get({
-        fileId: this.rootFolderId,
-        fields: 'id, name'
+      const response = await fetch(this.apiEndpoint, {
+        method: 'GET'
       });
       
-      return !!response.result;
+      return response.ok;
     } catch (error) {
       console.error('API health check failed:', error);
       return false;

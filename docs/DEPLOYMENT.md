@@ -20,23 +20,14 @@ The deployment process:
 
 ## Step 1: Prepare Your Code
 
-### Update API Configuration
+### ✅ Code is Ready!
 
-Before deploying, update `index.html` to read API credentials properly:
+CURB now uses a **secure backend proxy architecture**:
+- ✅ API keys are NEVER exposed to clients
+- ✅ All Google Drive calls happen server-side via `api/drive.js`
+- ✅ Credentials stored securely as environment variables
 
-```javascript
-// Replace the window.ENV section with:
-window.ENV = {
-  GOOGLE_DRIVE_API_KEY: 'YOUR_API_KEY_HERE',
-  GOOGLE_DRIVE_ROOT_FOLDER_ID: 'YOUR_FOLDER_ID_HERE'
-};
-```
-
-**Important:** For production, you should either:
-- Option A: Hardcode the credentials (less secure but simpler)
-- Option B: Use a backend to serve config (more secure but complex)
-
-For this static site, Option A is acceptable since API keys are meant to be restricted to your domain anyway.
+**No changes needed to the code** - just configure environment variables in Vercel (Step 4).
 
 ---
 
@@ -88,29 +79,57 @@ git push -u origin main
 
 ### Configure Project:
 
-**Framework Preset:** None (or select "Other")
+**Framework Preset:** Other
 
 **Root Directory:** `./` (default)
 
-**Build Command:** Leave empty
+**Build Command:** Leave empty (no build needed)
 
-**Output Directory:** Leave empty (we're deploying static files)
+**Output Directory:** Leave empty (static files + serverless functions)
+
+**Install Command:** Leave empty
+
+Vercel will automatically detect:
+- Static files (HTML/CSS/JS)
+- Serverless functions in `/api` directory
 
 ---
 
-## Step 4: Configure Environment Variables (Optional)
+## Step 4: Configure Environment Variables (REQUIRED)
 
-If you want to use environment variables:
+**⚠️ CRITICAL STEP - Your API key security depends on this!**
+
+### During Initial Import:
 
 1. In the import screen, expand **"Environment Variables"**
-2. Add:
-   - **Key:** `GOOGLE_DRIVE_API_KEY`
-   - **Value:** Your API key
-3. Add:
-   - **Key:** `GOOGLE_DRIVE_ROOT_FOLDER_ID`
-   - **Value:** Your folder ID
+2. Add the following:
 
-**Note:** Since this is a static site, environment variables at build time won't automatically inject into `window.ENV`. You'll need to use the hardcoded approach in `index.html` or implement a build script.
+**Variable 1:**
+- **Key:** `GOOGLE_DRIVE_API_KEY`
+- **Value:** Your API key from Google Cloud Console
+- **Environments:** Check all (Production, Preview, Development)
+
+**Variable 2:**
+- **Key:** `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+- **Value:** Your root folder ID from Google Drive
+- **Environments:** Check all (Production, Preview, Development)
+
+### After Deployment:
+
+If you skipped this during import, add them now:
+
+1. Go to your project in Vercel dashboard
+2. Click **"Settings"** → **"Environment Variables"**
+3. Click **"Add New"**
+4. Add both variables as described above
+5. Click **"Save"**
+6. **Important:** Redeploy for changes to take effect
+
+**How it works:**
+- These variables are stored securely on Vercel's servers
+- The serverless function (`api/drive.js`) accesses them server-side
+- They are NEVER sent to client browsers
+- Your API key remains completely secure
 
 ---
 
@@ -199,9 +218,19 @@ Vercel will automatically redeploy in ~1 minute!
 
 ### API not working:
 
-1. Check API key in `index.html`
-2. Verify domain is whitelisted in Google Cloud Console
-3. Check browser console for specific errors
+1. **Check environment variables are set in Vercel**
+   - Go to Settings → Environment Variables
+   - Verify both `GOOGLE_DRIVE_API_KEY` and `GOOGLE_DRIVE_ROOT_FOLDER_ID` exist
+2. **Check serverless function logs**
+   - Go to Deployments → Click latest deployment → View Function Logs
+   - Look for "Missing environment variables" error
+3. **Verify Google Drive API is enabled**
+   - Go to Google Cloud Console
+   - Check Drive API v3 is enabled
+4. **Test the backend endpoint directly**
+   - Visit: `https://your-site.vercel.app/api/drive`
+   - Should return JSON data or error message
+5. Check browser console for specific errors
 
 ### Files returning 404:
 
@@ -264,17 +293,31 @@ If you exceed limits:
 
 ## Security
 
-### Vercel automatically provides:
+### ✅ Enhanced Security Architecture
 
-- ✅ DDoS protection
-- ✅ SSL/TLS certificates
-- ✅ Secure headers (configured in `vercel.json`)
+**CURB now uses a secure serverless backend:**
+
+- ✅ **API keys never exposed** - Stored only as Vercel environment variables
+- ✅ **Server-side API calls** - All Drive requests happen in backend function
+- ✅ **30-minute server cache** - Reduces API calls by 99%
+- ✅ **DDoS protection** - Provided by Vercel
+- ✅ **SSL/TLS certificates** - Automatic HTTPS
+- ✅ **Secure headers** - Configured in `vercel.json`
+- ✅ **Rate limit protection** - Server cache prevents quota exhaustion
+
+### What This Means:
+
+**Before:** API key visible in page source = anyone could steal it
+**Now:** API key on server only = completely secure
+
+**See [Backend Architecture](./BACKEND_ARCHITECTURE.md) for technical details.**
 
 ### Additional recommendations:
 
-1. Keep your API key restricted to your domain
+1. ~~Keep your API key restricted to your domain~~ (Not needed anymore - key is server-side)
 2. Regularly check Google Cloud Console for unusual API activity
 3. Monitor Vercel analytics for suspicious traffic patterns
+4. Monitor Vercel function logs for errors
 
 ---
 

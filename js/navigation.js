@@ -40,19 +40,25 @@ class Navigator {
     };
 
     if (parts.length >= 1) {
-      route.view = 'department';
+      route.view = 'levels';  // Show levels for this department
       route.department = decodeURIComponent(parts[0]);
     }
     if (parts.length >= 2) {
-      route.view = 'level';
+      route.view = 'semesters';  // Show semesters for this level
+      route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
     }
     if (parts.length >= 3) {
-      route.view = 'semester';
+      route.view = 'sessions';  // Show sessions for this semester
+      route.department = decodeURIComponent(parts[0]);
+      route.level = decodeURIComponent(parts[1]);
       route.semester = decodeURIComponent(parts[2]);
     }
     if (parts.length >= 4) {
-      route.view = 'session';
+      route.view = 'files';  // Show files for this session
+      route.department = decodeURIComponent(parts[0]);
+      route.level = decodeURIComponent(parts[1]);
+      route.semester = decodeURIComponent(parts[2]);
       route.session = decodeURIComponent(parts[3]);
     }
 
@@ -116,7 +122,7 @@ class Navigator {
       breadcrumbs.push({
         label: route.department,
         path: `/${route.department}`,
-        active: route.view === 'department'
+        active: route.view === 'levels'
       });
     }
 
@@ -124,7 +130,7 @@ class Navigator {
       breadcrumbs.push({
         label: route.level,
         path: `/${route.department}/${route.level}`,
-        active: route.view === 'level'
+        active: route.view === 'semesters'
       });
     }
 
@@ -132,7 +138,7 @@ class Navigator {
       breadcrumbs.push({
         label: route.semester,
         path: `/${route.department}/${route.level}/${route.semester}`,
-        active: route.view === 'semester'
+        active: route.view === 'sessions'
       });
     }
 
@@ -140,11 +146,34 @@ class Navigator {
       breadcrumbs.push({
         label: route.session,
         path: `/${route.department}/${route.level}/${route.semester}/${route.session}`,
-        active: true
+        active: route.view === 'files'
       });
     }
 
     return breadcrumbs;
+  }
+
+  /**
+   * Helper function to find data key with or without trailing spaces
+   * @param {Object} obj - Object to search in
+   * @param {string} key - Key to find
+   * @returns {string|null} Actual key found or null
+   */
+  findDataKey(obj, key) {
+    if (!obj) return null;
+    
+    // Try exact match first
+    if (obj.hasOwnProperty(key)) return key;
+    
+    // Try with trailing space
+    if (obj.hasOwnProperty(key + ' ')) return key + ' ';
+    
+    // Try without trailing space if key has one
+    if (key.endsWith(' ') && obj.hasOwnProperty(key.slice(0, -1))) {
+      return key.slice(0, -1);
+    }
+    
+    return null;
   }
 
   /**
@@ -160,32 +189,37 @@ class Navigator {
       case 'home':
         return CONFIG.departments;
 
-      case 'department':
-        if (!this.data[route.department]) return null;
-        return Object.keys(this.data[route.department]);
+      case 'levels':
+        const deptKey = this.findDataKey(this.data, route.department);
+        if (!deptKey) return null;
+        return Object.keys(this.data[deptKey]);
 
-      case 'level':
-        if (!this.data[route.department] || !this.data[route.department][route.level]) {
-          return null;
-        }
-        return Object.keys(this.data[route.department][route.level]);
+      case 'semesters':
+        const deptKey2 = this.findDataKey(this.data, route.department);
+        if (!deptKey2) return null;
+        const levelKey = this.findDataKey(this.data[deptKey2], route.level);
+        if (!levelKey) return null;
+        return Object.keys(this.data[deptKey2][levelKey]);
 
-      case 'semester':
-        if (!this.data[route.department] || 
-            !this.data[route.department][route.level] ||
-            !this.data[route.department][route.level][route.semester]) {
-          return null;
-        }
-        return Object.keys(this.data[route.department][route.level][route.semester]);
+      case 'sessions':
+        const deptKey3 = this.findDataKey(this.data, route.department);
+        if (!deptKey3) return null;
+        const levelKey2 = this.findDataKey(this.data[deptKey3], route.level);
+        if (!levelKey2) return null;
+        const semesterKey = this.findDataKey(this.data[deptKey3][levelKey2], route.semester);
+        if (!semesterKey) return null;
+        return Object.keys(this.data[deptKey3][levelKey2][semesterKey]);
 
-      case 'session':
-        if (!this.data[route.department] || 
-            !this.data[route.department][route.level] ||
-            !this.data[route.department][route.level][route.semester] ||
-            !this.data[route.department][route.level][route.semester][route.session]) {
-          return null;
-        }
-        return this.data[route.department][route.level][route.semester][route.session];
+      case 'files':
+        const deptKey4 = this.findDataKey(this.data, route.department);
+        if (!deptKey4) return null;
+        const levelKey3 = this.findDataKey(this.data[deptKey4], route.level);
+        if (!levelKey3) return null;
+        const semesterKey2 = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
+        if (!semesterKey2) return null;
+        const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3][semesterKey2], route.session);
+        if (!sessionKey) return null;
+        return this.data[deptKey4][levelKey3][semesterKey2][sessionKey];
 
       default:
         return null;
@@ -200,6 +234,16 @@ class Navigator {
     const route = this.currentRoute;
 
     if (route.view === 'home') return true;
+
+    // If no data loaded yet, consider route potentially valid
+    // This prevents "Page Not Found" during initial loading
+    if (!this.data) {
+      // Check if department name is at least in our config
+      if (route.department && !CONFIG.departments.includes(route.department)) {
+        return false;
+      }
+      return true; // Let it try to render, app will show loading state
+    }
 
     if (route.department && !CONFIG.departments.includes(route.department)) {
       return false;
@@ -271,10 +315,10 @@ class Navigator {
 }
 
 // Create singleton instance
-const navigator = new Navigator();
+const appNavigator = new Navigator();
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Navigator, navigator };
+  module.exports = { Navigator, appNavigator };
 }
 

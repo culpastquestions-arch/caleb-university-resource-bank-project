@@ -33,8 +33,8 @@ class App {
       this.setupEventListeners();
 
       // Initialize navigator
-      navigator.init(this.data);
-      navigator.addListener(() => this.render());
+      appNavigator.init(this.data);
+      appNavigator.addListener(() => this.render());
 
     } catch (error) {
       console.error('App initialization failed:', error);
@@ -46,14 +46,12 @@ class App {
    * Load configuration from environment or defaults
    */
   loadConfig() {
-    // In production, these should come from environment variables
-    // For now, they'll need to be set by the user in a config
-    CONFIG.api.key = window.ENV?.GOOGLE_DRIVE_API_KEY || null;
-    CONFIG.api.rootFolderId = window.ENV?.GOOGLE_DRIVE_ROOT_FOLDER_ID || null;
+    // API endpoint for backend proxy
+    CONFIG.api.endpoint = window.ENV?.API_ENDPOINT || '/api/drive';
   }
 
   /**
-   * Fetch data from Google Drive API
+   * Fetch data from Google Drive API (via backend proxy)
    */
   async fetchData(forceRefresh = false) {
     if (this.loading) return;
@@ -62,15 +60,15 @@ class App {
       this.loading = true;
       this.showLoading();
 
-      // Check if API credentials are configured
-      if (!CONFIG.api.key || !CONFIG.api.rootFolderId) {
-        throw new Error('API credentials not configured. Please check documentation.');
+      // Check if API endpoint is configured
+      if (!CONFIG.api.endpoint) {
+        throw new Error('API endpoint not configured. Please check documentation.');
       }
 
-      // Initialize Drive API
-      await driveAPI.init(CONFIG.api.key, CONFIG.api.rootFolderId);
+      // Initialize Drive API client
+      await driveAPI.init(CONFIG.api.endpoint);
 
-      // Fetch structure from Drive
+      // Fetch structure from backend proxy
       this.data = await driveAPI.fetchStructure();
 
       // Cache the data
@@ -90,7 +88,7 @@ class App {
       if (cachedData) {
         this.data = cachedData;
         this.render();
-        this.showToast('Using cached data. Could not connect to Drive.', 'warning');
+        this.showToast('Using cached data. Could not connect to server.', 'warning');
       } else {
         this.showError(error);
       }
@@ -117,7 +115,7 @@ class App {
     document.addEventListener('click', (e) => {
       if (e.target.closest('.back-btn')) {
         e.preventDefault();
-        navigator.goBack();
+        appNavigator.goBack();
       }
     });
 
@@ -156,7 +154,7 @@ class App {
    * Render the current view
    */
   render() {
-    const route = navigator.getCurrentRoute();
+    const route = appNavigator.getCurrentRoute();
     const mainContent = document.getElementById('main-content');
     
     if (!mainContent) return;
@@ -165,10 +163,10 @@ class App {
     this.renderBreadcrumbs();
 
     // Update title
-    navigator.updateTitle();
+    appNavigator.updateTitle();
 
     // Check if route is valid
-    if (!navigator.isValidRoute()) {
+    if (!appNavigator.isValidRoute()) {
       mainContent.innerHTML = this.renderNotFound();
       return;
     }
@@ -178,16 +176,16 @@ class App {
       case 'home':
         mainContent.innerHTML = this.renderHome();
         break;
-      case 'department':
+      case 'levels':
         mainContent.innerHTML = this.renderLevels();
         break;
-      case 'level':
+      case 'semesters':
         mainContent.innerHTML = this.renderSemesters();
         break;
-      case 'semester':
+      case 'sessions':
         mainContent.innerHTML = this.renderSessions();
         break;
-      case 'session':
+      case 'files':
         mainContent.innerHTML = this.renderFiles();
         break;
       default:
@@ -205,7 +203,7 @@ class App {
     const breadcrumbContainer = document.getElementById('breadcrumb');
     if (!breadcrumbContainer) return;
 
-    const breadcrumbs = navigator.getBreadcrumbs();
+    const breadcrumbs = appNavigator.getBreadcrumbs();
     
     breadcrumbContainer.innerHTML = breadcrumbs.map((crumb, index) => {
       const isLast = index === breadcrumbs.length - 1;
@@ -255,8 +253,18 @@ class App {
    * Render levels view
    */
   renderLevels() {
-    const route = navigator.getCurrentRoute();
-    const levels = navigator.getRouteData();
+    const route = appNavigator.getCurrentRoute();
+    const levels = appNavigator.getRouteData();
+    
+    // If data is not loaded yet, show loading state
+    if (!this.data) {
+      return `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading ${route.department} levels...</p>
+        </div>
+      `;
+    }
     
     if (!levels || levels.length === 0) {
       return this.renderEmptyState('No levels available', 'Check back later for updates');
@@ -279,8 +287,18 @@ class App {
    * Render semesters view
    */
   renderSemesters() {
-    const route = navigator.getCurrentRoute();
-    const semesters = navigator.getRouteData();
+    const route = appNavigator.getCurrentRoute();
+    const semesters = appNavigator.getRouteData();
+    
+    // If data is not loaded yet, show loading state
+    if (!this.data) {
+      return `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading ${route.level} semesters...</p>
+        </div>
+      `;
+    }
     
     if (!semesters || semesters.length === 0) {
       return this.renderEmptyState('No semesters available', 'Check back later for updates');
@@ -302,8 +320,18 @@ class App {
    * Render sessions view
    */
   renderSessions() {
-    const route = navigator.getCurrentRoute();
-    const sessions = navigator.getRouteData();
+    const route = appNavigator.getCurrentRoute();
+    const sessions = appNavigator.getRouteData();
+    
+    // If data is not loaded yet, show loading state
+    if (!this.data) {
+      return `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading ${route.semester} sessions...</p>
+        </div>
+      `;
+    }
     
     if (!sessions || sessions.length === 0) {
       return this.renderEmptyState('No sessions available', 'Check back later for updates');
@@ -325,7 +353,17 @@ class App {
    * Render files view
    */
   renderFiles() {
-    const files = navigator.getRouteData();
+    const files = appNavigator.getRouteData();
+    
+    // If data is not loaded yet, show loading state
+    if (!this.data) {
+      return `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Loading files...</p>
+        </div>
+      `;
+    }
     
     if (!files || files.length === 0) {
       return this.renderEmptyState(
@@ -379,7 +417,7 @@ class App {
         <div class="empty-state-icon">❌</div>
         <h2 class="empty-state-title">Page Not Found</h2>
         <p class="empty-state-text">The page you're looking for doesn't exist.</p>
-        <button onclick="navigator.goHome()" class="btn btn-primary">Go Home</button>
+        <button onclick="appNavigator.goHome()" class="btn btn-primary">Go Home</button>
       </div>
     `;
   }

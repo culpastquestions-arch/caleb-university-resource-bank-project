@@ -178,11 +178,10 @@
 
   <!-- Environment Configuration -->
   <script>
-    // Set environment variables here
-    // In production, these should come from your hosting platform's environment variables
+    // API credentials are now secured on the server
+    // The backend proxy handles all Google Drive API calls
     window.ENV = {
-      GOOGLE_DRIVE_API_KEY: 'YOUR_API_KEY_HERE',
-      GOOGLE_DRIVE_ROOT_FOLDER_ID: 'YOUR_ROOT_FOLDER_ID_HERE'
+      API_ENDPOINT: '/api/drive'
     };
   </script>
 

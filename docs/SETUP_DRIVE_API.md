@@ -2,6 +2,10 @@
 
 This guide will walk you through setting up the Google Drive API for CURB.
 
+## ⚠️ SECURITY IMPORTANT
+
+**You MUST restrict your API key to specific domains.** Unrestricted API keys can be abused and may result in quota exhaustion or unexpected charges. Follow Step 4 carefully.
+
 ## Prerequisites
 
 - A Google account
@@ -34,20 +38,47 @@ This guide will walk you through setting up the Google Drive API for CURB.
 4. Your API key will be generated and displayed
 5. **IMPORTANT:** Copy this key immediately - you'll need it!
 
-## Step 4: Restrict Your API Key (Security)
+## Step 4: Restrict Your API Key (CRITICAL - DO NOT SKIP!)
 
-1. After creating the key, click **"Restrict Key"** (or edit the key)
-2. Under **"Application restrictions"**:
-   - Select **"HTTP referrers (web sites)"**
+🔐 **This step is MANDATORY for security.** An unrestricted API key is a security risk.
+
+### Application Restrictions
+
+1. After creating the key, click **"Restrict Key"** (or click the pencil icon to edit)
+2. Give your key a descriptive name: `CURB Web App Key`
+3. Under **"Application restrictions"**:
+   - Select **"HTTP referrers (web sites)"** ← Important!
    - Click **"Add an item"**
-   - Add your website URL:
-     - For testing: `http://localhost:*` or `http://127.0.0.1:*`
-     - For production: `https://your-domain.vercel.app/*`
-   - You can add multiple referrers
-3. Under **"API restrictions"**:
-   - Select **"Restrict key"**
-   - Check **"Google Drive API"**
-4. Click **"Save"**
+   - Add BOTH of these referrers:
+     ```
+     http://localhost:*
+     http://127.0.0.1:*
+     https://your-domain.vercel.app/*
+     https://*.vercel.app/*
+     ```
+   - Replace `your-domain` with your actual Vercel domain
+   - The `*` wildcard allows all paths on that domain
+
+### API Restrictions
+
+4. Under **"API restrictions"**:
+   - Select **"Restrict key"** ← Important!
+   - Check ONLY **"Google Drive API"**
+   - Uncheck all other APIs
+5. Click **"Save"**
+
+### Verify Your Restrictions
+
+After saving, verify:
+- ✅ Application restrictions: HTTP referrers (shows your domains)
+- ✅ API restrictions: Google Drive API only
+- ❌ NOT "None" for either restriction
+
+**Why this matters:**
+- Prevents unauthorized use of your API key
+- Stops quota abuse
+- Protects your Google Cloud account
+- Limits key to read-only Drive access only
 
 ## Step 5: Get Your Root Folder ID
 
@@ -164,9 +195,25 @@ If you're stuck:
 4. Check that all folder/file permissions are correct
 5. Try the API in [Google's API Explorer](https://developers.google.com/drive/api/v3/reference)
 
+## Security Checklist ✅
+
+Before going live, verify ALL of these:
+
+- [ ] API key has HTTP referrer restrictions enabled
+- [ ] Your production domain is added to allowed referrers
+- [ ] localhost is added for testing (http://localhost:*)
+- [ ] API restrictions limit key to Google Drive API only
+- [ ] Drive folder is shared as "Anyone with link" (Viewer)
+- [ ] No other sensitive data in the same Drive folder
+- [ ] API key name is descriptive (e.g., "CURB Web App Key")
+
+**Test your restrictions:**
+1. Try accessing your site from the allowed domain → Should work ✅
+2. Try using the API key from a different domain → Should fail ✅
+
 ## Next Steps
 
-Once the API is set up:
+Once the API is set up and secured:
 - [Deploy to Vercel](./DEPLOYMENT.md)
 - [Set up Google Forms](./GOOGLE_FORM_SETUP.md)
 - Start adding content to your Drive folders

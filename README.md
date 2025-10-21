@@ -20,7 +20,8 @@ CURB provides students with easy access to past questions organized by Departmen
 ## Tech Stack
 
 - Frontend: HTML5, CSS3, JavaScript (Vanilla)
-- API: Google Drive API v3
+- Backend: Vercel Serverless Functions (Node.js)
+- API: Google Drive API v3 (server-side proxy)
 - Storage: LocalStorage + Service Worker
 - Hosting: Vercel
 
@@ -33,108 +34,34 @@ curb-resource-bank/
 ├── sw.js                   # Service worker
 ├── vercel.json             # Vercel configuration
 ├── env.example             # Environment variables template
+├── api/
+│   └── drive.js            # Serverless backend proxy (SECURE)
 ├── css/
 │   ├── variables.css       # Color scheme & design tokens
 │   └── styles.css          # All styles
 ├── js/
 │   ├── config.js           # App configuration
 │   ├── cache.js            # Cache management
-│   ├── drive-api.js        # Google Drive integration
+│   ├── drive-api.js        # API client (calls backend)
 │   ├── navigation.js       # SPA routing
 │   └── app.js              # Main application logic
 ├── assets/
 │   ├── logo-placeholder.svg
 │   └── icons/
 └── docs/
+    ├── BACKEND_ARCHITECTURE.md  # Architecture & scalability
     ├── SETUP_DRIVE_API.md
     ├── DEPLOYMENT.md
     └── GOOGLE_FORM_SETUP.md
 ```
 
-## Quick Start
-
-### Prerequisites
-
-- Google account with Drive access
-- GitHub account for deployment
-- Text editor
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/Caleb-university-resource-bank.git
-   cd Caleb-university-resource-bank
-   ```
-
-2. Organize your Google Drive with the following structure:
-   ```
-   Root Folder/
-   ├── Department Name/
-   │   ├── 100 Level/
-   │   │   ├── 1st Semester/
-   │   │   │   └── 2024/25 Session/
-   │   │   │       └── *.pdf files
-   │   │   └── 2nd Semester/
-   │   └── 200 Level/
-   ```
-
-3. Set up Google Drive API (see [docs/SETUP_DRIVE_API.md](docs/SETUP_DRIVE_API.md))
-
-4. Configure credentials in `index.html` (line ~150):
-   ```javascript
-   window.ENV = {
-     GOOGLE_DRIVE_API_KEY: 'your_api_key_here',
-     GOOGLE_DRIVE_ROOT_FOLDER_ID: 'your_folder_id_here'
-   };
-   ```
-
-5. Test locally:
-   ```bash
-   python -m http.server 8000
-   # Or
-   npx serve
-   ```
-   Visit `http://localhost:8000`
-
-6. Deploy to Vercel (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md))
-
 ## Documentation
 
-- [Google Drive API Setup](docs/SETUP_DRIVE_API.md) - Configure Drive API
-- [Deployment Guide](docs/DEPLOYMENT.md) - Deploy to Vercel
-- [Google Form Setup](docs/GOOGLE_FORM_SETUP.md) - Add contact form
-
-## Configuration
-
-### Change Colors
-
-Edit `css/variables.css`:
-```css
-:root {
-  --primary-green: #0F9D58;
-  --primary-blue: #1967D2;
-}
-```
-
-### Add Departments
-
-Edit `js/config.js`:
-```javascript
-departments: [
-  "Your New Department",
-  // ... existing departments
-]
-```
-
-### Cache Duration
-
-Change in `js/config.js`:
-```javascript
-cache: {
-  durationDays: 30  // Default: 30 days
-}
-```
+- [🚀 Quick Deployment (5 min)](docs/QUICK_DEPLOYMENT.md) ⭐ **START HERE**
+- [Backend Architecture & Scalability](docs/BACKEND_ARCHITECTURE.md) ⭐ **NEW**
+- [Google Drive API Setup](docs/SETUP_DRIVE_API.md)
+- [Deployment Guide](docs/DEPLOYMENT.md) (Full guide)
+- [Google Form Setup](docs/GOOGLE_FORM_SETUP.md)
 
 ## Browser Support
 
@@ -156,10 +83,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ## Security
 
-- API key restricted to domain
-- Read-only Drive access
-- HTTPS enforced
-- Security headers configured
+CURB implements multiple security layers:
+
+- **🔒 Serverless Backend Proxy**: API keys never exposed to clients
+- **Server-side API calls**: All Google Drive requests happen server-side
+- Content Security Policy (CSP) headers
+- XSS and clickjacking protection
+- Read-only Google Drive access
+- HTTPS enforced via Vercel
+- Comprehensive security headers
+- No sensitive data storage
+
+**Important:** API credentials are securely stored as Vercel environment variables and never exposed to the browser. See [Backend Architecture](docs/BACKEND_ARCHITECTURE.md) for details.
 
 ## License
 

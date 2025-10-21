@@ -55,8 +55,7 @@ const CONFIG = {
 
   // API settings (will be set from environment)
   api: {
-    key: null, // Set at runtime from env
-    rootFolderId: null // Set at runtime from env
+    endpoint: null // Set at runtime from env - points to backend proxy
   },
 
   // App metadata
