@@ -4,6 +4,8 @@ class App {
     this.data = null;
     this.loading = false;
     this.error = null;
+    this.deferredPrompt = null;
+    this.isInstalled = false;
   }
 
   /**
@@ -34,6 +36,9 @@ class App {
       // Initialize navigator
       appNavigator.init(this.data);
       appNavigator.addListener(() => this.render());
+
+      // Setup PWA features
+      this.setupPWAFeatures();
 
     } catch (error) {
       console.error('App initialization failed:', error);
@@ -684,6 +689,158 @@ class App {
       'Software Engineering': 'fas fa-cogs'
     };
     return icons[dept] || 'fas fa-folder';
+  }
+
+  /**
+   * Setup PWA features
+   */
+  setupPWAFeatures() {
+    // Check if app is already installed
+    this.checkInstallStatus();
+    
+    // Listen for beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('PWA install prompt triggered');
+      e.preventDefault();
+      this.deferredPrompt = e;
+      this.showInstallButton();
+    });
+
+    // Listen for app installed event
+    window.addEventListener('appinstalled', () => {
+      console.log('PWA was installed');
+      this.isInstalled = true;
+      this.hideInstallButton();
+      this.showInstallSuccessMessage();
+    });
+
+    // Setup service worker update detection
+    this.setupServiceWorkerUpdates();
+  }
+
+  /**
+   * Check if app is already installed
+   */
+  checkInstallStatus() {
+    // Check if running in standalone mode (installed)
+    if (window.matchMedia('(display-mode: standalone)').matches || 
+        window.navigator.standalone === true) {
+      this.isInstalled = true;
+      console.log('App is already installed');
+    }
+  }
+
+  /**
+   * Show install button
+   */
+  showInstallButton() {
+    if (this.isInstalled) return;
+
+    const installButton = document.getElementById('install-button');
+    if (installButton) {
+      installButton.style.display = 'block';
+    }
+  }
+
+  /**
+   * Hide install button
+   */
+  hideInstallButton() {
+    const installButton = document.getElementById('install-button');
+    if (installButton) {
+      installButton.style.display = 'none';
+    }
+  }
+
+  /**
+   * Handle install button click
+   */
+  async installApp() {
+    if (!this.deferredPrompt) return;
+
+    // Show the install prompt
+    this.deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await this.deferredPrompt.userChoice;
+
+    console.log(`User response to the install prompt: ${outcome}`);
+
+    // Clear the deferredPrompt
+    this.deferredPrompt = null;
+
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+    } else {
+      console.log('User dismissed the install prompt');
+    }
+  }
+
+  /**
+   * Show install success message
+   */
+  showInstallSuccessMessage() {
+    this.showNotification('CURB has been installed successfully!', 'success');
+  }
+
+  /**
+   * Setup service worker updates
+   */
+  setupServiceWorkerUpdates() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('Service worker updated');
+        this.showUpdateNotification();
+      });
+
+      // Check for updates
+      navigator.serviceWorker.getRegistration().then(registration => {
+        if (registration) {
+          registration.addEventListener('updatefound', () => {
+            console.log('New service worker found');
+            this.showUpdateNotification();
+          });
+        }
+      });
+    }
+  }
+
+  /**
+   * Show update notification
+   */
+  showUpdateNotification() {
+    this.showNotification('Update available! Click to reload.', 'info', () => {
+      window.location.reload();
+    });
+  }
+
+  /**
+   * Show notification
+   */
+  showNotification(message, type = 'info', action = null) {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+      <div class="notification-content">
+        <span class="notification-message">${message}</span>
+        ${action ? '<button class="notification-action">Update</button>' : ''}
+      </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Add click handler for action
+    if (action) {
+      const actionButton = notification.querySelector('.notification-action');
+      actionButton.addEventListener('click', action);
+    }
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 5000);
   }
 }
 

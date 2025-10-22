@@ -1,5 +1,5 @@
 // Service Worker for CURB
-const CACHE_NAME = 'curb-v1.0.0';
+const CACHE_NAME = 'curb-v1.1.0';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -10,8 +10,9 @@ const urlsToCache = [
   '/js/drive-api.js',
   '/js/navigation.js',
   '/js/app.js',
-  '/assets/logo-placeholder.svg',
-  '/manifest.json'
+  '/assets/caleb-university-logo-transparent.png',
+  '/manifest.json',
+  '/offline.html'
 ];
 
 // Install event - cache resources
@@ -53,46 +54,109 @@ self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Google APIs
-  if (event.request.url.includes('googleapis.com')) {
+  // Skip Google APIs and external CDNs
+  if (event.request.url.includes('googleapis.com') || 
+      event.request.url.includes('fontawesome.com') ||
+      event.request.url.includes('cdnjs.cloudflare.com')) {
     return;
   }
 
+  const url = new URL(event.request.url);
+  
+  // API calls - Network First
+  if (url.pathname.includes('/api/')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Cache successful API responses
+          if (response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => cache.put(event.request, responseToCache));
+          }
+          return response;
+        })
+        .catch(error => {
+          // Fallback to cache for API calls
+          return caches.match(event.request)
+            .then(response => response || new Response('{"error": "Offline"}', {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' }
+            }));
+        })
+    );
+    return;
+  }
+
+  // Static assets - Cache First
+  if (url.pathname.includes('/css/') || 
+      url.pathname.includes('/js/') || 
+      url.pathname.includes('/assets/')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          if (response) {
+            return response;
+          }
+          return fetch(event.request)
+            .then(fetchResponse => {
+              if (fetchResponse.status === 200) {
+                const responseToCache = fetchResponse.clone();
+                caches.open(CACHE_NAME)
+                  .then(cache => cache.put(event.request, responseToCache));
+              }
+              return fetchResponse;
+            });
+        })
+    );
+    return;
+  }
+
+  // HTML - Stale While Revalidate
+  if (url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          const fetchPromise = fetch(event.request)
+            .then(fetchResponse => {
+              if (fetchResponse.status === 200) {
+                const responseToCache = fetchResponse.clone();
+                caches.open(CACHE_NAME)
+                  .then(cache => cache.put(event.request, responseToCache));
+              }
+              return fetchResponse;
+            })
+            .catch(error => {
+              console.error('Fetch failed:', error);
+              // Return offline page for HTML requests
+              return caches.match('/offline.html');
+            });
+
+          // Return cached version immediately, update in background
+          return response || fetchPromise;
+        })
+    );
+    return;
+  }
+
+  // Default strategy for other requests
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return response
         if (response) {
           return response;
         }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest)
-          .then(response => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
+        return fetch(event.request)
+          .then(fetchResponse => {
+            if (fetchResponse.status === 200) {
+              const responseToCache = fetchResponse.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => cache.put(event.request, responseToCache));
             }
-
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache the fetched resource for future use
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                // Only cache same-origin requests
-                if (event.request.url.startsWith(self.location.origin)) {
-                  cache.put(event.request, responseToCache);
-                }
-              });
-
-            return response;
+            return fetchResponse;
           })
           .catch(error => {
             console.error('Fetch failed:', error);
-            // Could return a custom offline page here
             throw error;
           });
       })

@@ -51,6 +51,10 @@
         </div>
         
         <div class="header-actions">
+          <button id="install-button" class="btn btn-primary" style="display: none;" onclick="app.installApp()" aria-label="Install app">
+            <i class="fas fa-download"></i>
+            <span class="btn-text">Install</span>
+          </button>
           <button id="refresh-btn" class="btn btn-secondary" aria-label="Refresh content">
             🔄 <span class="btn-text">Refresh</span>
           </button>
@@ -184,7 +188,26 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js');
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service worker registered successfully');
+            
+            // Check for updates
+            registration.addEventListener('updatefound', () => {
+              console.log('New service worker found');
+              const newWorker = registration.installing;
+              
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  console.log('New service worker installed, update available');
+                  // The app will handle showing the update notification
+                }
+              });
+            });
+          })
+          .catch(error => {
+            console.error('Service worker registration failed:', error);
+          });
       });
     }
   </script>

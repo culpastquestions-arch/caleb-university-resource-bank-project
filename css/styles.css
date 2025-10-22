@@ -890,6 +890,118 @@ body {
   }
 }
 
+/* PWA Notifications */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-width: 350px;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.notification-content {
+  padding: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.notification-message {
+  flex: 1;
+  font-size: 0.9rem;
+  color: var(--text-color);
+}
+
+.notification-action {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.notification-action:hover {
+  background: var(--primary-dark);
+}
+
+.notification-success {
+  border-left: 4px solid #4CAF50;
+}
+
+.notification-info {
+  border-left: 4px solid #2196F3;
+}
+
+.notification-warning {
+  border-left: 4px solid #FF9800;
+}
+
+.notification-error {
+  border-left: 4px solid #F44336;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Install button specific styles */
+#install-button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+#install-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#install-button i {
+  font-size: 0.9rem;
+}
+
+/* Mobile install button */
+@media (max-width: 767px) {
+  #install-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.8rem;
+  }
+  
+  #install-button .btn-text {
+    display: none;
+  }
+  
+  .notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+}
+
 /* Mobile (< 480px) - Extra small mobile optimizations */
 @media (max-width: 479px) {
   .modal-content {
