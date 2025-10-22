@@ -105,12 +105,14 @@ class App {
 
     // Search input will be attached dynamically when home view is rendered
 
-
     // Quick start toggle
     const quickStartHeader = document.querySelector('.quick-start-header');
     if (quickStartHeader) {
       quickStartHeader.addEventListener('click', () => this.toggleQuickStart());
     }
+
+    // Scroll detection for header styling
+    this.setupScrollListener();
 
     // Announcement close
     document.addEventListener('click', (e) => {
@@ -149,6 +151,34 @@ class App {
         this.openContactModal();
       });
     }
+  }
+
+  /**
+   * Setup scroll listener for header styling
+   */
+  setupScrollListener() {
+    let ticking = false;
+    
+    const updateHeader = () => {
+      const header = document.querySelector('.header');
+      if (header) {
+        if (window.scrollY > 50) {
+          header.classList.add('scrolled');
+        } else {
+          header.classList.remove('scrolled');
+        }
+      }
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(updateHeader);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
   }
 
   /**
@@ -536,8 +566,10 @@ class App {
    */
   toggleQuickStart() {
     const content = document.querySelector('.quick-start-content');
-    if (content) {
+    const header = document.querySelector('.quick-start-header');
+    if (content && header) {
       content.classList.toggle('open');
+      header.classList.toggle('open');
     }
   }
 

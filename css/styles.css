@@ -40,6 +40,12 @@ body {
   position: sticky;
   top: 0;
   z-index: var(--z-dropdown);
+  transition: all 0.3s ease;
+}
+
+.header.scrolled {
+  padding: var(--spacing-sm) 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .header-content {
@@ -59,12 +65,23 @@ body {
   width: 48px;
   height: 48px;
   flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.header.scrolled .logo {
+  width: 40px;
+  height: 40px;
 }
 
 .site-title {
   font-size: var(--font-size-xl);
   font-weight: 700;
   margin: 0;
+  transition: all 0.3s ease;
+}
+
+.header.scrolled .site-title {
+  font-size: 1.25rem;
 }
 
 .site-subtitle {
@@ -229,12 +246,14 @@ body {
   font-size: var(--font-size-base);
   border: 2px solid var(--border-color);
   border-radius: var(--radius-lg);
-  transition: border-color var(--transition-fast);
+  transition: all 0.3s ease;
 }
 
 .search-input:focus {
   outline: none;
   border-color: var(--primary-blue);
+  transform: scale(1.02);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
 }
 
 .search-icon {
@@ -254,12 +273,12 @@ body {
 }
 
 .department-card {
-  background-color: var(--background);
+  background: linear-gradient(135deg, var(--background) 0%, var(--background-secondary) 100%);
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   box-shadow: var(--card-shadow);
   cursor: pointer;
-  transition: all var(--transition-base);
+  transition: all 0.3s ease;
   border: 2px solid transparent;
   text-decoration: none;
   color: inherit;
@@ -267,22 +286,42 @@ body {
   align-items: center;
   gap: var(--spacing-md);
   min-height: 80px;
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards;
 }
 
+.department-card:nth-child(1) { animation-delay: 0.1s; }
+.department-card:nth-child(2) { animation-delay: 0.2s; }
+.department-card:nth-child(3) { animation-delay: 0.3s; }
+.department-card:nth-child(4) { animation-delay: 0.4s; }
+.department-card:nth-child(5) { animation-delay: 0.5s; }
+.department-card:nth-child(6) { animation-delay: 0.6s; }
+
 .department-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(15, 157, 88, 0.2);
   border-color: var(--primary-green);
 }
 
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .department-icon {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-xl);
+  font-size: 1.5rem;
   flex-shrink: 0;
 }
 
@@ -719,6 +758,7 @@ body {
   color: var(--text-dark);
   line-height: 1.6;
   font-weight: 500;
+  text-align: center;
 }
 
 .contact-info strong {
@@ -912,6 +952,93 @@ body {
 @media (min-width: 1280px) {
   .department-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Mobile Header Optimizations */
+@media (max-width: 767px) {
+  /* Header mobile optimization */
+  .header {
+    padding: var(--spacing-sm) 0;
+  }
+  
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .site-title {
+    font-size: 1.25rem;
+  }
+  
+  .header-actions .btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    min-height: 40px;
+  }
+  
+  .header-actions .btn-text {
+    display: none;
+  }
+  
+  .site-subtitle {
+    display: none;
+  }
+  
+  /* Quick Start Guide - collapsed by default on mobile */
+  .quick-start {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .quick-start-content {
+    display: none;
+  }
+  
+  .quick-start-header span {
+    transform: rotate(-90deg);
+    transition: transform 0.3s ease;
+  }
+  
+  .quick-start-header.open span {
+    transform: rotate(0deg);
+  }
+  
+  /* Breadcrumb mobile optimization */
+  .breadcrumb {
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .breadcrumb a {
+    padding: var(--spacing-xs);
+  }
+  
+  /* Search prominence */
+  .search-container {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .search-input {
+    font-size: var(--font-size-lg);
+    padding: var(--spacing-md);
+  }
+}
+
+@media (max-width: 479px) {
+  .header {
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .logo {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .site-title {
+    font-size: 1.125rem;
+  }
+  
+  .breadcrumb {
+    font-size: 0.75rem;
   }
 }
 
