@@ -686,16 +686,7 @@ body {
 
 /* Font Awesome Icon Styling */
 .fas, .far, .fab {
-  font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "FontAwesome", sans-serif;
   font-weight: 900;
-  font-style: normal;
-  font-variant: normal;
-  text-rendering: auto;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-size: inherit;
-  color: inherit;
   display: inline-block;
 }
 

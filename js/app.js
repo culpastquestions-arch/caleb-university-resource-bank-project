@@ -246,6 +246,14 @@ class App {
             <div class="department-name">${dept}</div>
           </a>
         `).join('')}
+        
+        <!-- Test Icon -->
+        <div class="department-card" style="border: 2px solid red; padding: 1rem;">
+          <div class="department-icon" style="background-color: #ff0000;">
+            <i class="fas fa-star" style="color: white; font-size: 1.5rem;"></i>
+          </div>
+          <div class="department-name">TEST ICON</div>
+        </div>
       </div>
     `;
   }
