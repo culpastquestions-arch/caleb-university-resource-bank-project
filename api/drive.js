@@ -178,7 +178,6 @@ module.exports = async (req, res) => {
 
     // Check if we have valid cached data
     if (isCacheValid()) {
-      console.log('Serving from cache');
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('Cache-Control', 'public, max-age=1800'); // Cache on client for 30 minutes
       res.status(200).json({
@@ -190,7 +189,6 @@ module.exports = async (req, res) => {
     }
 
     // Fetch fresh data from Google Drive API
-    console.log('Fetching fresh data from Google Drive API');
     const structure = await fetchStructure(
       rootFolderId, 
       apiKey, 

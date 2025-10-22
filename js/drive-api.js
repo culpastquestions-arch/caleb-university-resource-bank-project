@@ -62,12 +62,7 @@ class DriveAPI {
       const result = await response.json();
       
       // Log cache status
-      const cacheStatus = response.headers.get('X-Cache');
-      if (cacheStatus === 'HIT') {
-        console.log('Data served from server cache');
-      } else {
-        console.log('Fresh data fetched from Google Drive');
-      }
+      // Cache status handled silently
 
       return result.data;
     } catch (error) {
