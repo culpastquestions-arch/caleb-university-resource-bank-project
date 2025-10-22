@@ -137,36 +137,28 @@
       <h2 class="mb-2">Contact Us</h2>
       
       <div class="contact-form-container">
-        <!-- Placeholder for Google Form -->
-        <div class="empty-state" style="padding: 2rem;">
-          <p class="mb-2"><strong>Setup Required:</strong></p>
-          <p class="footer-text mb-2">
-            To enable the contact form, create a Google Form and embed it here. 
-            See <code>docs/GOOGLE_FORM_SETUP.md</code> for instructions.
+        <!-- Google Form iframe -->
+        <iframe 
+          src="https://docs.google.com/forms/d/e/1FAIpQLSeXwQsAF0p3UGAVWANf9UF6VM8HiNJx_al5suCd-FhAhX4fzA/viewform?embedded=true" 
+          width="100%" 
+          height="800" 
+          frameborder="0" 
+          marginheight="0" 
+          marginwidth="0"
+          style="border: none; border-radius: 8px;">
+          Loading…
+        </iframe>
+        
+        <!-- Alternative Contact Methods -->
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+          <p class="footer-text" style="margin-bottom: 1rem;">
+            <strong>Prefer direct contact?</strong>
           </p>
           <p class="footer-text">
-            <strong>Suggested form fields:</strong><br>
-            • Name<br>
-            • Email<br>
-            • Department<br>
-            • Request Type (Missing file, Broken link, Feedback, etc.)<br>
-            • Message
+            📧 Email: <a href="mailto:cul.pastquestions@gmail.com">cul.pastquestions@gmail.com</a><br>
+            💬 WhatsApp: <a href="https://wa.me/2348029239273" target="_blank">+234 802 923 9273</a>
           </p>
-          
-          <div style="margin-top: 2rem;">
-            <p><strong>Alternative Contact Methods:</strong></p>
-            <p class="footer-text">
-              📧 Email: <a href="mailto:curb@example.com">curb@example.com</a><br>
-              💬 WhatsApp: <a href="https://wa.me/1234567890" target="_blank">+234 XXX XXX XXXX</a>
-            </p>
-            <p class="footer-text" style="margin-top: 1rem; font-size: 0.875rem;">
-              <em>Update these contact details in index.html</em>
-            </p>
-          </div>
         </div>
-        
-        <!-- When ready, replace above with Google Form iframe: -->
-        <!-- <iframe src="YOUR_GOOGLE_FORM_URL" width="100%" height="600" frameborder="0"></iframe> -->
       </div>
     </div>
   </div>

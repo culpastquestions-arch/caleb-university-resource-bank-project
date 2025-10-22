@@ -642,6 +642,20 @@ body {
   color: var(--text-dark);
 }
 
+/* Contact Form Container */
+.contact-form-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+.contact-form-container iframe {
+  width: 100%;
+  min-height: 600px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--background);
+}
+
 /* Status Badge */
 .status-badge {
   display: inline-flex;
