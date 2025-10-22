@@ -66,6 +66,8 @@ body {
   height: 48px;
   flex-shrink: 0;
   transition: all 0.3s ease;
+  object-fit: contain;
+  object-position: center;
 }
 
 .header.scrolled .logo {
@@ -981,7 +983,8 @@ body {
   }
   
   .site-subtitle {
-    display: none;
+    font-size: 0.75rem;
+    opacity: 0.8;
   }
   
   /* Quick Start Guide - collapsed by default on mobile */
@@ -1035,6 +1038,11 @@ body {
   
   .site-title {
     font-size: 1.125rem;
+  }
+  
+  .site-subtitle {
+    font-size: 0.625rem;
+    opacity: 0.7;
   }
   
   .breadcrumb {

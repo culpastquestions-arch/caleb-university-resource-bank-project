@@ -208,18 +208,24 @@ class App {
         mainContent.innerHTML = this.renderHome();
         // Reattach search event listener for home view
         this.attachSearchListener();
+        // Ensure Font Awesome icons are properly rendered
+        this.ensureFontAwesomeIcons();
         break;
       case 'levels':
         mainContent.innerHTML = this.renderLevels();
+        this.ensureFontAwesomeIcons();
         break;
       case 'semesters':
         mainContent.innerHTML = this.renderSemesters();
+        this.ensureFontAwesomeIcons();
         break;
       case 'sessions':
         mainContent.innerHTML = this.renderSessions();
+        this.ensureFontAwesomeIcons();
         break;
       case 'files':
         mainContent.innerHTML = this.renderFiles();
+        this.ensureFontAwesomeIcons();
         break;
       default:
         mainContent.innerHTML = this.renderNotFound();
@@ -279,6 +285,34 @@ class App {
         
       </div>
     `;
+  }
+
+  /**
+   * Ensure Font Awesome icons are properly rendered
+   */
+  ensureFontAwesomeIcons() {
+    // Use setTimeout to ensure DOM is fully updated
+    setTimeout(() => {
+      // Check if Font Awesome CSS is loaded
+      const fontAwesomeLoaded = document.querySelector('link[href*="fontawesome"]') || 
+                                document.querySelector('link[href*="font-awesome"]');
+      
+      if (!fontAwesomeLoaded) {
+        console.warn('Font Awesome CSS not found, icons may not display properly');
+        return;
+      }
+
+      const icons = document.querySelectorAll('.department-icon i, .search-icon i, .empty-state-icon i');
+      icons.forEach(icon => {
+        // Force re-render by temporarily removing and re-adding the class
+        const className = icon.className;
+        icon.className = '';
+        // Use requestAnimationFrame to ensure the change is processed
+        requestAnimationFrame(() => {
+          icon.className = className;
+        });
+      });
+    }, 50); // Increased timeout to ensure Font Awesome is loaded
   }
 
   /**
