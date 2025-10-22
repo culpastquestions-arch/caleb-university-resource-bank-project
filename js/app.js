@@ -241,19 +241,11 @@ class App {
         ${departments.map(dept => `
           <a href="#/${encodeURIComponent(dept)}" class="department-card" data-department="${dept}">
             <div class="department-icon" style="background-color: ${getDepartmentColor(dept)}">
-              ${this.getDepartmentIcon(dept)}
+              <i class="${this.getDepartmentIcon(dept)}"></i>
             </div>
             <div class="department-name">${dept}</div>
           </a>
         `).join('')}
-        
-        <!-- Test Icon -->
-        <div class="department-card" style="border: 2px solid red; padding: 1rem;">
-          <div class="department-icon" style="background-color: #ff0000;">
-            <i class="fas fa-star" style="color: white; font-size: 1.5rem;"></i>
-          </div>
-          <div class="department-name">TEST ICON</div>
-        </div>
       </div>
     `;
   }
@@ -603,28 +595,28 @@ class App {
    */
   getDepartmentIcon(dept) {
     const icons = {
-      'Accounting': '<i class="fas fa-chart-line"></i>',
-      'Architecture': '<i class="fas fa-building"></i>',
-      'Biochemistry': '<i class="fas fa-dna"></i>',
-      'Business Administration': '<i class="fas fa-briefcase"></i>',
-      'Computer Science': '<i class="fas fa-laptop-code"></i>',
-      'Criminology': '<i class="fas fa-gavel"></i>',
-      'Cybersecurity': '<i class="fas fa-shield-alt"></i>',
-      'Economics': '<i class="fas fa-chart-bar"></i>',
-      'Human Anatomy': '<i class="fas fa-heartbeat"></i>',
-      'Human Physiology': '<i class="fas fa-brain"></i>',
-      'Industrial Chemistry': '<i class="fas fa-flask"></i>',
-      'International Relations': '<i class="fas fa-globe"></i>',
-      'Jupeb': '<i class="fas fa-graduation-cap"></i>',
-      'Law': '<i class="fas fa-balance-scale"></i>',
-      'Mass Communication': '<i class="fas fa-tv"></i>',
-      'Microbiology': '<i class="fas fa-microscope"></i>',
-      'Nursing': '<i class="fas fa-user-md"></i>',
-      'Political Science': '<i class="fas fa-landmark"></i>',
-      'Psychology': '<i class="fas fa-brain"></i>',
-      'Software Engineering': '<i class="fas fa-cogs"></i>'
+      'Accounting': 'fas fa-chart-line',
+      'Architecture': 'fas fa-building',
+      'Biochemistry': 'fas fa-dna',
+      'Business Administration': 'fas fa-briefcase',
+      'Computer Science': 'fas fa-laptop-code',
+      'Criminology': 'fas fa-gavel',
+      'Cybersecurity': 'fas fa-shield-alt',
+      'Economics': 'fas fa-chart-bar',
+      'Human Anatomy': 'fas fa-heartbeat',
+      'Human Physiology': 'fas fa-brain',
+      'Industrial Chemistry': 'fas fa-flask',
+      'International Relations': 'fas fa-globe',
+      'Jupeb': 'fas fa-graduation-cap',
+      'Law': 'fas fa-balance-scale',
+      'Mass Communication': 'fas fa-tv',
+      'Microbiology': 'fas fa-microscope',
+      'Nursing': 'fas fa-user-md',
+      'Political Science': 'fas fa-landmark',
+      'Psychology': 'fas fa-brain',
+      'Software Engineering': 'fas fa-cogs'
     };
-    return icons[dept] || '<i class="fas fa-folder"></i>';
+    return icons[dept] || 'fas fa-folder';
   }
 }
 
