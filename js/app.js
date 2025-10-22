@@ -709,6 +709,14 @@ class App {
       this.showInstallButton();
     });
 
+    // Always show install button after a delay (fallback for when beforeinstallprompt doesn't fire)
+    setTimeout(() => {
+      if (!this.isInstalled && !this.deferredPrompt) {
+        console.log('Showing fallback install button');
+        this.showInstallButton();
+      }
+    }, 3000);
+
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
       console.log('PWA was installed');
@@ -758,6 +766,34 @@ class App {
   }
 
   /**
+   * Show manual install instructions
+   */
+  showManualInstallInstructions() {
+    const instructions = `
+      <div style="background: white; padding: 20px; border-radius: 8px; margin: 10px;">
+        <h3>Install CURB</h3>
+        <p>To install this app on your device:</p>
+        <ul>
+          <li><strong>Chrome/Edge:</strong> Click the install icon in the address bar</li>
+          <li><strong>Mobile Safari:</strong> Tap Share → Add to Home Screen</li>
+          <li><strong>Other browsers:</strong> Look for "Install" or "Add to Home Screen" in the menu</li>
+        </ul>
+        <button onclick="this.parentElement.remove()" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Got it</button>
+      </div>
+    `;
+    
+    const notification = document.createElement('div');
+    notification.innerHTML = instructions;
+    notification.style.position = 'fixed';
+    notification.style.top = '20px';
+    notification.style.right = '20px';
+    notification.style.zIndex = '1000';
+    notification.style.maxWidth = '300px';
+    
+    document.body.appendChild(notification);
+  }
+
+  /**
    * Hide install button
    */
   hideInstallButton() {
@@ -771,23 +807,26 @@ class App {
    * Handle install button click
    */
   async installApp() {
-    if (!this.deferredPrompt) return;
+    if (this.deferredPrompt) {
+      // Show the automatic install prompt
+      this.deferredPrompt.prompt();
 
-    // Show the install prompt
-    this.deferredPrompt.prompt();
+      // Wait for the user to respond to the prompt
+      const { outcome } = await this.deferredPrompt.userChoice;
 
-    // Wait for the user to respond to the prompt
-    const { outcome } = await this.deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
 
-    console.log(`User response to the install prompt: ${outcome}`);
+      // Clear the deferredPrompt
+      this.deferredPrompt = null;
 
-    // Clear the deferredPrompt
-    this.deferredPrompt = null;
-
-    if (outcome === 'accepted') {
-      console.log('User accepted the install prompt');
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
     } else {
-      console.log('User dismissed the install prompt');
+      // Show manual install instructions
+      this.showManualInstallInstructions();
     }
   }
 
