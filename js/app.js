@@ -246,6 +246,21 @@ class App {
             <div class="department-name">${dept}</div>
           </a>
         `).join('')}
+        
+        <!-- Debug Test -->
+        <div style="border: 2px solid blue; padding: 1rem; margin: 1rem; background: white;">
+          <p>Debug Test:</p>
+          <div style="background: #4CAF50; color: white; padding: 0.5rem; margin: 0.5rem 0;">
+            <i class="fas fa-home"></i> Home Icon Test
+          </div>
+          <div style="background: #2196F3; color: white; padding: 0.5rem; margin: 0.5rem 0;">
+            <i class="fas fa-user"></i> User Icon Test
+          </div>
+          <div style="background: #FF9800; color: white; padding: 0.5rem; margin: 0.5rem 0;">
+            <i class="fas fa-star"></i> Star Icon Test
+          </div>
+          <p>If you see icons above, Font Awesome is working. If you see squares, it's not loading.</p>
+        </div>
       </div>
     `;
   }
@@ -616,7 +631,9 @@ class App {
       'Psychology': 'fas fa-brain',
       'Software Engineering': 'fas fa-cogs'
     };
-    return icons[dept] || 'fas fa-folder';
+    const iconClass = icons[dept] || 'fas fa-folder';
+    console.log(`Department: ${dept}, Icon Class: ${iconClass}`);
+    return iconClass;
   }
 }
 
