@@ -87,6 +87,10 @@ body {
   transition: all 0.3s ease;
 }
 
+.site-title-mobile {
+  display: none;
+}
+
 .header.scrolled .site-title {
   font-size: 1.25rem;
 }
@@ -1074,12 +1078,31 @@ body {
   }
   
   .site-title {
-    font-size: 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
   }
   
   .header-actions .btn {
     padding: var(--spacing-xs) var(--spacing-sm);
     min-height: 40px;
+  }
+  
+  .site-subtitle {
+    display: none;
+  }
+  
+  .site-title {
+    display: none;
+  }
+  
+  .site-title-mobile {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--text-color);
   }
   
   .header-actions .btn-text {

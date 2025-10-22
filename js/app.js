@@ -19,6 +19,9 @@ class App {
       // Check for environment variables
       this.loadConfig();
 
+      // Setup PWA features early
+      this.setupPWAFeatures();
+
       // Try to load from cache first
       const cachedData = cacheManager.get();
       
@@ -37,8 +40,6 @@ class App {
       appNavigator.init(this.data);
       appNavigator.addListener(() => this.render());
 
-      // Setup PWA features
-      this.setupPWAFeatures();
 
     } catch (error) {
       console.error('App initialization failed:', error);
@@ -765,33 +766,6 @@ class App {
     }
   }
 
-  /**
-   * Show manual install instructions
-   */
-  showManualInstallInstructions() {
-    const instructions = `
-      <div style="background: white; padding: 20px; border-radius: 8px; margin: 10px;">
-        <h3>Install CURB</h3>
-        <p>To install this app on your device:</p>
-        <ul>
-          <li><strong>Chrome/Edge:</strong> Click the install icon in the address bar</li>
-          <li><strong>Mobile Safari:</strong> Tap Share → Add to Home Screen</li>
-          <li><strong>Other browsers:</strong> Look for "Install" or "Add to Home Screen" in the menu</li>
-        </ul>
-        <button onclick="this.parentElement.remove()" style="background: var(--primary-color); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Got it</button>
-      </div>
-    `;
-    
-    const notification = document.createElement('div');
-    notification.innerHTML = instructions;
-    notification.style.position = 'fixed';
-    notification.style.top = '20px';
-    notification.style.right = '20px';
-    notification.style.zIndex = '1000';
-    notification.style.maxWidth = '300px';
-    
-    document.body.appendChild(notification);
-  }
 
   /**
    * Hide install button
@@ -825,9 +799,99 @@ class App {
         console.log('User dismissed the install prompt');
       }
     } else {
-      // Show manual install instructions
-      this.showManualInstallInstructions();
+      // Show a more helpful install guide
+      this.showInstallGuide();
     }
+  }
+
+  /**
+   * Show install guide
+   */
+  showInstallGuide() {
+    const isChrome = navigator.userAgent.includes('Chrome');
+    const isEdge = navigator.userAgent.includes('Edg');
+    const isSafari = navigator.userAgent.includes('Safari') && !navigator.userAgent.includes('Chrome');
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    let instructions = '';
+    
+    if (isChrome || isEdge) {
+      if (isMobile) {
+        instructions = `
+          <h3>Install CURB on Mobile</h3>
+          <ol>
+            <li>Tap the <strong>menu button</strong> (⋮) in your browser</li>
+            <li>Look for <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></li>
+            <li>Tap it to install CURB</li>
+          </ol>
+        `;
+      } else {
+        instructions = `
+          <h3>Install CURB on Desktop</h3>
+          <ol>
+            <li>Look for the <strong>install icon</strong> (⊕) in your address bar</li>
+            <li>Click the install icon</li>
+            <li>Click <strong>"Install"</strong> in the popup</li>
+          </ol>
+          <p><em>If you don't see the install icon, try refreshing the page.</em></p>
+        `;
+      }
+    } else if (isSafari && isMobile) {
+      instructions = `
+        <h3>Install CURB on iPhone/iPad</h3>
+        <ol>
+          <li>Tap the <strong>Share button</strong> (□↑) at the bottom</li>
+          <li>Scroll down and tap <strong>"Add to Home Screen"</strong></li>
+          <li>Tap <strong>"Add"</strong> to confirm</li>
+        </ol>
+      `;
+    } else {
+      instructions = `
+        <h3>Install CURB</h3>
+        <p>Look for an <strong>"Install"</strong> or <strong>"Add to Home Screen"</strong> option in your browser menu.</p>
+      `;
+    }
+
+    const guide = document.createElement('div');
+    guide.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+      z-index: 1001;
+      max-width: 400px;
+      width: 90%;
+    `;
+    
+    guide.innerHTML = `
+      ${instructions}
+      <div style="text-align: center; margin-top: 20px;">
+        <button onclick="this.closest('div').remove()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Got it!</button>
+      </div>
+    `;
+
+    // Add backdrop
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+    `;
+    backdrop.onclick = () => {
+      document.body.removeChild(backdrop);
+      document.body.removeChild(guide);
+    };
+
+    document.body.appendChild(backdrop);
+    document.body.appendChild(guide);
   }
 
   /**
