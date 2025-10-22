@@ -384,10 +384,10 @@ class App {
                 ${file.size ? driveAPI.formatFileSize(file.size) : ''} • 
                 ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
               </div>
-            </div>
-            <div class="file-actions">
-              <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
-              <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
+              <div class="file-actions">
+                <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
+                <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
+              </div>
             </div>
           </div>
         `).join('')}

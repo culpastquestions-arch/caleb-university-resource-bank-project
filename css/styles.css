@@ -375,7 +375,7 @@ body {
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--spacing-md);
   transition: all var(--transition-fast);
 }
@@ -402,6 +402,7 @@ body {
 .file-info {
   flex: 1;
   min-width: 0;
+  width: 100%;
 }
 
 .file-name {
@@ -411,7 +412,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 100%;
+  width: 100%;
 }
 
 .file-meta {
@@ -422,6 +423,8 @@ body {
 .file-actions {
   display: flex;
   gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  flex-wrap: wrap;
 }
 
 .file-btn {
@@ -621,8 +624,8 @@ body {
   background-color: var(--background);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
-  max-width: 800px;
-  width: 100%;
+  max-width: 900px;
+  width: 95%;
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
@@ -652,13 +655,13 @@ body {
 }
 
 .contact-form-container iframe {
-  width: 100%;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
   min-height: 600px;
   border: none;
   border-radius: var(--radius-md);
   background-color: var(--background);
-  min-width: 100%;
-  max-width: none;
 }
 
 /* Prevent text wrapping in modal */
@@ -670,12 +673,30 @@ body {
 /* Ensure iframe content doesn't wrap unnecessarily */
 .contact-form-container {
   overflow-x: auto;
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Force Google Form to use full width */
+.contact-form-container iframe[src*="docs.google.com"] {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
 }
 
 /* Font Awesome Icon Styling */
 .fas, .far, .fab {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "FontAwesome", sans-serif;
+  font-weight: 900;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-size: inherit;
   color: inherit;
+  display: inline-block;
 }
 
 /* Department Icons */
