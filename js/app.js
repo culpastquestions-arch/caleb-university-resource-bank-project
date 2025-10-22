@@ -698,6 +698,9 @@ class App {
     // Check if app is already installed
     this.checkInstallStatus();
     
+    // Debug PWA status
+    this.debugPWAStatus();
+    
     // Listen for beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
       console.log('PWA install prompt triggered');
@@ -715,6 +718,19 @@ class App {
     });
 
     // Service worker updates handled automatically
+  }
+
+  /**
+   * Debug PWA status
+   */
+  debugPWAStatus() {
+    console.log('PWA Debug Info:');
+    console.log('- Service Worker supported:', 'serviceWorker' in navigator);
+    console.log('- Standalone mode:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('- iOS standalone:', window.navigator.standalone === true);
+    console.log('- HTTPS:', location.protocol === 'https:');
+    console.log('- Manifest linked:', document.querySelector('link[rel="manifest"]') !== null);
+    console.log('- Install prompt available:', this.deferredPrompt !== null);
   }
 
   /**

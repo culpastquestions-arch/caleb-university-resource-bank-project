@@ -10,15 +10,8 @@
   "icons": [
     {
       "src": "assets/caleb-university-logo-transparent.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "assets/caleb-university-logo-transparent.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "sizes": "any",
+      "type": "image/png"
     }
   ],
   "categories": ["education", "productivity"],
