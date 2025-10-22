@@ -672,6 +672,43 @@ body {
   overflow-x: auto;
 }
 
+/* Font Awesome Icon Styling */
+.fas, .far, .fab {
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Department Icons */
+.department-icon i {
+  font-size: 1.5rem;
+  color: var(--text-light);
+}
+
+/* Search Icon */
+.search-icon i {
+  font-size: 1rem;
+  color: var(--text-secondary);
+}
+
+/* File Icons */
+.file-icon i {
+  font-size: 1.2rem;
+  color: #dc3545; /* Red for PDF */
+}
+
+/* Empty State Icons */
+.empty-state-icon i {
+  font-size: 3rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-md);
+}
+
+/* Quick Start Icon */
+.quick-start-title i {
+  margin-right: var(--spacing-sm);
+  color: var(--primary-green);
+}
+
 /* Status Badge */
 .status-badge {
   display: inline-flex;

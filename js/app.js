@@ -127,6 +127,7 @@ class App {
 
     // Contact modal
     const contactBtn = document.getElementById('contact-btn');
+    const contactLink = document.getElementById('contact-link');
     const contactLinkFooter = document.getElementById('contact-link-footer');
     const contactModal = document.getElementById('contact-modal');
     if (contactBtn && contactModal) {
@@ -134,6 +135,12 @@ class App {
       contactModal.querySelector('.modal-close')?.addEventListener('click', () => this.closeContactModal());
       contactModal.addEventListener('click', (e) => {
         if (e.target === contactModal) this.closeContactModal();
+      });
+    }
+    if (contactLink && contactModal) {
+      contactLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openContactModal();
       });
     }
     if (contactLinkFooter && contactModal) {
@@ -219,7 +226,7 @@ class App {
     return `
       <div class="search-container">
         <div class="search-box">
-          <span class="search-icon">🔍</span>
+          <span class="search-icon"><i class="fas fa-search"></i></span>
           <input 
             type="text" 
             id="search-input" 
@@ -370,7 +377,7 @@ class App {
       <div class="file-list">
         ${files.map(file => `
           <div class="file-item">
-            <div class="file-icon">PDF</div>
+            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
             <div class="file-info">
               <div class="file-name">${file.name}</div>
               <div class="file-meta">
@@ -394,7 +401,7 @@ class App {
   renderEmptyState(title, message) {
     return `
       <div class="empty-state">
-        <div class="empty-state-icon">📂</div>
+        <div class="empty-state-icon"><i class="fas fa-folder-open"></i></div>
         <h2 class="empty-state-title">${title}</h2>
         <p class="empty-state-text">${message}</p>
         <button onclick="app.handleRefresh()" class="btn btn-primary">Refresh Content</button>
@@ -408,7 +415,7 @@ class App {
   renderNotFound() {
     return `
       <div class="empty-state">
-        <div class="empty-state-icon">❌</div>
+        <div class="empty-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
         <h2 class="empty-state-title">Page Not Found</h2>
         <p class="empty-state-text">The page you're looking for doesn't exist.</p>
         <button onclick="appNavigator.goHome()" class="btn btn-primary">Go Home</button>
@@ -439,7 +446,7 @@ class App {
     if (mainContent) {
       mainContent.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">⚠️</div>
+          <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
           <h2 class="empty-state-title">Something went wrong</h2>
           <p class="empty-state-text">${error.message || 'An error occurred'}</p>
           <button onclick="app.init()" class="btn btn-primary">Try Again</button>
@@ -505,7 +512,7 @@ class App {
         noResultsMsg.className = 'no-results';
         noResultsMsg.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-icon"><i class="fas fa-search"></i></div>
             <h3 class="empty-state-title">No departments found</h3>
             <p class="empty-state-text">Try searching for a different term</p>
           </div>
@@ -588,28 +595,28 @@ class App {
    */
   getDepartmentIcon(dept) {
     const icons = {
-      'Accounting': '📊',
-      'Architecture': '🏛️',
-      'Biochemistry': '🧬',
-      'Business Administration': '💼',
-      'Computer Science': '💻',
-      'Criminology': '⚖️',
-      'Cybersecurity': '🔒',
-      'Economics': '📈',
-      'Human Anatomy': '🫀',
-      'Human Physiology': '🧠',
-      'Industrial Chemistry': '⚗️',
-      'International Relations': '🌍',
-      'Jupeb': '📚',
-      'Law': '⚖️',
-      'Mass Communication': '📺',
-      'Microbiology': '🦠',
-      'Nursing': '⚕️',
-      'Political Science': '🏛️',
-      'Psychology': '🧠',
-      'Software Engineering': '⚙️'
+      'Accounting': '<i class="fas fa-chart-line"></i>',
+      'Architecture': '<i class="fas fa-building"></i>',
+      'Biochemistry': '<i class="fas fa-dna"></i>',
+      'Business Administration': '<i class="fas fa-briefcase"></i>',
+      'Computer Science': '<i class="fas fa-laptop-code"></i>',
+      'Criminology': '<i class="fas fa-gavel"></i>',
+      'Cybersecurity': '<i class="fas fa-shield-alt"></i>',
+      'Economics': '<i class="fas fa-chart-bar"></i>',
+      'Human Anatomy': '<i class="fas fa-heartbeat"></i>',
+      'Human Physiology': '<i class="fas fa-brain"></i>',
+      'Industrial Chemistry': '<i class="fas fa-flask"></i>',
+      'International Relations': '<i class="fas fa-globe"></i>',
+      'Jupeb': '<i class="fas fa-graduation-cap"></i>',
+      'Law': '<i class="fas fa-balance-scale"></i>',
+      'Mass Communication': '<i class="fas fa-tv"></i>',
+      'Microbiology': '<i class="fas fa-microscope"></i>',
+      'Nursing': '<i class="fas fa-user-md"></i>',
+      'Political Science': '<i class="fas fa-landmark"></i>',
+      'Psychology': '<i class="fas fa-brain"></i>',
+      'Software Engineering': '<i class="fas fa-cogs"></i>'
     };
-    return icons[dept] || '📁';
+    return icons[dept] || '<i class="fas fa-folder"></i>';
   }
 }
 
