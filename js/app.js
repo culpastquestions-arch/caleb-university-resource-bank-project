@@ -330,14 +330,37 @@ class App {
     
     // If data is not loaded yet, show loading state
     if (!this.data) {
+      const loadingText = route.department === 'Jupeb' ? 'subjects' : 'levels';
       return `
         <div class="loading">
           <div class="spinner"></div>
-          <p>Loading ${route.department} levels...</p>
+          <p>Loading ${route.department} ${loadingText}...</p>
         </div>
       `;
     }
     
+    // Special handling for Jupeb - it has subjects instead of levels
+    if (route.department === 'Jupeb') {
+      if (!levels || levels.length === 0) {
+        return this.renderEmptyState('No subjects available', 'Check back later for updates');
+      }
+
+      return `
+        <div class="level-grid">
+          ${levels.map(level => `
+            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
+               class="level-card">
+              <div class="level-icon">
+                <i class="fas fa-book"></i>
+              </div>
+              <h3>${level}</h3>
+            </a>
+          `).join('')}
+        </div>
+      `;
+    }
+    
+    // Standard handling for other departments
     if (!levels || levels.length === 0) {
       return this.renderEmptyState('No levels available', 'Check back later for updates');
     }
