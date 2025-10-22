@@ -652,6 +652,7 @@ body {
 .contact-form-container {
   width: 100%;
   max-width: 100%;
+  overflow: hidden;
 }
 
 .contact-form-container iframe {
@@ -693,6 +694,48 @@ body {
     border: none !important;
     box-shadow: none !important;
   }
+}
+
+/* Fix Google Forms disclaimer text wrapping */
+.contact-form-container iframe[src*="docs.google.com"] {
+  /* Force Google Forms to use full container width */
+  min-width: 100% !important;
+  width: 100% !important;
+}
+
+/* Additional mobile fixes for Google Forms text overflow */
+@media (max-width: 479px) {
+  .contact-form-container iframe[src*="docs.google.com"] {
+    /* Ensure iframe uses full width on very small screens */
+    min-width: 100% !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+}
+
+/* Contact Info Styling */
+.contact-info {
+  font-size: var(--font-size-md);
+  color: var(--text-dark);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.contact-info strong {
+  font-size: var(--font-size-lg);
+  color: var(--primary-green);
+  display: block;
+  margin-bottom: var(--spacing-md);
+}
+
+.contact-info a {
+  color: var(--primary-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.contact-info a:hover {
+  text-decoration: underline;
 }
 
 /* Font Awesome Icon Styling */
