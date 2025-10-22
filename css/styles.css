@@ -684,6 +684,17 @@ body {
   max-width: none !important;
 }
 
+/* Mobile-specific Google Forms iframe optimizations */
+@media (max-width: 767px) {
+  .contact-form-container iframe[src*="docs.google.com"] {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
 /* Font Awesome Icon Styling */
 .fas, .far, .fab {
   font-weight: 900;
@@ -770,7 +781,51 @@ body {
 
 /* Responsive Design */
 
-/* Mobile (< 480px) - default styles above */
+/* Mobile (< 768px) - Mobile-specific modal optimizations */
+@media (max-width: 767px) {
+  .modal-content {
+    width: 98%;
+    max-width: 98%;
+    padding: var(--spacing-md);
+    margin: var(--spacing-sm);
+  }
+  
+  .contact-form-container iframe {
+    height: 600px;
+    min-height: 500px;
+  }
+  
+  .modal {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Mobile (< 480px) - Extra small mobile optimizations */
+@media (max-width: 479px) {
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    padding: var(--spacing-sm);
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+  
+  .contact-form-container iframe {
+    height: 500px;
+    min-height: 400px;
+  }
+  
+  .modal {
+    padding: 0;
+    align-items: stretch;
+  }
+  
+  .modal.open {
+    align-items: stretch;
+  }
+}
 
 /* Tablet (>= 768px) */
 @media (min-width: 768px) {
