@@ -916,20 +916,6 @@ body {
   color: var(--text-color);
 }
 
-.notification-action {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.notification-action:hover {
-  background: var(--primary-dark);
-}
 
 .notification-success {
   border-left: 4px solid #4CAF50;

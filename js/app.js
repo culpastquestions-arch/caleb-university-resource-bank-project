@@ -714,8 +714,7 @@ class App {
       this.showInstallSuccessMessage();
     });
 
-    // Setup service worker update detection
-    this.setupServiceWorkerUpdates();
+    // Service worker updates handled automatically
   }
 
   /**
@@ -784,63 +783,25 @@ class App {
   }
 
   /**
-   * Setup service worker updates
-   */
-  setupServiceWorkerUpdates() {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        console.log('Service worker updated');
-        this.showUpdateNotification();
-      });
-
-      // Check for updates
-      navigator.serviceWorker.getRegistration().then(registration => {
-        if (registration) {
-          registration.addEventListener('updatefound', () => {
-            console.log('New service worker found');
-            this.showUpdateNotification();
-          });
-        }
-      });
-    }
-  }
-
-  /**
-   * Show update notification
-   */
-  showUpdateNotification() {
-    this.showNotification('Update available! Click to reload.', 'info', () => {
-      window.location.reload();
-    });
-  }
-
-  /**
    * Show notification
    */
-  showNotification(message, type = 'info', action = null) {
+  showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
       <div class="notification-content">
         <span class="notification-message">${message}</span>
-        ${action ? '<button class="notification-action">Update</button>' : ''}
       </div>
     `;
 
     document.body.appendChild(notification);
 
-    // Add click handler for action
-    if (action) {
-      const actionButton = notification.querySelector('.notification-action');
-      actionButton.addEventListener('click', action);
-    }
-
-    // Auto remove after 5 seconds
+    // Auto remove after 3 seconds
     setTimeout(() => {
       if (notification.parentNode) {
         notification.parentNode.removeChild(notification);
       }
-    }, 5000);
+    }, 3000);
   }
 }
 

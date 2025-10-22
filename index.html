@@ -191,19 +191,6 @@
         navigator.serviceWorker.register('/sw.js')
           .then(registration => {
             console.log('Service worker registered successfully');
-            
-            // Check for updates
-            registration.addEventListener('updatefound', () => {
-              console.log('New service worker found');
-              const newWorker = registration.installing;
-              
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  console.log('New service worker installed, update available');
-                  // The app will handle showing the update notification
-                }
-              });
-            });
           })
           .catch(error => {
             console.error('Service worker registration failed:', error);
