@@ -105,13 +105,6 @@ class App {
 
     // Search input will be attached dynamically when home view is rendered
 
-    // Back button
-    document.addEventListener('click', (e) => {
-      if (e.target.closest('.back-btn')) {
-        e.preventDefault();
-        appNavigator.goBack();
-      }
-    });
 
     // Quick start toggle
     const quickStartHeader = document.querySelector('.quick-start-header');
@@ -195,8 +188,6 @@ class App {
         mainContent.innerHTML = this.renderNotFound();
     }
 
-    // Show back button if not on home
-    this.updateBackButton(route.view !== 'home');
   }
 
   /**
@@ -530,15 +521,6 @@ class App {
     }
   }
 
-  /**
-   * Update back button visibility
-   */
-  updateBackButton(show) {
-    const backBtn = document.getElementById('back-btn');
-    if (backBtn) {
-      backBtn.style.display = show ? '' : 'none';
-    }
-  }
 
 
   /**

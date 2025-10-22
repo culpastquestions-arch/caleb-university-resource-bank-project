@@ -408,7 +408,10 @@ body {
   font-weight: 500;
   color: var(--text-dark);
   margin-bottom: var(--spacing-xs);
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .file-meta {
@@ -618,7 +621,7 @@ body {
   background-color: var(--background);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -654,6 +657,19 @@ body {
   border: none;
   border-radius: var(--radius-md);
   background-color: var(--background);
+  min-width: 100%;
+  max-width: none;
+}
+
+/* Prevent text wrapping in modal */
+.modal-content {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Ensure iframe content doesn't wrap unnecessarily */
+.contact-form-container {
+  overflow-x: auto;
 }
 
 /* Status Badge */
