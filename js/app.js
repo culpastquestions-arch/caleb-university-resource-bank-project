@@ -23,7 +23,6 @@ class App {
       if (cachedData) {
         this.data = cachedData;
         this.render();
-        this.updateCacheStatus();
       } else {
         // No cache, must fetch from API
         await this.fetchData();
@@ -76,7 +75,6 @@ class App {
 
       // Render the app
       this.render();
-      this.updateCacheStatus();
 
       this.loading = false;
     } catch (error) {
@@ -105,11 +103,7 @@ class App {
       refreshBtn.addEventListener('click', () => this.handleRefresh());
     }
 
-    // Search input
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
-    }
+    // Search input will be attached dynamically when home view is rendered
 
     // Back button
     document.addEventListener('click', (e) => {
@@ -140,12 +134,19 @@ class App {
 
     // Contact modal
     const contactBtn = document.getElementById('contact-btn');
+    const contactLinkFooter = document.getElementById('contact-link-footer');
     const contactModal = document.getElementById('contact-modal');
     if (contactBtn && contactModal) {
       contactBtn.addEventListener('click', () => this.openContactModal());
       contactModal.querySelector('.modal-close')?.addEventListener('click', () => this.closeContactModal());
       contactModal.addEventListener('click', (e) => {
         if (e.target === contactModal) this.closeContactModal();
+      });
+    }
+    if (contactLinkFooter && contactModal) {
+      contactLinkFooter.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openContactModal();
       });
     }
   }
@@ -175,6 +176,8 @@ class App {
     switch (route.view) {
       case 'home':
         mainContent.innerHTML = this.renderHome();
+        // Reattach search event listener for home view
+        this.attachSearchListener();
         break;
       case 'levels':
         mainContent.innerHTML = this.renderLevels();
@@ -463,6 +466,16 @@ class App {
   }
 
   /**
+   * Attach search event listener (called when home view is rendered)
+   */
+  attachSearchListener() {
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+    }
+  }
+
+  /**
    * Handle search input
    */
   handleSearch(query) {
@@ -471,15 +484,50 @@ class App {
 
     const cards = grid.querySelectorAll('.department-card');
     const lowerQuery = query.toLowerCase().trim();
+    let visibleCount = 0;
 
     cards.forEach(card => {
       const deptName = card.dataset.department.toLowerCase();
       if (deptName.includes(lowerQuery)) {
         card.style.display = '';
+        visibleCount++;
       } else {
         card.style.display = 'none';
       }
     });
+
+    // Show/hide no results message
+    this.updateSearchResults(visibleCount, lowerQuery);
+  }
+
+  /**
+   * Update search results display
+   */
+  updateSearchResults(visibleCount, query) {
+    let noResultsMsg = document.getElementById('no-results-msg');
+    
+    if (visibleCount === 0 && query.length > 0) {
+      // Show no results message
+      if (!noResultsMsg) {
+        noResultsMsg = document.createElement('div');
+        noResultsMsg.id = 'no-results-msg';
+        noResultsMsg.className = 'no-results';
+        noResultsMsg.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">🔍</div>
+            <h3 class="empty-state-title">No departments found</h3>
+            <p class="empty-state-text">Try searching for a different term</p>
+          </div>
+        `;
+        document.getElementById('department-grid').parentNode.appendChild(noResultsMsg);
+      }
+      noResultsMsg.style.display = 'block';
+    } else {
+      // Hide no results message
+      if (noResultsMsg) {
+        noResultsMsg.style.display = 'none';
+      }
+    }
   }
 
   /**
@@ -492,24 +540,6 @@ class App {
     }
   }
 
-  /**
-   * Update cache status display
-   */
-  updateCacheStatus() {
-    const statusEl = document.getElementById('cache-status');
-    if (!statusEl) return;
-
-    const status = cacheManager.getStatus();
-    const lastUpdated = cacheManager.getLastUpdated();
-
-    if (lastUpdated) {
-      statusEl.innerHTML = `
-        <span class="status-badge cached">
-          ${status.message}
-        </span>
-      `;
-    }
-  }
 
   /**
    * Toggle quick start guide
