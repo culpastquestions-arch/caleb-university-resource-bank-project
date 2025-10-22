@@ -96,19 +96,32 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
 
       structure[dept.name][levelFolder.name] = {};
 
-      // Get semester folders
-      const semesters = await listFolders(levelFolder.id, apiKey);
-
-      for (const semester of semesters) {
-        structure[dept.name][levelFolder.name][semester.name] = {};
-
-        // Get session folders
-        const sessions = await listFolders(semester.id, apiKey);
-
+      // Special handling for Jupeb - it has direct session structure
+      if (dept.name === 'Jupeb') {
+        // Get session folders directly under the subject
+        const sessions = await listFolders(levelFolder.id, apiKey);
+        
         for (const session of sessions) {
           // Get PDF files in this session
           const files = await listFiles(session.id, apiKey);
-          structure[dept.name][levelFolder.name][semester.name][session.name] = files;
+          structure[dept.name][levelFolder.name][session.name] = files;
+        }
+      } else {
+        // Standard structure for other departments
+        // Get semester folders
+        const semesters = await listFolders(levelFolder.id, apiKey);
+
+        for (const semester of semesters) {
+          structure[dept.name][levelFolder.name][semester.name] = {};
+
+          // Get session folders
+          const sessions = await listFolders(semester.id, apiKey);
+
+          for (const session of sessions) {
+            // Get PDF files in this session
+            const files = await listFiles(session.id, apiKey);
+            structure[dept.name][levelFolder.name][semester.name][session.name] = files;
+          }
         }
       }
     }

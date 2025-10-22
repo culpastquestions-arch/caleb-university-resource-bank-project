@@ -199,7 +199,15 @@ class Navigator {
         if (!deptKey2) return null;
         const levelKey = this.findDataKey(this.data[deptKey2], route.level);
         if (!levelKey) return null;
-        return Object.keys(this.data[deptKey2][levelKey]);
+        
+        // Special handling for Jupeb - it skips semester level
+        if (route.department === 'Jupeb') {
+          // For Jupeb, return sessions directly
+          return Object.keys(this.data[deptKey2][levelKey]);
+        } else {
+          // Standard structure for other departments
+          return Object.keys(this.data[deptKey2][levelKey]);
+        }
 
       case 'sessions':
         const deptKey3 = this.findDataKey(this.data, route.department);
