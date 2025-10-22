@@ -78,21 +78,21 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
     // Get level folders for this department
     const levelFolders = await listFolders(dept.id, apiKey);
     
-    // Debug logging for Jupeb to see what folders exist
-    if (dept.name === 'Jupeb') {
-      console.log('Jupeb level folders found:', levelFolders.map(f => f.name));
-      // Also include in response for debugging
-      structure[dept.name]._debug_folders = levelFolders.map(f => f.name);
-    }
 
     for (const levelFolder of levelFolders) {
-      // Parse level number (e.g., "100 Level" -> 100)
-      const levelMatch = levelFolder.name.match(/(\d+)/);
-      if (!levelMatch) continue;
-      const levelNum = parseInt(levelMatch[1]);
+      let isValidLevel = false;
       
-      // Check if this level is valid for this department
-      if (!levels.includes(levelNum)) continue;
+      // Check if this is a numeric level (e.g., "100 Level" -> 100)
+      const levelMatch = levelFolder.name.match(/(\d+)/);
+      if (levelMatch) {
+        const levelNum = parseInt(levelMatch[1]);
+        isValidLevel = levels.includes(levelNum);
+      } else {
+        // Check if this is a named level (e.g., "Art", "Business ", "Science")
+        isValidLevel = levels.includes(levelFolder.name);
+      }
+      
+      if (!isValidLevel) continue;
 
       structure[dept.name][levelFolder.name] = {};
 
@@ -178,7 +178,8 @@ module.exports = async (req, res) => {
       "Human Anatomy": [100],
       "Human Physiology": [100],
       "Software Engineering": [100],
-      "Nursing": [100, 200]
+      "Nursing": [100, 200],
+      "Jupeb": ["Art", "Business ", "Science"]
     };
 
     const defaultLevels = [100, 200, 300, 400];

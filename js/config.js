@@ -29,7 +29,8 @@ const CONFIG = {
     "Human Anatomy": [100],
     "Human Physiology": [100],
     "Software Engineering": [100],
-    "Nursing": [100, 200]
+    "Nursing": [100, 200],
+    "Jupeb": ["Art", "Business ", "Science"]
   },
 
   // Default levels for departments not in exceptions
