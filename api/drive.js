@@ -81,6 +81,8 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
     // Debug logging for Jupeb to see what folders exist
     if (dept.name === 'Jupeb') {
       console.log('Jupeb level folders found:', levelFolders.map(f => f.name));
+      // Also include in response for debugging
+      structure[dept.name]._debug_folders = levelFolders.map(f => f.name);
     }
 
     for (const levelFolder of levelFolders) {
