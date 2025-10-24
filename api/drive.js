@@ -14,6 +14,18 @@ const cache = {
 };
 
 /**
+ * Normalize folder names to handle trailing spaces and inconsistent formatting
+ * @param {string} name - The folder name to normalize
+ * @returns {string} Normalized folder name
+ */
+function normalizeFolderName(name) {
+  if (!name || typeof name !== 'string') return name;
+  
+  // Trim whitespace and collapse multiple spaces into single spaces
+  return name.trim().replace(/\s+/g, ' ');
+}
+
+/**
  * Make HTTPS request to Google Drive API
  */
 function makeAPIRequest(url) {
@@ -70,41 +82,44 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
   const departmentFolders = await listFolders(rootFolderId, apiKey);
   
   for (const dept of departmentFolders) {
-    if (!departments.includes(dept.name)) continue;
+    const normalizedDeptName = normalizeFolderName(dept.name);
+    if (!departments.includes(normalizedDeptName)) continue;
 
-    structure[dept.name] = {};
-    const levels = levelExceptions[dept.name] || defaultLevels;
+    structure[normalizedDeptName] = {};
+    const levels = levelExceptions[normalizedDeptName] || defaultLevels;
 
     // Get level folders for this department
     const levelFolders = await listFolders(dept.id, apiKey);
     
 
     for (const levelFolder of levelFolders) {
+      const normalizedLevelName = normalizeFolderName(levelFolder.name);
       let isValidLevel = false;
       
       // Check if this is a numeric level (e.g., "100 Level" -> 100)
-      const levelMatch = levelFolder.name.match(/(\d+)/);
+      const levelMatch = normalizedLevelName.match(/(\d+)/);
       if (levelMatch) {
         const levelNum = parseInt(levelMatch[1]);
         isValidLevel = levels.includes(levelNum);
       } else {
-        // Check if this is a named level (e.g., "Art", "Business ", "Science")
-        isValidLevel = levels.includes(levelFolder.name);
+        // Check if this is a named level (e.g., "Art", "Business", "Science")
+        isValidLevel = levels.includes(normalizedLevelName);
       }
       
       if (!isValidLevel) continue;
 
-      structure[dept.name][levelFolder.name] = {};
+      structure[normalizedDeptName][normalizedLevelName] = {};
 
       // Special handling for Jupeb - it has direct session structure
-      if (dept.name === 'Jupeb') {
+      if (normalizedDeptName === 'Jupeb') {
         // Get session folders directly under the subject
         const sessions = await listFolders(levelFolder.id, apiKey);
         
         for (const session of sessions) {
+          const normalizedSessionName = normalizeFolderName(session.name);
           // Get PDF files in this session
           const files = await listFiles(session.id, apiKey);
-          structure[dept.name][levelFolder.name][session.name] = files;
+          structure[normalizedDeptName][normalizedLevelName][normalizedSessionName] = files;
         }
       } else {
         // Standard structure for other departments
@@ -112,15 +127,17 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
         const semesters = await listFolders(levelFolder.id, apiKey);
 
         for (const semester of semesters) {
-          structure[dept.name][levelFolder.name][semester.name] = {};
+          const normalizedSemesterName = normalizeFolderName(semester.name);
+          structure[normalizedDeptName][normalizedLevelName][normalizedSemesterName] = {};
 
           // Get session folders
           const sessions = await listFolders(semester.id, apiKey);
 
           for (const session of sessions) {
+            const normalizedSessionName = normalizeFolderName(session.name);
             // Get PDF files in this session
             const files = await listFiles(session.id, apiKey);
-            structure[dept.name][levelFolder.name][semester.name][session.name] = files;
+            structure[normalizedDeptName][normalizedLevelName][normalizedSemesterName][normalizedSessionName] = files;
           }
         }
       }
@@ -192,7 +209,7 @@ module.exports = async (req, res) => {
       "Human Physiology": [100],
       "Software Engineering": [100],
       "Nursing": [100, 200],
-      "Jupeb": ["Art", "Business ", "Science"]
+      "Jupeb": ["Art", "Business ", "Science"] // Note: Keep original names to match Google Drive
     };
 
     const defaultLevels = [100, 200, 300, 400];
