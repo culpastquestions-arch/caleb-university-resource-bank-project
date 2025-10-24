@@ -818,11 +818,60 @@ class App {
 
       if (outcome === 'accepted') {
         console.log('User accepted the install prompt');
+        this.isInstalled = true;
+        this.hideInstallButton();
       } else {
         console.log('User dismissed the install prompt');
       }
     } else {
-      // Show a more helpful install guide
+      // Force trigger install prompt by checking if PWA criteria are met
+      if (this.checkPWACriteria()) {
+        // Try to trigger install prompt manually
+        this.triggerInstallPrompt();
+      } else {
+        // Show install guide only if PWA criteria not met
+        this.showInstallGuide();
+      }
+    }
+  }
+
+  /**
+   * Check if PWA meets installation criteria
+   */
+  checkPWACriteria() {
+    const hasManifest = document.querySelector('link[rel="manifest"]') !== null;
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
+    const hasIcons = document.querySelector('link[rel="manifest"]') !== null;
+    
+    console.log('PWA Criteria Check:', {
+      hasManifest,
+      hasServiceWorker,
+      isHTTPS,
+      hasIcons
+    });
+    
+    return hasManifest && hasServiceWorker && isHTTPS && hasIcons;
+  }
+
+  /**
+   * Try to trigger install prompt manually
+   */
+  async triggerInstallPrompt() {
+    try {
+      // Try to reload the page to trigger beforeinstallprompt event
+      console.log('Attempting to trigger install prompt...');
+      
+      // Show a brief message that we're trying to install
+      this.showNotification('Preparing to install CURB...', 'info');
+      
+      // Small delay to ensure everything is ready
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Failed to trigger install prompt:', error);
       this.showInstallGuide();
     }
   }
