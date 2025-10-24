@@ -751,15 +751,11 @@ class App {
       this.showInstallSuccessMessage();
     });
 
-    // Try to trigger install prompt after page load
+    // Check if install prompt is available after page load
     setTimeout(() => {
       if (!this.isInstalled && !this.deferredPrompt) {
-        console.log('Attempting to trigger install prompt...');
-        // Force a page reload to trigger beforeinstallprompt
-        if (this.checkPWACriteria()) {
-          console.log('PWA criteria met, reloading to trigger install prompt');
-          window.location.reload();
-        }
+        console.log('Install prompt not available, showing install button anyway');
+        this.showInstallButton();
       }
     }, 5000);
 
@@ -848,23 +844,10 @@ class App {
         this.showNativeInstallOption();
       }
     } else {
-      // Try to force the install prompt by reloading the page
-      console.log('No deferred prompt available, trying to force install prompt');
-      this.forceInstallPrompt();
+      // Show native install option instead of reloading
+      console.log('No deferred prompt available, showing native install option');
+      this.showNativeInstallOption();
     }
-  }
-
-  /**
-   * Force install prompt by reloading the page
-   */
-  forceInstallPrompt() {
-    // Show a brief message
-    this.showNotification('Preparing to install CURB...', 'info');
-    
-    // Reload the page to trigger beforeinstallprompt event
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
   }
 
   /**
@@ -891,7 +874,64 @@ class App {
       }
     }
     
-    alert(message);
+    // Show a modal instead of alert for better UX
+    this.showInstallModal(message);
+  }
+
+  /**
+   * Show install modal with instructions
+   */
+  showInstallModal(message) {
+    // Create modal overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    `;
+
+    modal.innerHTML = `
+      <h3 style="margin-top: 0; color: var(--primary-green);">Install CURB</h3>
+      <p style="white-space: pre-line; line-height: 1.6;">${message}</p>
+      <button onclick="this.closest('.install-modal').remove()" style="
+        background: var(--primary-green);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 1rem;
+      ">Got it</button>
+    `;
+
+    overlay.className = 'install-modal';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Close on overlay click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        overlay.remove();
+      }
+    });
   }
 
   /**
