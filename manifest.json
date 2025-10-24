@@ -2,23 +2,24 @@
   "name": "Caleb University Resource Bank",
   "short_name": "CURB",
   "description": "Access past questions and study materials for all departments at Caleb University",
+  "lang": "en",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#FFFFFF",
+  "background_color": "#F8F9FA",
+  "theme_color": "#0F9D58",
   "orientation": "portrait-primary",
   "icons": [
     {
       "src": "assets/caleb-university-logo-transparent.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "assets/caleb-university-logo-transparent.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ],
   "categories": ["education", "productivity"],
