@@ -103,6 +103,7 @@ async function fetchStructure(rootFolderId, apiKey, departments, levelExceptions
         isValidLevel = levels.includes(levelNum);
       } else {
         // Check if this is a named level (e.g., "Art", "Business", "Science")
+        // Use normalized names consistently
         isValidLevel = levels.includes(normalizedLevelName);
       }
       
@@ -209,7 +210,7 @@ module.exports = async (req, res) => {
       "Human Physiology": [100],
       "Software Engineering": [100],
       "Nursing": [100, 200],
-      "Jupeb": ["Art", "Business ", "Science"] // Note: Keep original names to match Google Drive
+      "Jupeb": ["Art", "Business", "Science"] // Note: Use normalized names consistently
     };
 
     const defaultLevels = [100, 200, 300, 400];

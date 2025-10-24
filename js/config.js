@@ -30,7 +30,7 @@ const CONFIG = {
     "Human Physiology": [100],
     "Software Engineering": [100],
     "Nursing": [100, 200],
-    "Jupeb": ["Art", "Business ", "Science"] // Note: Keep original names to match Google Drive
+    "Jupeb": ["Art", "Business", "Science"] // Note: Use normalized names consistently
   },
 
   // Default levels for departments not in exceptions
@@ -49,7 +49,7 @@ const CONFIG = {
   ],
 
   // App version - single source of truth for cache management
-  version: "1.2.1",
+  version: "1.2.2",
 
   // Cache settings
   cache: {

@@ -1,5 +1,5 @@
 // Service Worker for CURB
-const CACHE_NAME = 'curb-v1.2.1';
+const CACHE_NAME = 'curb-v1.2.2';
 const urlsToCache = [
   '/',
   '/index.html',
