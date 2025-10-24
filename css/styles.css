@@ -641,6 +641,10 @@ body {
   color: var(--primary-blue);
 }
 
+#install-link-footer {
+  display: none;
+}
+
 .footer-bottom {
   margin-top: var(--spacing-xl);
   padding-top: var(--spacing-lg);

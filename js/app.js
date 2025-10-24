@@ -820,6 +820,12 @@ class App {
     if (installButton) {
       installButton.style.display = 'block';
     }
+
+    // Show footer install link
+    const installLinkFooter = document.getElementById('install-link-footer');
+    if (installLinkFooter) {
+      installLinkFooter.style.display = 'block';
+    }
   }
 
 
@@ -830,6 +836,12 @@ class App {
     const installButton = document.getElementById('install-button');
     if (installButton) {
       installButton.style.display = 'none';
+    }
+
+    // Hide footer install link
+    const installLinkFooter = document.getElementById('install-link-footer');
+    if (installLinkFooter) {
+      installLinkFooter.style.display = 'none';
     }
   }
 
