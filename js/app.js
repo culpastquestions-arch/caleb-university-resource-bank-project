@@ -6,6 +6,7 @@ class App {
     this.error = null;
     this.deferredPrompt = null;
     this.isInstalled = false;
+    this.installationInProgress = false;
   }
 
   /**
@@ -741,9 +742,12 @@ class App {
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
-      this.isInstalled = true;
-      this.hideInstallButton();
-      this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
+      if (!this.isInstalled && this.installationInProgress) {
+        this.isInstalled = true;
+        this.installationInProgress = false;
+        this.hideInstallButton();
+        this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
+      }
     });
 
     // Check if install prompt is available after page load
@@ -863,6 +867,9 @@ class App {
         this.deferredPrompt = null;
 
         if (outcome === 'accepted') {
+          // Set installation in progress flag
+          this.installationInProgress = true;
+          
           // Show installation in progress
           this.showInstallProgress('Installing CURB... Please wait', 'info');
           
