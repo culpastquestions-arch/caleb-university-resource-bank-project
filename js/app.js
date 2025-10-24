@@ -462,10 +462,20 @@ class App {
     }
     
     if (!files || files.length === 0) {
-      return this.renderEmptyState(
-        'No files available yet', 
-        'Files will be added soon. Check back later or contact us if you have materials to share.'
-      );
+      // Check if this is 1st semester 2024/2025
+      const isFirstSemester2024_2025 = this.currentRoute.includes('/1st Semester/2024/2025');
+      
+      if (isFirstSemester2024_2025) {
+        return this.renderEmptyState(
+          'No files available for 1st Semester 2024/2025',
+          'Files are available from 2nd semester 2024/2025 onwards.'
+        );
+      } else {
+        return this.renderEmptyState(
+          'No files available yet', 
+          'Files will be added soon. Check back later or contact us if you have materials to share.'
+        );
+      }
     }
 
     return `
