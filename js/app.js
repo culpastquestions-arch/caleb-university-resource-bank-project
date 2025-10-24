@@ -727,6 +727,9 @@ class App {
     // Debug PWA status
     this.debugPWAStatus();
     
+    // Track user engagement to trigger install prompt
+    this.trackUserEngagement();
+    
     // Listen for beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
       console.log('PWA install prompt triggered');
@@ -760,6 +763,52 @@ class App {
     }, 5000);
 
     // Service worker updates handled automatically
+  }
+
+  /**
+   * Track user engagement to trigger install prompt
+   */
+  trackUserEngagement() {
+    let engagementScore = 0;
+    
+    // Track clicks
+    document.addEventListener('click', () => {
+      engagementScore += 1;
+      console.log('User engagement score:', engagementScore);
+    });
+    
+    // Track scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        engagementScore += 1;
+        console.log('User engagement score:', engagementScore);
+      }, 1000);
+    });
+    
+    // Track time on page
+    setTimeout(() => {
+      engagementScore += 5;
+      console.log('User engagement score:', engagementScore);
+    }, 30000); // 30 seconds
+    
+    // Try to trigger install prompt after engagement
+    setTimeout(() => {
+      if (engagementScore >= 3 && !this.deferredPrompt && !this.isInstalled) {
+        console.log('High engagement detected, trying to trigger install prompt');
+        this.triggerInstallPrompt();
+      }
+    }, 10000);
+  }
+
+  /**
+   * Try to trigger install prompt
+   */
+  triggerInstallPrompt() {
+    // Try to reload the page to trigger beforeinstallprompt
+    console.log('Attempting to trigger install prompt by reloading...');
+    window.location.reload();
   }
 
   /**
@@ -844,9 +893,9 @@ class App {
         this.showNativeInstallOption();
       }
     } else {
-      // Show native install option instead of reloading
-      console.log('No deferred prompt available, showing native install option');
-      this.showNativeInstallOption();
+      // Try to trigger install prompt first
+      console.log('No deferred prompt available, trying to trigger install prompt');
+      this.triggerInstallPrompt();
     }
   }
 
