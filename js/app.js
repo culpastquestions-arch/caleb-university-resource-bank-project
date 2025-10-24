@@ -500,7 +500,8 @@ class App {
     
     if (!files || files.length === 0) {
       // Check if this is 1st semester 2024/2025
-      const isFirstSemester2024_2025 = this.currentRoute.includes('/1st Semester/2024/2025');
+      const route = appNavigator.getCurrentRoute();
+      const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/2025';
       
       if (isFirstSemester2024_2025) {
         return this.renderEmptyState(
@@ -793,6 +794,9 @@ class App {
         this.isInstalled = true;
         this.installationInProgress = false;
         this.hideInstallButton();
+        // Hide the current progress modal first
+        this.hideInstallProgress();
+        // Then show completion message
         this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
       }
     });
@@ -917,14 +921,25 @@ class App {
           // Set installation in progress flag
           this.installationInProgress = true;
           
+          // Hide the current "Starting installation..." modal
+          this.hideInstallProgress();
+          
           // Show installation in progress
           this.showInstallProgress('Installing CURB... Please wait', 'info');
           
           // Hide the install button
           this.hideInstallButton();
           
-          // Don't set a timeout - let the appinstalled event handle completion
+          // Set a fallback timeout in case appinstalled event doesn't fire
+          setTimeout(() => {
+            if (this.installationInProgress) {
+              this.installationInProgress = false;
+              this.hideInstallProgress();
+              this.showInstallProgress('Installation may have completed. Please check your app drawer.', 'success');
+            }
+          }, 10000); // 10 second fallback
         } else {
+          this.hideInstallProgress();
           this.showInstallProgress('Installation cancelled', 'warning');
         }
       } catch (error) {
