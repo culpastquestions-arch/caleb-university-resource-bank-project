@@ -53,9 +53,9 @@ class Navigator {
       route.level = decodeURIComponent(parts[1]);
       route.semester = decodeURIComponent(parts[2]);
       
-      // Special handling for Jupeb - it skips semester level
+      // Special handling for Jupeb - it has Subject → Session structure
       if (route.department === 'Jupeb') {
-        route.view = 'files';  // For Jupeb, 3 parts means files (Subject → Session)
+        route.view = 'sessions';  // For Jupeb, 3 parts means sessions (Subject → Session)
         route.session = route.semester;  // The third part is actually the session
         route.semester = null;  // No semester for Jupeb
       } else {
@@ -63,11 +63,18 @@ class Navigator {
       }
     }
     if (parts.length >= 4) {
-      route.view = 'files';  // Show files for this session
       route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
       route.semester = decodeURIComponent(parts[2]);
       route.session = decodeURIComponent(parts[3]);
+      
+      // Special handling for Jupeb - 4 parts means files (Subject → Session → Files)
+      if (route.department === 'Jupeb') {
+        route.view = 'files';  // For Jupeb, 4 parts means files
+        route.semester = null;  // No semester for Jupeb
+      } else {
+        route.view = 'files';  // Show files for this session
+      }
     }
 
     return route;
@@ -222,9 +229,17 @@ class Navigator {
         if (!deptKey3) return null;
         const levelKey2 = this.findDataKey(this.data[deptKey3], route.level);
         if (!levelKey2) return null;
-        const semesterKey = this.findDataKey(this.data[deptKey3][levelKey2], route.semester);
-        if (!semesterKey) return null;
-        return Object.keys(this.data[deptKey3][levelKey2][semesterKey]);
+        
+        // Special handling for Jupeb - it has Subject → Session structure
+        if (route.department === 'Jupeb') {
+          // For Jupeb, return sessions directly under the subject
+          return Object.keys(this.data[deptKey3][levelKey2]);
+        } else {
+          // Standard structure for other departments
+          const semesterKey = this.findDataKey(this.data[deptKey3][levelKey2], route.semester);
+          if (!semesterKey) return null;
+          return Object.keys(this.data[deptKey3][levelKey2][semesterKey]);
+        }
 
       case 'files':
         const deptKey4 = this.findDataKey(this.data, route.department);
@@ -232,10 +247,10 @@ class Navigator {
         const levelKey3 = this.findDataKey(this.data[deptKey4], route.level);
         if (!levelKey3) return null;
         
-        // Special handling for Jupeb - it skips semester level
+        // Special handling for Jupeb - it has Subject → Session structure
         if (route.department === 'Jupeb') {
-          // For Jupeb, route.level is the subject, route.semester is actually the session
-          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
+          // For Jupeb, route.level is the subject, route.session is the session
+          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3], route.session);
           if (!sessionKey) return null;
           return this.data[deptKey4][levelKey3][sessionKey];
         } else {

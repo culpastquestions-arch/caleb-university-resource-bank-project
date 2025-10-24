@@ -470,16 +470,30 @@ class App {
       return this.renderEmptyState('No sessions available', 'Check back later for updates');
     }
 
-    return `
-      <div class="semester-grid">
-        ${sessions.map(session => `
-          <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(route.semester)}/${encodeURIComponent(session)}" 
-             class="semester-card">
-            <div class="semester-name">${session}</div>
-          </a>
-        `).join('')}
-      </div>
-    `;
+    // Special handling for Jupeb - it has Subject → Session structure
+    if (route.department === 'Jupeb') {
+      return `
+        <div class="semester-grid">
+          ${sessions.map(session => `
+            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(session)}" 
+               class="semester-card">
+              <div class="semester-name">${session}</div>
+            </a>
+          `).join('')}
+        </div>
+      `;
+    } else {
+      return `
+        <div class="semester-grid">
+          ${sessions.map(session => `
+            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(route.semester)}/${encodeURIComponent(session)}" 
+               class="semester-card">
+              <div class="semester-name">${session}</div>
+            </a>
+          `).join('')}
+        </div>
+      `;
+    }
   }
 
   /**
@@ -503,8 +517,8 @@ class App {
       const route = appNavigator.getCurrentRoute();
       
       // Check if this is 1st semester 2024/2025 for any department
-      // Note: semester has trailing space and session is '2024/25 Session'
-      const isFirstSemester2024_2025 = route.semester === '1st Semester ' && route.session === '2024/25 Session';
+      // Note: folder names are now normalized (no trailing spaces)
+      const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/25 Session';
       
       if (isFirstSemester2024_2025) {
         return this.renderEmptyState(
