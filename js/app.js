@@ -735,13 +735,13 @@ class App {
       this.showInstallButton();
     });
 
-    // Always show install button after a delay (fallback for when beforeinstallprompt doesn't fire)
+    // Show install button after a delay (fallback for when beforeinstallprompt doesn't fire)
     setTimeout(() => {
       if (!this.isInstalled) {
         console.log('Showing install button (deferredPrompt available:', !!this.deferredPrompt, ')');
         this.showInstallButton();
       }
-    }, 3000);
+    }, 2000);
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
@@ -750,6 +750,18 @@ class App {
       this.hideInstallButton();
       this.showInstallSuccessMessage();
     });
+
+    // Try to trigger install prompt after page load
+    setTimeout(() => {
+      if (!this.isInstalled && !this.deferredPrompt) {
+        console.log('Attempting to trigger install prompt...');
+        // Force a page reload to trigger beforeinstallprompt
+        if (this.checkPWACriteria()) {
+          console.log('PWA criteria met, reloading to trigger install prompt');
+          window.location.reload();
+        }
+      }
+    }, 5000);
 
     // Service worker updates handled automatically
   }
@@ -833,19 +845,26 @@ class App {
         }
       } catch (error) {
         console.error('Error triggering install prompt:', error);
-        this.showInstallGuide();
+        this.showNativeInstallOption();
       }
     } else {
-      // Check if PWA criteria are met
-      if (this.checkPWACriteria()) {
-        console.log('PWA criteria met, trying to trigger install');
-        // Try to show browser's native install option
-        this.showNativeInstallOption();
-      } else {
-        console.log('PWA criteria not met, showing manual guide');
-        this.showInstallGuide();
-      }
+      // Try to force the install prompt by reloading the page
+      console.log('No deferred prompt available, trying to force install prompt');
+      this.forceInstallPrompt();
     }
+  }
+
+  /**
+   * Force install prompt by reloading the page
+   */
+  forceInstallPrompt() {
+    // Show a brief message
+    this.showNotification('Preparing to install CURB...', 'info');
+    
+    // Reload the page to trigger beforeinstallprompt event
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   }
 
   /**
