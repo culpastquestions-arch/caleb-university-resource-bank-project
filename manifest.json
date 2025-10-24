@@ -3,6 +3,7 @@
   "short_name": "CURB",
   "description": "Access past questions and study materials for all departments at Caleb University",
   "lang": "en",
+  "version": "1.1.0",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8F9FA",

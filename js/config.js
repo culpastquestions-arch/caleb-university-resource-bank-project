@@ -51,7 +51,7 @@ const CONFIG = {
   // Cache settings
   cache: {
     durationDays: 30,
-    version: "1.0.0"
+    version: "1.1.0"
   },
 
   // API settings (will be set from environment)
