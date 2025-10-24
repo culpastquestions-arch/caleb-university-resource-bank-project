@@ -719,20 +719,14 @@ class App {
    * Setup PWA features
    */
   setupPWAFeatures() {
-    console.log('Setting up PWA features...');
-    
     // Check if app is already installed
     this.checkInstallStatus();
-    
-    // Debug PWA status
-    this.debugPWAStatus();
     
     // Track user engagement to trigger install prompt
     this.trackUserEngagement();
     
     // Listen for beforeinstallprompt event
     window.addEventListener('beforeinstallprompt', (e) => {
-      console.log('PWA install prompt triggered');
       e.preventDefault();
       this.deferredPrompt = e;
       this.showInstallButton();
@@ -741,14 +735,12 @@ class App {
     // Show install button after a delay (fallback for when beforeinstallprompt doesn't fire)
     setTimeout(() => {
       if (!this.isInstalled) {
-        console.log('Showing install button (deferredPrompt available:', !!this.deferredPrompt, ')');
         this.showInstallButton();
       }
     }, 2000);
 
     // Listen for app installed event
     window.addEventListener('appinstalled', () => {
-      console.log('PWA was installed');
       this.isInstalled = true;
       this.hideInstallButton();
       this.showInstallSuccessMessage();
@@ -757,7 +749,6 @@ class App {
     // Check if install prompt is available after page load
     setTimeout(() => {
       if (!this.isInstalled && !this.deferredPrompt) {
-        console.log('Install prompt not available, showing install button anyway');
         this.showInstallButton();
       }
     }, 5000);
@@ -774,7 +765,6 @@ class App {
     // Track clicks
     document.addEventListener('click', () => {
       engagementScore += 1;
-      console.log('User engagement score:', engagementScore);
     });
     
     // Track scroll
@@ -783,20 +773,17 @@ class App {
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         engagementScore += 1;
-        console.log('User engagement score:', engagementScore);
       }, 1000);
     });
     
     // Track time on page
     setTimeout(() => {
       engagementScore += 5;
-      console.log('User engagement score:', engagementScore);
     }, 30000); // 30 seconds
     
     // Try to trigger install prompt after engagement
     setTimeout(() => {
       if (engagementScore >= 3 && !this.deferredPrompt && !this.isInstalled) {
-        console.log('High engagement detected, trying to trigger install prompt');
         this.triggerInstallPrompt();
       }
     }, 10000);
@@ -807,22 +794,9 @@ class App {
    */
   triggerInstallPrompt() {
     // Try to reload the page to trigger beforeinstallprompt
-    console.log('Attempting to trigger install prompt by reloading...');
     window.location.reload();
   }
 
-  /**
-   * Debug PWA status
-   */
-  debugPWAStatus() {
-    console.log('PWA Debug Info:');
-    console.log('- Service Worker supported:', 'serviceWorker' in navigator);
-    console.log('- Standalone mode:', window.matchMedia('(display-mode: standalone)').matches);
-    console.log('- iOS standalone:', window.navigator.standalone === true);
-    console.log('- HTTPS:', location.protocol === 'https:');
-    console.log('- Manifest linked:', document.querySelector('link[rel="manifest"]') !== null);
-    console.log('- Install prompt available:', this.deferredPrompt !== null);
-  }
 
   /**
    * Check if app is already installed
@@ -832,7 +806,6 @@ class App {
     if (window.matchMedia('(display-mode: standalone)').matches || 
         window.navigator.standalone === true) {
       this.isInstalled = true;
-      console.log('App is already installed');
     }
   }
 
@@ -863,38 +836,26 @@ class App {
    * Handle install button click
    */
   async installApp() {
-    console.log('Install button clicked');
-    console.log('Deferred prompt available:', !!this.deferredPrompt);
-    console.log('PWA criteria met:', this.checkPWACriteria());
-    
     if (this.deferredPrompt) {
       try {
         // Show the automatic install prompt
-        console.log('Triggering native install prompt');
         this.deferredPrompt.prompt();
 
         // Wait for the user to respond to the prompt
         const { outcome } = await this.deferredPrompt.userChoice;
 
-        console.log(`User response to the install prompt: ${outcome}`);
-
         // Clear the deferredPrompt
         this.deferredPrompt = null;
 
         if (outcome === 'accepted') {
-          console.log('User accepted the install prompt');
           this.isInstalled = true;
           this.hideInstallButton();
-        } else {
-          console.log('User dismissed the install prompt');
         }
       } catch (error) {
-        console.error('Error triggering install prompt:', error);
         this.showNativeInstallOption();
       }
     } else {
       // Try to trigger install prompt first
-      console.log('No deferred prompt available, trying to trigger install prompt');
       this.triggerInstallPrompt();
     }
   }
@@ -992,13 +953,6 @@ class App {
     const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
     const hasIcons = document.querySelector('link[rel="manifest"]') !== null;
     
-    console.log('PWA Criteria Check:', {
-      hasManifest,
-      hasServiceWorker,
-      isHTTPS,
-      hasIcons
-    });
-    
     return hasManifest && hasServiceWorker && isHTTPS && hasIcons;
   }
 
@@ -1007,9 +961,6 @@ class App {
    */
   async triggerInstallPrompt() {
     try {
-      // Try to reload the page to trigger beforeinstallprompt event
-      console.log('Attempting to trigger install prompt...');
-      
       // Show a brief message that we're trying to install
       this.showNotification('Preparing to install CURB...', 'info');
       
@@ -1019,7 +970,6 @@ class App {
       }, 1000);
       
     } catch (error) {
-      console.error('Failed to trigger install prompt:', error);
       this.showInstallGuide();
     }
   }
