@@ -743,8 +743,7 @@ class App {
     window.addEventListener('appinstalled', () => {
       this.isInstalled = true;
       this.hideInstallButton();
-      this.hideInstallProgress(); // Hide any progress modal
-      this.showInstallSuccessMessage();
+      this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
     });
 
     // Check if install prompt is available after page load
@@ -870,11 +869,7 @@ class App {
           // Hide the install button
           this.hideInstallButton();
           
-          // Set a timeout to show completion message
-          setTimeout(() => {
-            this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
-            this.isInstalled = true;
-          }, 3000);
+          // Don't set a timeout - let the appinstalled event handle completion
         } else {
           this.showInstallProgress('Installation cancelled', 'warning');
         }
