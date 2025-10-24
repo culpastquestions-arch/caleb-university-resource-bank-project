@@ -743,6 +743,7 @@ class App {
     window.addEventListener('appinstalled', () => {
       this.isInstalled = true;
       this.hideInstallButton();
+      this.hideInstallProgress(); // Hide any progress modal
       this.showInstallSuccessMessage();
     });
 
@@ -838,6 +839,9 @@ class App {
   async installApp() {
     if (this.deferredPrompt) {
       try {
+        // Show installation started message
+        this.showInstallProgress('Starting installation...', 'info');
+        
         // Show the automatic install prompt
         this.deferredPrompt.prompt();
 
@@ -848,15 +852,112 @@ class App {
         this.deferredPrompt = null;
 
         if (outcome === 'accepted') {
-          this.isInstalled = true;
+          // Show installation in progress
+          this.showInstallProgress('Installing CURB... Please wait', 'info');
+          
+          // Hide the install button
           this.hideInstallButton();
+          
+          // Set a timeout to show completion message
+          setTimeout(() => {
+            this.showInstallProgress('Installation complete! CURB is now installed.', 'success');
+            this.isInstalled = true;
+          }, 3000);
+        } else {
+          this.showInstallProgress('Installation cancelled', 'warning');
         }
       } catch (error) {
+        this.showInstallProgress('Installation failed. Please try again.', 'error');
         this.showNativeInstallOption();
       }
     } else {
       // Try to trigger install prompt first
       this.triggerInstallPrompt();
+    }
+  }
+
+  /**
+   * Show installation progress message
+   */
+  showInstallProgress(message, type = 'info') {
+    // Create progress overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10001;
+    `;
+
+    // Create progress modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      max-width: 400px;
+      margin: 1rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    `;
+
+    // Set colors based on type
+    let color = '#0F9D58'; // Default green
+    if (type === 'error') color = '#dc3545';
+    if (type === 'warning') color = '#ffc107';
+    if (type === 'info') color = '#17a2b8';
+
+    modal.innerHTML = `
+      <div style="margin-bottom: 1rem;">
+        <div style="
+          width: 40px;
+          height: 40px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid ${color};
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        "></div>
+        <h3 style="margin: 0; color: ${color};">${message}</h3>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+
+    overlay.className = 'install-progress-modal';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    // Auto-remove after 5 seconds for success messages
+    if (type === 'success') {
+      setTimeout(() => {
+        if (overlay.parentNode) {
+          overlay.remove();
+        }
+      }, 5000);
+    }
+
+    // Store reference for manual removal
+    this.currentProgressModal = overlay;
+  }
+
+  /**
+   * Hide installation progress
+   */
+  hideInstallProgress() {
+    if (this.currentProgressModal) {
+      this.currentProgressModal.remove();
+      this.currentProgressModal = null;
     }
   }
 
