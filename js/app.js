@@ -501,6 +501,9 @@ class App {
     if (!files || files.length === 0) {
       // Check if this is 1st semester 2024/2025
       const route = appNavigator.getCurrentRoute();
+      console.log('Current route for empty files:', route);
+      
+      // Check if this is 1st semester 2024/2025 for any department
       const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/2025';
       
       if (isFirstSemester2024_2025) {

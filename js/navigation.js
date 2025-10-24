@@ -49,10 +49,18 @@ class Navigator {
       route.level = decodeURIComponent(parts[1]);
     }
     if (parts.length >= 3) {
-      route.view = 'sessions';  // Show sessions for this semester
       route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
       route.semester = decodeURIComponent(parts[2]);
+      
+      // Special handling for Jupeb - it skips semester level
+      if (route.department === 'Jupeb') {
+        route.view = 'files';  // For Jupeb, 3 parts means files (Subject → Session)
+        route.session = route.semester;  // The third part is actually the session
+        route.semester = null;  // No semester for Jupeb
+      } else {
+        route.view = 'sessions';  // Show sessions for this semester
+      }
     }
     if (parts.length >= 4) {
       route.view = 'files';  // Show files for this session
@@ -223,11 +231,21 @@ class Navigator {
         if (!deptKey4) return null;
         const levelKey3 = this.findDataKey(this.data[deptKey4], route.level);
         if (!levelKey3) return null;
-        const semesterKey2 = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
-        if (!semesterKey2) return null;
-        const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3][semesterKey2], route.session);
-        if (!sessionKey) return null;
-        return this.data[deptKey4][levelKey3][semesterKey2][sessionKey];
+        
+        // Special handling for Jupeb - it skips semester level
+        if (route.department === 'Jupeb') {
+          // For Jupeb, route.level is the subject, route.semester is actually the session
+          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
+          if (!sessionKey) return null;
+          return this.data[deptKey4][levelKey3][sessionKey];
+        } else {
+          // Standard structure for other departments
+          const semesterKey2 = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
+          if (!semesterKey2) return null;
+          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3][semesterKey2], route.session);
+          if (!sessionKey) return null;
+          return this.data[deptKey4][levelKey3][semesterKey2][sessionKey];
+        }
 
       default:
         return null;
