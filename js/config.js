@@ -49,7 +49,7 @@ const CONFIG = {
   ],
 
   // App version - single source of truth for cache management
-  version: "1.2.3",
+  version: "1.2.4",
 
   // Cache settings
   cache: {

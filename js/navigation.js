@@ -56,7 +56,7 @@ class Navigator {
       // Special handling for Jupeb - it has Subject → Session structure
       if (route.department === 'Jupeb') {
         route.view = 'sessions';  // For Jupeb, 3 parts means sessions (Subject → Session)
-        route.session = route.semester;  // The third part is actually the session
+        // Don't set session yet - that's for the 4-part route
         route.semester = null;  // No semester for Jupeb
       } else {
         route.view = 'sessions';  // Show sessions for this semester
