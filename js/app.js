@@ -477,10 +477,10 @@ class App {
               <div class="file-meta">
                 ${file.size ? driveAPI.formatFileSize(file.size) : ''} • 
                 ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
-              </div>
-              <div class="file-actions">
-                <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
-                <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
+            </div>
+            <div class="file-actions">
+              <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
+              <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
               </div>
             </div>
           </div>
@@ -719,6 +719,8 @@ class App {
    * Setup PWA features
    */
   setupPWAFeatures() {
+    console.log('Setting up PWA features...');
+    
     // Check if app is already installed
     this.checkInstallStatus();
     
@@ -735,8 +737,8 @@ class App {
 
     // Always show install button after a delay (fallback for when beforeinstallprompt doesn't fire)
     setTimeout(() => {
-      if (!this.isInstalled && !this.deferredPrompt) {
-        console.log('Showing fallback install button');
+      if (!this.isInstalled) {
+        console.log('Showing install button (deferredPrompt available:', !!this.deferredPrompt, ')');
         this.showInstallButton();
       }
     }, 3000);
@@ -804,35 +806,73 @@ class App {
    * Handle install button click
    */
   async installApp() {
+    console.log('Install button clicked');
+    console.log('Deferred prompt available:', !!this.deferredPrompt);
+    console.log('PWA criteria met:', this.checkPWACriteria());
+    
     if (this.deferredPrompt) {
-      // Show the automatic install prompt
-      this.deferredPrompt.prompt();
+      try {
+        // Show the automatic install prompt
+        console.log('Triggering native install prompt');
+        this.deferredPrompt.prompt();
 
-      // Wait for the user to respond to the prompt
-      const { outcome } = await this.deferredPrompt.userChoice;
+        // Wait for the user to respond to the prompt
+        const { outcome } = await this.deferredPrompt.userChoice;
 
-      console.log(`User response to the install prompt: ${outcome}`);
+        console.log(`User response to the install prompt: ${outcome}`);
 
-      // Clear the deferredPrompt
-      this.deferredPrompt = null;
+        // Clear the deferredPrompt
+        this.deferredPrompt = null;
 
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-        this.isInstalled = true;
-        this.hideInstallButton();
-      } else {
-        console.log('User dismissed the install prompt');
+        if (outcome === 'accepted') {
+          console.log('User accepted the install prompt');
+          this.isInstalled = true;
+          this.hideInstallButton();
+        } else {
+          console.log('User dismissed the install prompt');
+        }
+      } catch (error) {
+        console.error('Error triggering install prompt:', error);
+        this.showInstallGuide();
       }
     } else {
-      // Force trigger install prompt by checking if PWA criteria are met
+      // Check if PWA criteria are met
       if (this.checkPWACriteria()) {
-        // Try to trigger install prompt manually
-        this.triggerInstallPrompt();
+        console.log('PWA criteria met, trying to trigger install');
+        // Try to show browser's native install option
+        this.showNativeInstallOption();
       } else {
-        // Show install guide only if PWA criteria not met
+        console.log('PWA criteria not met, showing manual guide');
         this.showInstallGuide();
       }
     }
+  }
+
+  /**
+   * Show native install option
+   */
+  showNativeInstallOption() {
+    const isChrome = navigator.userAgent.includes('Chrome');
+    const isEdge = navigator.userAgent.includes('Edg');
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    let message = '';
+    
+    if (isMobile) {
+      if (isChrome || isEdge) {
+        message = 'To install CURB:\n\n1. Tap the menu button (⋮) in your browser\n2. Look for "Install app" or "Add to Home screen"\n3. Tap it to install CURB';
+      } else {
+        message = 'To install CURB:\n\n1. Tap the share button in your browser\n2. Look for "Add to Home Screen"\n3. Tap it to install CURB';
+      }
+    } else {
+      if (isChrome || isEdge) {
+        message = 'To install CURB:\n\n1. Look for the install icon (⬇) in your browser address bar\n2. Click it to install CURB\n\nOr:\n1. Click the menu button (⋮) in your browser\n2. Look for "Install CURB" and click it';
+      } else {
+        message = 'To install CURB:\n\n1. Look for the install icon in your browser address bar\n2. Click it to install CURB';
+      }
+    }
+    
+    alert(message);
   }
 
   /**
