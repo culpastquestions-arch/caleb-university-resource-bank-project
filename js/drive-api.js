@@ -47,7 +47,10 @@ class DriveAPI {
     }
 
     try {
-      const response = await fetch(this.apiEndpoint, {
+      // Add version parameter for cache busting
+      const versionedEndpoint = `${this.apiEndpoint}?v=${CONFIG.version}`;
+      
+      const response = await fetch(versionedEndpoint, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

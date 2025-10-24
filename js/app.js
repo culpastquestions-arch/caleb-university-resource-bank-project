@@ -20,6 +20,9 @@ class App {
       // Check for environment variables
       this.loadConfig();
 
+      // Check version and clear cache if needed
+      this.checkVersionAndClearCache();
+
       // Setup PWA features early
       this.setupPWAFeatures();
 
@@ -54,6 +57,40 @@ class App {
   loadConfig() {
     // API endpoint for backend proxy
     CONFIG.api.endpoint = window.ENV?.API_ENDPOINT || '/api/drive';
+  }
+
+  /**
+   * Check app version and clear cache if version changed
+   */
+  checkVersionAndClearCache() {
+    const storedVersion = localStorage.getItem('app_version');
+    const currentVersion = CONFIG.version;
+
+    if (storedVersion !== currentVersion) {
+      // Version changed, clear all caches
+      this.clearAllCaches();
+      localStorage.setItem('app_version', currentVersion);
+    }
+  }
+
+  /**
+   * Clear all caches (service worker + localStorage)
+   */
+  async clearAllCaches() {
+    try {
+      // Clear service worker caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map(cacheName => caches.delete(cacheName))
+        );
+      }
+
+      // Clear localStorage cache
+      cacheManager.clear();
+    } catch (error) {
+      console.error('Error clearing caches:', error);
+    }
   }
 
   /**
@@ -471,10 +508,10 @@ class App {
           'Files are available from 2nd semester 2024/2025 onwards.'
         );
       } else {
-        return this.renderEmptyState(
-          'No files available yet', 
-          'Files will be added soon. Check back later or contact us if you have materials to share.'
-        );
+      return this.renderEmptyState(
+        'No files available yet', 
+        'Files will be added soon. Check back later or contact us if you have materials to share.'
+      );
       }
     }
 

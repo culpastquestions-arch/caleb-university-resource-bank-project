@@ -48,10 +48,12 @@ const CONFIG = {
     "#66BB6A", "#81C784", "#A5D6A7", "#B2DFDB"
   ],
 
+  // App version - single source of truth for cache management
+  version: "1.2.0",
+
   // Cache settings
   cache: {
-    durationDays: 30,
-    version: "1.1.0"
+    durationDays: 30
   },
 
   // API settings (will be set from environment)
@@ -63,8 +65,7 @@ const CONFIG = {
   app: {
     name: "Caleb University Resource Bank",
     shortName: "CURB",
-    description: "Access past questions and study materials for all departments",
-    version: "1.0.0"
+    description: "Access past questions and study materials for all departments"
   }
 };
 
