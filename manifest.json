@@ -9,6 +9,8 @@
   "background_color": "#F8F9FA",
   "theme_color": "#0F9D58",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "id": "caleb-university-resource-bank",
   "icons": [
     {
       "src": "assets/caleb-university-logo-transparent.png",
@@ -19,6 +21,12 @@
     {
       "src": "assets/caleb-university-logo-transparent.png",
       "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/caleb-university-logo-transparent.png",
+      "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
     }
