@@ -1,18 +1,28 @@
 // Navigation System for SPA
+//
+// ROUTING STRUCTURE:
+// Standard departments: Department → Level → Semester → Session → Files
+//   URL pattern: #/Department/Level/Semester/Session
+//   Example: #/Computer Science/100 Level/1st Semester/2024/25 Session
+//
+// SPECIAL CASE - Jupeb:
+//   Jupeb uses a different hierarchy: Subject → Session → Files (no Semester layer)
+//   URL pattern: #/Jupeb/Subject/Session
+//   Example: #/Jupeb/Science/2024/25 Session
+//   The 'level' route parameter is repurposed as 'subject' for Jupeb
+//   The 'semester' route parameter is skipped entirely
+//
 class Navigator {
   constructor() {
     this.currentRoute = this.parseRoute();
-    this.data = null;
     this.listeners = [];
   }
 
   /**
    * Initialize the navigator
-   * @param {Object} data - The application data
+   * Note: With lazy loading, we no longer need preloaded data
    */
-  init(data) {
-    this.data = data;
-    
+  init() {
     // Handle browser back/forward buttons
     window.addEventListener('popstate', () => {
       this.currentRoute = this.parseRoute();
@@ -39,41 +49,60 @@ class Navigator {
       session: null
     };
 
+    // Special route for About page
+    if (parts.length === 1 && parts[0].toLowerCase() === 'about') {
+      route.view = 'about';
+      return route;
+    }
+
     if (parts.length >= 1) {
       route.view = 'levels';  // Show levels for this department
       route.department = decodeURIComponent(parts[0]);
     }
+    
     if (parts.length >= 2) {
-      route.view = 'semesters';  // Show semesters for this level
       route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
+      
+      // For Jupeb, level is actually subject
+      // Next view after subject is sessions (direct, no semesters)
+      if (route.department === 'Jupeb') {
+        route.view = 'sessions';  // Jupeb: Subject → Session
+      } else {
+        route.view = 'semesters';  // Standard: Level → Semester
+      }
     }
+    
     if (parts.length >= 3) {
       route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
-      route.semester = decodeURIComponent(parts[2]);
       
-      // Special handling for Jupeb - it has Subject → Session structure
       if (route.department === 'Jupeb') {
-        route.view = 'sessions';  // For Jupeb, 3 parts means sessions (Subject → Session)
-        // Don't set session yet - that's for the 4-part route
+        // Jupeb: 3 parts means Subject/Session → Files
+        route.view = 'files';
+        route.session = decodeURIComponent(parts[2]);  // 3rd part is session for Jupeb
         route.semester = null;  // No semester for Jupeb
       } else {
-        route.view = 'sessions';  // Show sessions for this semester
+        // Standard: 3 parts means Level/Semester → Sessions
+        route.view = 'sessions';
+        route.semester = decodeURIComponent(parts[2]);
       }
     }
+    
     if (parts.length >= 4) {
       route.department = decodeURIComponent(parts[0]);
       route.level = decodeURIComponent(parts[1]);
-      route.semester = decodeURIComponent(parts[2]);
-      route.session = decodeURIComponent(parts[3]);
       
-      // Special handling for Jupeb - 4 parts means files (Subject → Session → Files)
       if (route.department === 'Jupeb') {
-        route.view = 'files';  // For Jupeb, 4 parts means files
-        route.semester = null;  // No semester for Jupeb
+        // Jupeb shouldn't have 4+ parts, but handle gracefully
+        route.view = 'files';
+        route.session = decodeURIComponent(parts[2]);
+        route.semester = null;
       } else {
-        route.view = 'files';  // Show files for this session
+        // Standard: 4 parts means Level/Semester/Session → Files
+        route.view = 'files';
+        route.semester = decodeURIComponent(parts[2]);
+        route.session = decodeURIComponent(parts[3]);
       }
     }
 
@@ -169,129 +198,25 @@ class Navigator {
   }
 
   /**
-   * Helper function to find data key with or without trailing spaces
-   * @param {Object} obj - Object to search in
-   * @param {string} key - Key to find
-   * @returns {string|null} Actual key found or null
-   */
-  findDataKey(obj, key) {
-    if (!obj) return null;
-    
-    // Try exact match first
-    if (obj.hasOwnProperty(key)) return key;
-    
-    // Try with trailing space
-    if (obj.hasOwnProperty(key + ' ')) return key + ' ';
-    
-    // Try without trailing space if key has one
-    if (key.endsWith(' ') && obj.hasOwnProperty(key.slice(0, -1))) {
-      return key.slice(0, -1);
-    }
-    
-    return null;
-  }
-
-  /**
-   * Get data for the current route
-   * @returns {Object|Array|null} Data for current view
-   */
-  getRouteData() {
-    if (!this.data) return null;
-
-    const route = this.currentRoute;
-
-    switch (route.view) {
-      case 'home':
-        return CONFIG.departments;
-
-      case 'levels':
-        const deptKey = this.findDataKey(this.data, route.department);
-        if (!deptKey) return null;
-        return Object.keys(this.data[deptKey]);
-
-      case 'semesters':
-        const deptKey2 = this.findDataKey(this.data, route.department);
-        if (!deptKey2) return null;
-        const levelKey = this.findDataKey(this.data[deptKey2], route.level);
-        if (!levelKey) return null;
-        
-        // Special handling for Jupeb - it skips semester level
-        if (route.department === 'Jupeb') {
-          // For Jupeb, return sessions directly
-          return Object.keys(this.data[deptKey2][levelKey]);
-        } else {
-          // Standard structure for other departments
-          return Object.keys(this.data[deptKey2][levelKey]);
-        }
-
-      case 'sessions':
-        const deptKey3 = this.findDataKey(this.data, route.department);
-        if (!deptKey3) return null;
-        const levelKey2 = this.findDataKey(this.data[deptKey3], route.level);
-        if (!levelKey2) return null;
-        
-        // Special handling for Jupeb - it has Subject → Session structure
-        if (route.department === 'Jupeb') {
-          // For Jupeb, return sessions directly under the subject
-          return Object.keys(this.data[deptKey3][levelKey2]);
-        } else {
-          // Standard structure for other departments
-          const semesterKey = this.findDataKey(this.data[deptKey3][levelKey2], route.semester);
-          if (!semesterKey) return null;
-          return Object.keys(this.data[deptKey3][levelKey2][semesterKey]);
-        }
-
-      case 'files':
-        const deptKey4 = this.findDataKey(this.data, route.department);
-        if (!deptKey4) return null;
-        const levelKey3 = this.findDataKey(this.data[deptKey4], route.level);
-        if (!levelKey3) return null;
-        
-        // Special handling for Jupeb - it has Subject → Session structure
-        if (route.department === 'Jupeb') {
-          // For Jupeb, route.level is the subject, route.session is the session
-          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3], route.session);
-          if (!sessionKey) return null;
-          return this.data[deptKey4][levelKey3][sessionKey];
-        } else {
-          // Standard structure for other departments
-          const semesterKey2 = this.findDataKey(this.data[deptKey4][levelKey3], route.semester);
-          if (!semesterKey2) return null;
-          const sessionKey = this.findDataKey(this.data[deptKey4][levelKey3][semesterKey2], route.session);
-          if (!sessionKey) return null;
-          return this.data[deptKey4][levelKey3][semesterKey2][sessionKey];
-        }
-
-      default:
-        return null;
-    }
-  }
-
-  /**
-   * Check if a route is valid
-   * @returns {boolean} True if valid, false otherwise
+   * Check if a route is valid (basic structural validation)
+   * With dynamic departments from Google Drive, we can't validate department names client-side
+   * Actual data existence is validated when fetching from API
+   * @returns {boolean} True if structurally valid
    */
   isValidRoute() {
     const route = this.currentRoute;
 
+    // Home is always valid
     if (route.view === 'home') return true;
 
-    // If no data loaded yet, consider route potentially valid
-    // This prevents "Page Not Found" during initial loading
-    if (!this.data) {
-      // Check if department name is at least in our config
-      if (route.department && !CONFIG.departments.includes(route.department)) {
-        return false;
-      }
-      return true; // Let it try to render, app will show loading state
+    // If we have a department name, the route is structurally valid
+    // The actual department existence will be validated by the API call
+    // (If folder doesn't exist in Drive, the fetch will return empty/error)
+    if (route.department) {
+      return true;
     }
 
-    if (route.department && !CONFIG.departments.includes(route.department)) {
-      return false;
-    }
-
-    const data = this.getRouteData();
-    return data !== null;
+    return false;
   }
 
   /**
@@ -335,6 +260,10 @@ class Navigator {
 
     if (route.view === 'home') {
       return baseTitle;
+    }
+
+    if (route.view === 'about') {
+      return `About Us - ${baseTitle}`;
     }
 
     const parts = [baseTitle];

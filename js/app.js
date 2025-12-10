@@ -1,12 +1,12 @@
-// Main Application Logic
+// Main Application Logic (Lazy Loading Architecture)
 class App {
   constructor() {
-    this.data = null;
     this.loading = false;
     this.error = null;
     this.deferredPrompt = null;
     this.isInstalled = false;
     this.installationInProgress = false;
+    this.currentLoadingPath = null; // Track what's currently loading
   }
 
   /**
@@ -14,9 +14,6 @@ class App {
    */
   async init() {
     try {
-      // Show loading state
-      this.showLoading();
-
       // Check for environment variables
       this.loadConfig();
 
@@ -26,24 +23,18 @@ class App {
       // Setup PWA features early
       this.setupPWAFeatures();
 
-      // Try to load from cache first
-      const cachedData = cacheManager.get();
-      
-      if (cachedData) {
-        this.data = cachedData;
-        this.render();
-      } else {
-        // No cache, must fetch from API
-        await this.fetchData();
-      }
+      // Initialize Drive API
+      await driveAPI.init();
 
       // Setup event listeners
       this.setupEventListeners();
 
-      // Initialize navigator
-      appNavigator.init(this.data);
-      appNavigator.addListener(() => this.render());
+      // Initialize navigator (no data needed upfront)
+      appNavigator.init(null);
+      appNavigator.addListener(() => this.handleRouteChange());
 
+      // Render initial view
+      await this.handleRouteChange();
 
     } catch (error) {
       console.error('App initialization failed:', error);
@@ -55,8 +46,8 @@ class App {
    * Load configuration from environment or defaults
    */
   loadConfig() {
-    // API endpoint for backend proxy
-    CONFIG.api.endpoint = window.ENV?.API_ENDPOINT || '/api/drive';
+    // API endpoint for backend proxy (now uses browse endpoint)
+    CONFIG.api.endpoint = window.ENV?.API_ENDPOINT || '/api/browse';
   }
 
   /**
@@ -86,7 +77,10 @@ class App {
         );
       }
 
-      // Clear localStorage cache
+      // Clear path-based cache
+      pathCache.clearAll();
+      
+      // Clear legacy cache
       cacheManager.clear();
     } catch (error) {
       console.error('Error clearing caches:', error);
@@ -94,46 +88,45 @@ class App {
   }
 
   /**
-   * Fetch data from Google Drive API (via backend proxy)
+   * Handle route changes - fetch data as needed
    */
-  async fetchData(forceRefresh = false) {
-    if (this.loading) return;
+  async handleRouteChange() {
+    const route = appNavigator.getCurrentRoute();
+    const mainContent = document.getElementById('main-content');
+    
+    if (!mainContent) return;
 
+    // Update breadcrumbs immediately (hide for about page)
+    this.renderBreadcrumbs();
+    appNavigator.updateTitle();
+
+    // Render based on view (async)
     try {
-      this.loading = true;
-      this.showLoading();
-
-      // Check if API endpoint is configured
-      if (!CONFIG.api.endpoint) {
-        throw new Error('API endpoint not configured. Please check documentation.');
+      switch (route.view) {
+        case 'home':
+          await this.renderHomeAsync(mainContent);
+          break;
+        case 'about':
+          await this.renderAboutPageAsync(mainContent);
+          break;
+        case 'levels':
+          await this.renderLevelsAsync(mainContent, route);
+          break;
+        case 'semesters':
+          await this.renderSemestersAsync(mainContent, route);
+          break;
+        case 'sessions':
+          await this.renderSessionsAsync(mainContent, route);
+          break;
+        case 'files':
+          await this.renderFilesAsync(mainContent, route);
+          break;
+        default:
+          mainContent.innerHTML = this.renderNotFound();
       }
-
-      // Initialize Drive API client
-      await driveAPI.init(CONFIG.api.endpoint);
-
-      // Fetch structure from backend proxy
-      this.data = await driveAPI.fetchStructure();
-
-      // Cache the data
-      cacheManager.set(this.data);
-
-      // Render the app
-      this.render();
-
-      this.loading = false;
     } catch (error) {
-      this.loading = false;
-      console.error('Failed to fetch data:', error);
-      
-      // Try to use cached data as fallback
-      const cachedData = cacheManager.get();
-      if (cachedData) {
-        this.data = cachedData;
-        this.render();
-        this.showToast('Using cached data. Could not connect to server.', 'warning');
-      } else {
-        this.showError(error);
-      }
+      console.error('Error rendering view:', error);
+      mainContent.innerHTML = this.renderErrorState(error.message);
     }
   }
 
@@ -141,7 +134,7 @@ class App {
    * Setup event listeners
    */
   setupEventListeners() {
-    // Refresh button
+    // Refresh button - now refreshes current path
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', () => this.handleRefresh());
@@ -226,58 +219,6 @@ class App {
   }
 
   /**
-   * Render the current view
-   */
-  render() {
-    const route = appNavigator.getCurrentRoute();
-    const mainContent = document.getElementById('main-content');
-    
-    if (!mainContent) return;
-
-    // Update breadcrumbs
-    this.renderBreadcrumbs();
-
-    // Update title
-    appNavigator.updateTitle();
-
-    // Check if route is valid
-    if (!appNavigator.isValidRoute()) {
-      mainContent.innerHTML = this.renderNotFound();
-      return;
-    }
-
-    // Render based on view
-    switch (route.view) {
-      case 'home':
-        mainContent.innerHTML = this.renderHome();
-        // Reattach search event listener for home view
-        this.attachSearchListener();
-        // Ensure Font Awesome icons are properly rendered
-        this.ensureFontAwesomeIcons();
-        break;
-      case 'levels':
-        mainContent.innerHTML = this.renderLevels();
-        this.ensureFontAwesomeIcons();
-        break;
-      case 'semesters':
-        mainContent.innerHTML = this.renderSemesters();
-        this.ensureFontAwesomeIcons();
-        break;
-      case 'sessions':
-        mainContent.innerHTML = this.renderSessions();
-        this.ensureFontAwesomeIcons();
-        break;
-      case 'files':
-        mainContent.innerHTML = this.renderFiles();
-        this.ensureFontAwesomeIcons();
-        break;
-      default:
-        mainContent.innerHTML = this.renderNotFound();
-    }
-
-  }
-
-  /**
    * Render breadcrumbs
    */
   renderBreadcrumbs() {
@@ -298,37 +239,305 @@ class App {
   }
 
   /**
-   * Render home view (departments)
+   * Render home view (departments) - fetches from Google Drive
+   * @param {HTMLElement} container - Container element
    */
-  renderHome() {
-    const departments = CONFIG.departments;
+  async renderHomeAsync(container) {
+    // Show skeleton while loading
+    container.innerHTML = this.renderSkeleton('departments', 'Loading departments...');
+    
+    try {
+      // Fetch departments from Google Drive root folder
+      const departments = await driveAPI.fetchDepartments();
+      
+      // Store fetched departments for route validation
+      this.departments = departments;
+      
+      if (!departments || departments.length === 0) {
+        container.innerHTML = this.renderEmptyState('No departments available', 'Please check back later');
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="search-container">
+          <div class="search-box">
+            <span class="search-icon"><i class="fas fa-search"></i></span>
+            <input 
+              type="text" 
+              id="search-input" 
+              class="search-input" 
+              placeholder="Search departments..."
+              aria-label="Search departments"
+            />
+          </div>
+        </div>
+
+        <div class="department-grid" id="department-grid">
+          ${departments.map(dept => `
+            <a href="#/${encodeURIComponent(dept)}" class="department-card" data-department="${dept}">
+              <div class="department-icon" style="background-color: ${getDepartmentColor(dept)}">
+                <i class="${this.getDepartmentIcon(dept)}"></i>
+              </div>
+              <div class="department-name">${dept}</div>
+            </a>
+          `).join('')}
+        </div>
+      `;
+      
+      this.attachSearchListener();
+      this.ensureFontAwesomeIcons();
+    } catch (error) {
+      console.error('Failed to load departments:', error);
+      container.innerHTML = this.renderErrorState('Failed to load departments. Please try again.');
+    }
+  }
+
+  /**
+   * Render skeleton loading UI
+   * @param {string} type - Type of skeleton ('departments', 'levels', 'semesters', 'sessions', 'files')
+   * @param {string} message - Loading message
+   */
+  renderSkeleton(type, message = 'Loading...') {
+    const skeletonCount = type === 'files' ? 5 : (type === 'departments' ? 8 : 4);
+    const gridClass = type === 'files' ? 'file-list' : 
+                      (type === 'departments' ? 'department-grid' : 
+                      (type === 'levels' ? 'level-grid' : 'semester-grid'));
+    const itemClass = type === 'files' ? 'skeleton-file' : 
+                      (type === 'departments' ? 'skeleton-department' : 'skeleton-card');
     
     return `
-      <div class="search-container">
-        <div class="search-box">
-          <span class="search-icon"><i class="fas fa-search"></i></span>
-          <input 
-            type="text" 
-            id="search-input" 
-            class="search-input" 
-            placeholder="Search departments..."
-            aria-label="Search departments"
-          />
+      <div class="skeleton-container">
+        <p class="skeleton-message">${message}</p>
+        <div class="${gridClass}">
+          ${Array(skeletonCount).fill(0).map(() => `
+            <div class="${itemClass} skeleton-loading">
+              <div class="skeleton-content"></div>
+            </div>
+          `).join('')}
         </div>
       </div>
-
-      <div class="department-grid" id="department-grid">
-        ${departments.map(dept => `
-          <a href="#/${encodeURIComponent(dept)}" class="department-card" data-department="${dept}">
-            <div class="department-icon" style="background-color: ${getDepartmentColor(dept)}">
-              <i class="${this.getDepartmentIcon(dept)}"></i>
-            </div>
-            <div class="department-name">${dept}</div>
-          </a>
-        `).join('')}
-        
-      </div>
     `;
+  }
+
+  /**
+   * Render levels view (async with lazy loading)
+   * @param {HTMLElement} container - Container element
+   * @param {Object} route - Current route
+   */
+  async renderLevelsAsync(container, route) {
+    const path = `/${route.department}`;
+    const loadingText = route.department === 'Jupeb' ? 'subjects' : 'levels';
+    
+    // Show skeleton immediately
+    container.innerHTML = this.renderSkeleton('levels', `Loading ${route.department} ${loadingText}...`);
+    
+    try {
+      // Fetch levels for this department
+      const levels = await driveAPI.fetchLevels(route.department);
+      
+      if (!levels || levels.length === 0) {
+        container.innerHTML = this.renderEmptyState(`No ${loadingText} available`, 'Check back later for updates');
+        return;
+      }
+
+      // Special handling for Jupeb
+      if (route.department === 'Jupeb') {
+        container.innerHTML = `
+          <div class="level-grid">
+            ${levels.map(level => `
+              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
+                 class="level-card">
+                <div class="level-icon">
+                  <i class="fas fa-book"></i>
+                </div>
+                <h3>${level}</h3>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="level-grid">
+            ${levels.map(level => `
+              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
+                 class="level-card">
+                <div class="level-number">${level.match(/\d+/)?.[0] || level}</div>
+                <div class="level-label">Level</div>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      this.ensureFontAwesomeIcons();
+    } catch (error) {
+      console.error('Failed to load levels:', error);
+      container.innerHTML = this.renderErrorState(`Failed to load ${loadingText}. Please try again.`);
+    }
+  }
+
+  /**
+   * Render semesters view (async with lazy loading)
+   * @param {HTMLElement} container - Container element
+   * @param {Object} route - Current route
+   */
+  async renderSemestersAsync(container, route) {
+    // Show skeleton immediately
+    container.innerHTML = this.renderSkeleton('semesters', `Loading ${route.level} semesters...`);
+    
+    try {
+      // Fetch semesters for this level
+      const semesters = await driveAPI.fetchSemesters(route.department, route.level);
+      
+      if (!semesters || semesters.length === 0) {
+        container.innerHTML = this.renderEmptyState('No semesters available', 'Check back later for updates');
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="semester-grid">
+          ${semesters.map(semester => `
+            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(semester)}" 
+               class="semester-card">
+              <div class="semester-name">${semester}</div>
+            </a>
+          `).join('')}
+        </div>
+      `;
+      
+      this.ensureFontAwesomeIcons();
+    } catch (error) {
+      console.error('Failed to load semesters:', error);
+      container.innerHTML = this.renderErrorState('Failed to load semesters. Please try again.');
+    }
+  }
+
+  /**
+   * Render sessions view (async with lazy loading)
+   * @param {HTMLElement} container - Container element
+   * @param {Object} route - Current route
+   */
+  async renderSessionsAsync(container, route) {
+    const isJupeb = route.department === 'Jupeb';
+    const loadingMsg = isJupeb ? `Loading ${route.level} sessions...` : `Loading ${route.semester} sessions...`;
+    
+    // Show skeleton immediately
+    container.innerHTML = this.renderSkeleton('sessions', loadingMsg);
+    
+    try {
+      let sessions;
+      
+      if (isJupeb) {
+        // Jupeb: Subject → Session (no semester)
+        sessions = await driveAPI.fetchSemesters(route.department, route.level);
+      } else {
+        // Standard: Level → Semester → Session
+        sessions = await driveAPI.fetchSessions(route.department, route.level, route.semester);
+      }
+      
+      if (!sessions || sessions.length === 0) {
+        container.innerHTML = this.renderEmptyState('No sessions available', 'Check back later for updates');
+        return;
+      }
+
+      if (isJupeb) {
+        container.innerHTML = `
+          <div class="semester-grid">
+            ${sessions.map(session => `
+              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(session)}" 
+                 class="semester-card">
+                <div class="semester-name">${session}</div>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="semester-grid">
+            ${sessions.map(session => `
+              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(route.semester)}/${encodeURIComponent(session)}" 
+                 class="semester-card">
+                <div class="semester-name">${session}</div>
+              </a>
+            `).join('')}
+          </div>
+        `;
+      }
+      
+      this.ensureFontAwesomeIcons();
+    } catch (error) {
+      console.error('Failed to load sessions:', error);
+      container.innerHTML = this.renderErrorState('Failed to load sessions. Please try again.');
+    }
+  }
+
+  /**
+   * Render files view (async with lazy loading)
+   * @param {HTMLElement} container - Container element
+   * @param {Object} route - Current route
+   */
+  async renderFilesAsync(container, route) {
+    // Show skeleton immediately
+    container.innerHTML = this.renderSkeleton('files', 'Loading files...');
+    
+    try {
+      let files;
+      const isJupeb = route.department === 'Jupeb';
+      
+      if (isJupeb) {
+        // Jupeb: Subject → Session → Files
+        const path = `/${route.department}/${route.level}/${route.session}`;
+        files = await driveAPI.fetchFiles(path);
+      } else {
+        // Standard: Level → Semester → Session → Files
+        const path = `/${route.department}/${route.level}/${route.semester}/${route.session}`;
+        files = await driveAPI.fetchFiles(path);
+      }
+      
+      if (!files || files.length === 0) {
+        // Check if this is 1st semester 2024/2025
+        const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/25 Session';
+        
+        if (isFirstSemester2024_2025) {
+          container.innerHTML = this.renderEmptyState(
+            'No files available for 1st Semester 2024/2025',
+            'Files are available from 2nd semester 2024/2025 onwards.'
+          );
+        } else {
+          container.innerHTML = this.renderEmptyState(
+            'No files available yet', 
+            'Files will be added soon. Check back later or contact us if you have materials to share.'
+          );
+        }
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="file-list">
+          ${files.map(file => `
+            <div class="file-item">
+              <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+              <div class="file-info">
+                <div class="file-name">${file.name}</div>
+                <div class="file-meta">
+                  ${file.size ? driveAPI.formatFileSize(file.size) : ''} • 
+                  ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
+                </div>
+                <div class="file-actions">
+                  <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
+                  <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      
+      this.ensureFontAwesomeIcons();
+    } catch (error) {
+      console.error('Failed to load files:', error);
+      container.innerHTML = this.renderErrorState('Failed to load files. Please try again.');
+    }
   }
 
   /**
@@ -356,203 +565,7 @@ class App {
           icon.className = className;
         });
       });
-    }, 50); // Increased timeout to ensure Font Awesome is loaded
-  }
-
-  /**
-   * Render levels view
-   */
-  renderLevels() {
-    const route = appNavigator.getCurrentRoute();
-    const levels = appNavigator.getRouteData();
-    
-    // If data is not loaded yet, show loading state
-    if (!this.data) {
-      const loadingText = route.department === 'Jupeb' ? 'subjects' : 'levels';
-      return `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading ${route.department} ${loadingText}...</p>
-        </div>
-      `;
-    }
-    
-    // Special handling for Jupeb - it has subjects instead of levels
-    if (route.department === 'Jupeb') {
-      if (!levels || levels.length === 0) {
-        return this.renderEmptyState('No subjects available', 'Check back later for updates');
-      }
-
-      return `
-        <div class="level-grid">
-          ${levels.map(level => `
-            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
-               class="level-card">
-              <div class="level-icon">
-                <i class="fas fa-book"></i>
-              </div>
-              <h3>${level}</h3>
-            </a>
-          `).join('')}
-        </div>
-      `;
-    }
-    
-    // Standard handling for other departments
-    if (!levels || levels.length === 0) {
-      return this.renderEmptyState('No levels available', 'Check back later for updates');
-    }
-
-    return `
-      <div class="level-grid">
-        ${levels.map(level => `
-          <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
-             class="level-card">
-            <div class="level-number">${level.match(/\d+/)[0]}</div>
-            <div class="level-label">Level</div>
-          </a>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  /**
-   * Render semesters view
-   */
-  renderSemesters() {
-    const route = appNavigator.getCurrentRoute();
-    const semesters = appNavigator.getRouteData();
-    
-    // If data is not loaded yet, show loading state
-    if (!this.data) {
-      return `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading ${route.level} semesters...</p>
-        </div>
-      `;
-    }
-    
-    if (!semesters || semesters.length === 0) {
-      return this.renderEmptyState('No semesters available', 'Check back later for updates');
-    }
-
-    return `
-      <div class="semester-grid">
-        ${semesters.map(semester => `
-          <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(semester)}" 
-             class="semester-card">
-            <div class="semester-name">${semester}</div>
-          </a>
-        `).join('')}
-      </div>
-    `;
-  }
-
-  /**
-   * Render sessions view
-   */
-  renderSessions() {
-    const route = appNavigator.getCurrentRoute();
-    const sessions = appNavigator.getRouteData();
-    
-    // If data is not loaded yet, show loading state
-    if (!this.data) {
-      return `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading ${route.semester} sessions...</p>
-        </div>
-      `;
-    }
-    
-    if (!sessions || sessions.length === 0) {
-      return this.renderEmptyState('No sessions available', 'Check back later for updates');
-    }
-
-    // Special handling for Jupeb - it has Subject → Session structure
-    if (route.department === 'Jupeb') {
-      return `
-        <div class="semester-grid">
-          ${sessions.map(session => `
-            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(session)}" 
-               class="semester-card">
-              <div class="semester-name">${session}</div>
-            </a>
-          `).join('')}
-        </div>
-      `;
-    } else {
-      return `
-        <div class="semester-grid">
-          ${sessions.map(session => `
-            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(route.semester)}/${encodeURIComponent(session)}" 
-               class="semester-card">
-              <div class="semester-name">${session}</div>
-            </a>
-          `).join('')}
-        </div>
-      `;
-    }
-  }
-
-  /**
-   * Render files view
-   */
-  renderFiles() {
-    const files = appNavigator.getRouteData();
-    
-    // If data is not loaded yet, show loading state
-    if (!this.data) {
-      return `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading files...</p>
-        </div>
-      `;
-    }
-    
-    if (!files || files.length === 0) {
-      // Check if this is 1st semester 2024/2025
-      const route = appNavigator.getCurrentRoute();
-      
-      // Check if this is 1st semester 2024/2025 for any department
-      // Note: folder names are now normalized (no trailing spaces)
-      const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/25 Session';
-      
-      if (isFirstSemester2024_2025) {
-        return this.renderEmptyState(
-          'No files available for 1st Semester 2024/2025',
-          'Files are available from 2nd semester 2024/2025 onwards.'
-        );
-      } else {
-      return this.renderEmptyState(
-        'No files available yet', 
-        'Files will be added soon. Check back later or contact us if you have materials to share.'
-      );
-      }
-    }
-
-    return `
-      <div class="file-list">
-        ${files.map(file => `
-          <div class="file-item">
-            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
-            <div class="file-info">
-              <div class="file-name">${file.name}</div>
-              <div class="file-meta">
-                ${file.size ? driveAPI.formatFileSize(file.size) : ''} • 
-                ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
-            </div>
-            <div class="file-actions">
-              <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
-              <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
-              </div>
-            </div>
-          </div>
-        `).join('')}
-      </div>
-    `;
+    }, 50);
   }
 
   /**
@@ -565,6 +578,240 @@ class App {
         <h2 class="empty-state-title">${title}</h2>
         <p class="empty-state-text">${message}</p>
         <button onclick="app.handleRefresh()" class="btn btn-primary">Refresh Content</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Fetch team data from API or return fallback.
+   * @returns {Promise<Object>} Team data with executives and departmentReps.
+   */
+  async fetchTeamData() {
+    try {
+      const response = await fetch(`${CONFIG.apiBase}/team`);
+      
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.executives && data.departmentReps) {
+        return {
+          executives: data.executives,
+          departmentReps: data.departmentReps,
+          fromApi: true
+        };
+      }
+      
+      throw new Error('Invalid API response');
+    } catch (error) {
+      console.warn('Failed to fetch team data from API, using fallback:', error.message);
+      // Return fallback data from config
+      return {
+        executives: CONFIG.about.executives,
+        departmentReps: CONFIG.about.departmentReps,
+        fromApi: false
+      };
+    }
+  }
+
+  /**
+   * Render the About Us page with mission, vision, and team information.
+   * Fetches team data from API, falls back to config if unavailable.
+   * @param {HTMLElement} container - The main content container to render into.
+   * @returns {Promise<void>}
+   */
+  async renderAboutPageAsync(container) {
+    const about = CONFIG.about;
+    
+    // Show loading skeleton while fetching
+    container.innerHTML = this.renderAboutSkeleton();
+    
+    // Fetch team data from API
+    const teamData = await this.fetchTeamData();
+    
+    // Default colors for different roles
+    const roleColors = {
+      founder: '#0F9D58',
+      executive: '#1E88E5',
+      rep: '#26A69A'
+    };
+    
+    /**
+     * Generate initials from a person's name.
+     * @param {string} name - Full name of the person.
+     * @returns {string} Initials (max 2 characters).
+     */
+    const getInitials = (name) => {
+      if (!name || name === 'TBD' || name === 'Coming Soon') return '?';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+      return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+    };
+    
+    /**
+     * Render a team member card with optional photo support.
+     * @param {Object} member - Team member object.
+     * @param {string} size - Card size: 'large', 'medium', or 'small'.
+     * @param {string} defaultColor - Default avatar color.
+     * @returns {string} HTML string for the card.
+     */
+    const renderTeamCard = (member, size = 'medium', defaultColor = roleColors.rep) => {
+      const name = member.name || 'TBD';
+      const initials = getInitials(name);
+      const isPlaceholder = name === 'TBD' || name === 'Coming Soon';
+      const cardClass = `team-card team-card--${size}${isPlaceholder ? ' team-card--placeholder' : ''}`;
+      
+      // Generate role from department if not provided (for department reps)
+      const role = member.role || `${member.department} Representative`;
+      const color = member.color || defaultColor;
+      const photoUrl = member.photoUrl || member.photourl || '';
+      
+      // Avatar: use photo if available, otherwise initials
+      const avatarContent = photoUrl 
+        ? `<img src="${photoUrl}" alt="${name}" class="team-card__photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+           <span class="team-card__initials" style="display:none;">${initials}</span>`
+        : `<span class="team-card__initials">${initials}</span>`;
+      
+      return `
+        <div class="${cardClass}">
+          <div class="team-card__avatar" style="background-color: ${color}">
+            ${avatarContent}
+          </div>
+          <div class="team-card__info">
+            <h3 class="team-card__name">${isPlaceholder ? 'Coming Soon' : name}</h3>
+            <p class="team-card__role">${role}</p>
+          </div>
+        </div>
+      `;
+    };
+    
+    // Separate founder from executives (founder is first with order=1 or role contains 'Founder')
+    let founder = teamData.executives.find(e => 
+      e.role && e.role.toLowerCase().includes('founder')
+    );
+    
+    // If no founder found in API, use fallback
+    if (!founder) {
+      founder = about.founder;
+    }
+    
+    // Filter out founder from executives list
+    const executives = teamData.executives.filter(e => 
+      !e.role || !e.role.toLowerCase().includes('founder')
+    );
+    
+    // Build the About page HTML
+    const html = `
+      <div class="about-page">
+        <!-- Mission & Vision Section -->
+        <section class="about-section about-section--mission">
+          <div class="about-mission">
+            <div class="about-mission__item">
+              <div class="about-mission__icon">
+                <i class="fas fa-bullseye"></i>
+              </div>
+              <h2 class="about-mission__title">Our Mission</h2>
+              <p class="about-mission__text">${about.mission}</p>
+            </div>
+            <div class="about-mission__item">
+              <div class="about-mission__icon">
+                <i class="fas fa-eye"></i>
+              </div>
+              <h2 class="about-mission__title">Our Vision</h2>
+              <p class="about-mission__text">${about.vision}</p>
+            </div>
+          </div>
+        </section>
+        
+        <!-- Founder Section -->
+        <section class="about-section about-section--founder">
+          <h2 class="about-section__title">
+            <i class="fas fa-star"></i>
+            Founder
+          </h2>
+          <div class="about-founder">
+            ${renderTeamCard(founder, 'large', roleColors.founder)}
+          </div>
+        </section>
+        
+        <!-- Executive Team Section -->
+        <section class="about-section about-section--executives">
+          <h2 class="about-section__title">
+            <i class="fas fa-users-cog"></i>
+            Executive Team
+          </h2>
+          <div class="about-team-grid about-team-grid--executives">
+            ${executives.map(exec => renderTeamCard(exec, 'medium', roleColors.executive)).join('')}
+          </div>
+        </section>
+        
+        <!-- Department Representatives Section -->
+        <section class="about-section about-section--reps">
+          <h2 class="about-section__title">
+            <i class="fas fa-user-friends"></i>
+            Department Representatives
+          </h2>
+          <div class="about-team-grid about-team-grid--reps">
+            ${teamData.departmentReps.map(rep => renderTeamCard(rep, 'small', roleColors.rep)).join('')}
+          </div>
+        </section>
+        
+        <!-- Join the Team CTA Section -->
+        <section class="about-section about-section--cta">
+          <div class="about-cta">
+            <div class="about-cta__icon">
+              <i class="fas fa-hand-holding-heart"></i>
+            </div>
+            <h2 class="about-cta__title">Join the Team</h2>
+            <p class="about-cta__text">
+              Interested in contributing to CURB and helping students access quality academic resources? 
+              We're always looking for passionate individuals to join our growing team.
+            </p>
+            <p class="about-cta__contact">
+              <i class="fas fa-envelope"></i>
+              Contact us if you'd like to get involved!
+            </p>
+          </div>
+        </section>
+      </div>
+    `;
+    
+    container.innerHTML = html;
+  }
+
+  /**
+   * Render skeleton loading state for About page.
+   * @returns {string} HTML string for skeleton.
+   */
+  renderAboutSkeleton() {
+    return `
+      <div class="about-page">
+        <section class="about-section about-section--mission">
+          <div class="about-mission">
+            <div class="about-mission__item skeleton-loading">
+              <div class="skeleton-content" style="width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 1rem;"></div>
+              <div class="skeleton-content" style="width: 150px; height: 24px; margin: 0 auto 0.5rem;"></div>
+              <div class="skeleton-content" style="width: 100%; height: 60px;"></div>
+            </div>
+            <div class="about-mission__item skeleton-loading">
+              <div class="skeleton-content" style="width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 1rem;"></div>
+              <div class="skeleton-content" style="width: 150px; height: 24px; margin: 0 auto 0.5rem;"></div>
+              <div class="skeleton-content" style="width: 100%; height: 60px;"></div>
+            </div>
+          </div>
+        </section>
+        <section class="about-section">
+          <div class="skeleton-content" style="width: 120px; height: 28px; margin-bottom: 1.5rem;"></div>
+          <div class="skeleton-loading" style="width: 200px; height: 180px; border-radius: 12px; margin: 0 auto;"></div>
+        </section>
+        <section class="about-section">
+          <div class="skeleton-content" style="width: 180px; height: 28px; margin-bottom: 1.5rem;"></div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
+            ${Array(5).fill('<div class="skeleton-loading" style="height: 140px; border-radius: 12px;"></div>').join('')}
+          </div>
+        </section>
       </div>
     `;
   }
@@ -616,10 +863,38 @@ class App {
   }
 
   /**
-   * Handle refresh button click
+   * Handle refresh button click - refreshes current path
    */
   async handleRefresh() {
-    await this.fetchData(true);
+    const route = appNavigator.getCurrentRoute();
+    const mainContent = document.getElementById('main-content');
+    
+    if (!mainContent) return;
+    
+    // Build the current path for cache invalidation
+    let currentPath = '';
+    if (route.department) {
+      currentPath = `/${route.department}`;
+      if (route.level) {
+        currentPath += `/${route.level}`;
+        if (route.semester) {
+          currentPath += `/${route.semester}`;
+          if (route.session) {
+            currentPath += `/${route.session}`;
+          }
+        }
+      }
+    }
+    
+    // Force refresh by invalidating cache and re-fetching
+    if (currentPath && pathCache) {
+      // Clear the cache for the current path (force re-fetch)
+      pathCache.invalidatePath(currentPath);
+    }
+    
+    // Re-render the current view (will fetch fresh data)
+    await this.handleRouteChange();
+    
     this.showToast('Content refreshed successfully!', 'success');
   }
 
@@ -746,14 +1021,16 @@ class App {
 
   /**
    * Show toast notification
+   * @param {string} message - The message to display
+   * @param {string} type - The notification type: 'info', 'success', 'warning', 'error'
    */
   showToast(message, type = 'info') {
-    // Simple toast - could be enhanced
-    alert(message);
+    this.showNotification(message, type);
   }
 
   /**
    * Get icon for department
+   * Existing departments have custom icons, new ones get a fallback
    */
   getDepartmentIcon(dept) {
     const icons = {
@@ -778,7 +1055,25 @@ class App {
       'Psychology': 'fas fa-brain',
       'Software Engineering': 'fas fa-cogs'
     };
-    return icons[dept] || 'fas fa-folder';
+    
+    // Check exact match first
+    if (icons[dept]) return icons[dept];
+    
+    // Try keyword matching for new departments
+    const deptLower = dept.toLowerCase();
+    if (deptLower.includes('computer') || deptLower.includes('software') || deptLower.includes('tech')) return 'fas fa-laptop-code';
+    if (deptLower.includes('business') || deptLower.includes('management') || deptLower.includes('admin')) return 'fas fa-briefcase';
+    if (deptLower.includes('law') || deptLower.includes('legal')) return 'fas fa-balance-scale';
+    if (deptLower.includes('medicine') || deptLower.includes('medical') || deptLower.includes('health')) return 'fas fa-heartbeat';
+    if (deptLower.includes('engineering')) return 'fas fa-cogs';
+    if (deptLower.includes('science')) return 'fas fa-flask';
+    if (deptLower.includes('art') || deptLower.includes('design')) return 'fas fa-palette';
+    if (deptLower.includes('education') || deptLower.includes('teaching')) return 'fas fa-chalkboard-teacher';
+    if (deptLower.includes('communication') || deptLower.includes('media')) return 'fas fa-tv';
+    if (deptLower.includes('finance') || deptLower.includes('accounting') || deptLower.includes('banking')) return 'fas fa-chart-line';
+    
+    // Default fallback
+    return 'fas fa-graduation-cap';
   }
 
   /**

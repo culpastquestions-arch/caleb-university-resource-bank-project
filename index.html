@@ -17,17 +17,34 @@
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" crossorigin="anonymous">
-  <!-- Fallback Font Awesome CDN -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
-  <!-- Alternative CDN -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" crossorigin="anonymous">
+  <!-- Font Awesome Icons - Primary CDN with JS fallback -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" id="font-awesome-css">
   
   <!-- Preconnect to Google APIs -->
   <link rel="preconnect" href="https://apis.google.com">
-  <!-- Preconnect to Font Awesome -->
-  <link rel="preconnect" href="https://use.fontawesome.com">
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+  
+  <!-- Font Awesome fallback detection -->
+  <script>
+    (function() {
+      // Check if Font Awesome loaded after a short delay
+      setTimeout(function() {
+        var testIcon = document.createElement('i');
+        testIcon.className = 'fas fa-check';
+        testIcon.style.cssText = 'position:absolute;left:-9999px;';
+        document.body.appendChild(testIcon);
+        var fontFamily = window.getComputedStyle(testIcon).fontFamily;
+        document.body.removeChild(testIcon);
+        // If Font Awesome didn't load, try fallback CDN
+        if (!fontFamily.includes('Font Awesome')) {
+          var fallback = document.createElement('link');
+          fallback.rel = 'stylesheet';
+          fallback.href = 'https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css';
+          document.head.appendChild(fallback);
+        }
+      }, 1000);
+    })();
+  </script>
 </head>
 <body>
   <!-- Announcement Banner -->
@@ -116,6 +133,7 @@
           <h3 class="footer-title">Quick Links</h3>
           <ul class="footer-links">
             <li><a href="#/">Home</a></li>
+            <li><a href="#/about">About Us</a></li>
             <li><a href="#" id="contact-btn">Contact Us</a></li>
             <li><a href="#" id="install-link-footer" onclick="app.installApp(); return false;">Install App</a></li>
             <li><a href="https://calebuniversity.edu.ng" target="_blank">Caleb University Website</a></li>
