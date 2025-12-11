@@ -329,7 +329,7 @@ class App {
     const loadingText = route.department === 'Jupeb' ? 'subjects' : 'levels';
     
     // Show skeleton immediately
-    container.innerHTML = this.renderSkeleton('levels', `Loading ${route.department} ${loadingText}...`);
+    container.innerHTML = this.renderSkeleton('levels', `Loading ${displayName(route.department)} ${loadingText}...`);
     
     try {
       // Fetch levels for this department
@@ -383,7 +383,7 @@ class App {
    */
   async renderSemestersAsync(container, route) {
     // Show skeleton immediately
-    container.innerHTML = this.renderSkeleton('semesters', `Loading ${route.level} semesters...`);
+    container.innerHTML = this.renderSkeleton('semesters', `Loading ${displayName(route.level)} semesters...`);
     
     try {
       // Fetch semesters for this level
@@ -419,7 +419,7 @@ class App {
    */
   async renderSessionsAsync(container, route) {
     const isJupeb = route.department === 'Jupeb';
-    const loadingMsg = isJupeb ? `Loading ${route.level} sessions...` : `Loading ${route.semester} sessions...`;
+    const loadingMsg = isJupeb ? `Loading ${displayName(route.level)} sessions...` : `Loading ${displayName(route.semester)} sessions...`;
     
     // Show skeleton immediately
     container.innerHTML = this.renderSkeleton('sessions', loadingMsg);
@@ -495,8 +495,8 @@ class App {
       }
       
       if (!files || files.length === 0) {
-        // Check if this is 1st semester 2024/2025
-        const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024/25 Session';
+        // Check if this is 1st semester 2024/2025 (route.session has ~ substitution)
+        const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024~25 Session';
         
         if (isFirstSemester2024_2025) {
           container.innerHTML = this.renderEmptyState(

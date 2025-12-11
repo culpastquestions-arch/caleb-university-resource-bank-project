@@ -29,14 +29,25 @@ function encodeSegment(segment) {
 
 /**
  * Decode a path segment from URLs.
- * Restores '~' back to '/' after URI decoding.
+ * Only URI decodes - preserves ~ for API communication.
  * @param {string} segment - The URL-encoded segment.
- * @returns {string} Original folder/file name.
+ * @returns {string} Decoded segment (~ preserved for API paths).
  */
 function decodeSegment(segment) {
   if (!segment) return '';
-  // URI decode then restore / from ~
-  return decodeURIComponent(segment).replace(/~/g, '/');
+  // URI decode only - keep ~ for API paths
+  return decodeURIComponent(segment);
+}
+
+/**
+ * Convert internal name (with ~) to display name (with /).
+ * Use this when showing folder names to users.
+ * @param {string} name - Internal name with ~ substitutes.
+ * @returns {string} Human-readable name with / restored.
+ */
+function displayName(name) {
+  if (!name) return '';
+  return name.replace(/~/g, '/');
 }
 
 class Navigator {
@@ -196,32 +207,32 @@ class Navigator {
 
     if (route.department) {
       breadcrumbs.push({
-        label: route.department,
-        path: `/${route.department}`,
+        label: displayName(route.department),
+        path: `/${encodeSegment(route.department)}`,
         active: route.view === 'levels'
       });
     }
 
     if (route.level) {
       breadcrumbs.push({
-        label: route.level,
-        path: `/${route.department}/${route.level}`,
+        label: displayName(route.level),
+        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}`,
         active: route.view === 'semesters'
       });
     }
 
     if (route.semester) {
       breadcrumbs.push({
-        label: route.semester,
-        path: `/${route.department}/${route.level}/${route.semester}`,
+        label: displayName(route.semester),
+        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}`,
         active: route.view === 'sessions'
       });
     }
 
     if (route.session) {
       breadcrumbs.push({
-        label: route.session,
-        path: `/${route.department}/${route.level}/${route.semester}/${route.session}`,
+        label: displayName(route.session),
+        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}`,
         active: route.view === 'files'
       });
     }
