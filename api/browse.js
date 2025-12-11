@@ -79,14 +79,17 @@ async function listFiles(folderId, apiKey) {
 
 /**
  * Find a folder by name within a parent folder
+ * Handles ~ as / substitution for folder names with slashes
  * @param {string} parentId - Parent folder ID
- * @param {string} folderName - Name of folder to find
+ * @param {string} folderName - Name of folder to find (may contain ~ instead of /)
  * @param {string} apiKey - Google API key
  * @returns {Promise<Object|null>} Folder object or null if not found
  */
 async function findFolderByName(parentId, folderName, apiKey) {
   const folders = await listFolders(parentId, apiKey);
-  const normalizedTarget = normalizeFolderName(folderName);
+  
+  // Normalize the target name - convert ~ back to / for matching
+  const normalizedTarget = normalizeFolderName(folderName.replace(/~/g, '/'));
   
   return folders.find(f => normalizeFolderName(f.name) === normalizedTarget) || null;
 }
@@ -203,14 +206,15 @@ module.exports = async (req, res) => {
     }
 
     // Parse query parameters
-    const rawPath = req.query.path || '/';
+    const path = req.query.path || '/';
     const type = req.query.type || 'folders'; // 'folders' or 'files'
     
-    // Convert ~ back to / in path segments (URL encoding workaround for folder names with /)
-    const path = rawPath.replace(/~/g, '/');
+    // Note: ~ is used in URLs to represent / in folder names (e.g., "2024~25 Session")
+    // The conversion from ~ to / happens in findFolderByName, not here
+    // This preserves correct path splitting
 
-    // Check cache first (use rawPath for cache key to match URL)
-    const cacheKey = `${rawPath}:${type}`;
+    // Check cache first
+    const cacheKey = `${path}:${type}`;
     const cached = getCached(cacheKey);
     
     if (cached) {
