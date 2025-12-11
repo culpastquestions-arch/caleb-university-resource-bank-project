@@ -65,7 +65,12 @@ class Navigator {
    * @returns {Object} Route object
    */
   parseRoute() {
-    const hash = window.location.hash.slice(1) || '';
+    let hash = window.location.hash.slice(1) || '';
+    
+    // Backward compatibility: Fix old URLs with session years like "2024/25"
+    // Convert patterns like "/2024/25 Session" or "/2023/24 Session" to use ~
+    hash = hash.replace(/\/(\d{4})\/(\d{2})\s*(Session|session)/g, '/$1~$2 $3');
+    
     const parts = hash.split('/').filter(p => p);
 
     const route = {

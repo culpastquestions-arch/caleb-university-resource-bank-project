@@ -55,8 +55,7 @@ const CONFIG = {
   // About page content
   about: {
     tagline: "Bridging the gaps between students and academic resources",
-    mission: "To consistently collect, curate, and upload high-quality past questions in PDF format for every course and department, ensuring that all students have clear and complete access to the materials they need to excel.",
-    vision: "A fully functional, student-accessible Google Drive and website platform by October 31st, where past questions are readily available, organized, and easy to navigate—fostering a culture of academic readiness and success across all departments.",
+    mission: "To consistently collect, curate, and upload high-quality past questions in PDF format for every course and department, ensuring that all students have clear and complete access to the materials they need to excel. Our goal is a fully functional, student-accessible platform where past questions are readily available, organized, and easy to navigate—fostering a culture of academic readiness and success across all departments.",
     
     // Founder
     founder: {

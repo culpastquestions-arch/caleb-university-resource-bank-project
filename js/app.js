@@ -705,22 +705,23 @@ class App {
     // Build the About page HTML
     const html = `
       <div class="about-page">
-        <!-- Mission & Vision Section -->
+        <!-- Back Navigation -->
+        <div class="about-back">
+          <a href="#/" class="about-back__link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Home</span>
+          </a>
+        </div>
+        
+        <!-- Mission Section -->
         <section class="about-section about-section--mission">
           <div class="about-mission">
-            <div class="about-mission__item">
+            <div class="about-mission__item about-mission__item--full">
               <div class="about-mission__icon">
                 <i class="fas fa-bullseye"></i>
               </div>
               <h2 class="about-mission__title">Our Mission</h2>
               <p class="about-mission__text">${about.mission}</p>
-            </div>
-            <div class="about-mission__item">
-              <div class="about-mission__icon">
-                <i class="fas fa-eye"></i>
-              </div>
-              <h2 class="about-mission__title">Our Vision</h2>
-              <p class="about-mission__text">${about.vision}</p>
             </div>
           </div>
         </section>

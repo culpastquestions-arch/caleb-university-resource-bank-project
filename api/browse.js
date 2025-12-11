@@ -203,11 +203,14 @@ module.exports = async (req, res) => {
     }
 
     // Parse query parameters
-    const path = req.query.path || '/';
+    const rawPath = req.query.path || '/';
     const type = req.query.type || 'folders'; // 'folders' or 'files'
+    
+    // Convert ~ back to / in path segments (URL encoding workaround for folder names with /)
+    const path = rawPath.replace(/~/g, '/');
 
-    // Check cache first
-    const cacheKey = `${path}:${type}`;
+    // Check cache first (use rawPath for cache key to match URL)
+    const cacheKey = `${rawPath}:${type}`;
     const cached = getCached(cacheKey);
     
     if (cached) {
