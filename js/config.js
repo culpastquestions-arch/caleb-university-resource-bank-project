@@ -1,5 +1,8 @@
 // Department Configuration
 const CONFIG = {
+  // API base URL for serverless functions
+  apiBase: '/api',
+  
   // NOTE: Departments are now fetched dynamically from Google Drive
   // This array is kept for reference but no longer used for rendering
   // To add/remove departments, simply create/delete folders in Google Drive root
