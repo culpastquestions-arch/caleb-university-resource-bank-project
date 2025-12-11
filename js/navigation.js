@@ -3,15 +3,42 @@
 // ROUTING STRUCTURE:
 // Standard departments: Department → Level → Semester → Session → Files
 //   URL pattern: #/Department/Level/Semester/Session
-//   Example: #/Computer Science/100 Level/1st Semester/2024/25 Session
+//   Example: #/Computer Science/100 Level/1st Semester/2024~25 Session
 //
 // SPECIAL CASE - Jupeb:
 //   Jupeb uses a different hierarchy: Subject → Session → Files (no Semester layer)
 //   URL pattern: #/Jupeb/Subject/Session
-//   Example: #/Jupeb/Science/2024/25 Session
+//   Example: #/Jupeb/Science/2024~25 Session
 //   The 'level' route parameter is repurposed as 'subject' for Jupeb
 //   The 'semester' route parameter is skipped entirely
 //
+// NOTE: Folder names containing '/' are encoded as '~' in URLs to prevent
+// path parsing issues. Use encodeSegment/decodeSegment for URL building/parsing.
+
+/**
+ * Encode a path segment for use in URLs.
+ * Replaces '/' with '~' to prevent path splitting issues.
+ * @param {string} segment - The raw folder/file name.
+ * @returns {string} URL-safe encoded segment.
+ */
+function encodeSegment(segment) {
+  if (!segment) return '';
+  // Replace / with ~ before URI encoding
+  return encodeURIComponent(segment.replace(/\//g, '~'));
+}
+
+/**
+ * Decode a path segment from URLs.
+ * Restores '~' back to '/' after URI decoding.
+ * @param {string} segment - The URL-encoded segment.
+ * @returns {string} Original folder/file name.
+ */
+function decodeSegment(segment) {
+  if (!segment) return '';
+  // URI decode then restore / from ~
+  return decodeURIComponent(segment).replace(/~/g, '/');
+}
+
 class Navigator {
   constructor() {
     this.currentRoute = this.parseRoute();
@@ -57,12 +84,12 @@ class Navigator {
 
     if (parts.length >= 1) {
       route.view = 'levels';  // Show levels for this department
-      route.department = decodeURIComponent(parts[0]);
+      route.department = decodeSegment(parts[0]);
     }
     
     if (parts.length >= 2) {
-      route.department = decodeURIComponent(parts[0]);
-      route.level = decodeURIComponent(parts[1]);
+      route.department = decodeSegment(parts[0]);
+      route.level = decodeSegment(parts[1]);
       
       // For Jupeb, level is actually subject
       // Next view after subject is sessions (direct, no semesters)
@@ -74,35 +101,35 @@ class Navigator {
     }
     
     if (parts.length >= 3) {
-      route.department = decodeURIComponent(parts[0]);
-      route.level = decodeURIComponent(parts[1]);
+      route.department = decodeSegment(parts[0]);
+      route.level = decodeSegment(parts[1]);
       
       if (route.department === 'Jupeb') {
         // Jupeb: 3 parts means Subject/Session → Files
         route.view = 'files';
-        route.session = decodeURIComponent(parts[2]);  // 3rd part is session for Jupeb
+        route.session = decodeSegment(parts[2]);  // 3rd part is session for Jupeb
         route.semester = null;  // No semester for Jupeb
       } else {
         // Standard: 3 parts means Level/Semester → Sessions
         route.view = 'sessions';
-        route.semester = decodeURIComponent(parts[2]);
+        route.semester = decodeSegment(parts[2]);
       }
     }
     
     if (parts.length >= 4) {
-      route.department = decodeURIComponent(parts[0]);
-      route.level = decodeURIComponent(parts[1]);
+      route.department = decodeSegment(parts[0]);
+      route.level = decodeSegment(parts[1]);
       
       if (route.department === 'Jupeb') {
         // Jupeb shouldn't have 4+ parts, but handle gracefully
         route.view = 'files';
-        route.session = decodeURIComponent(parts[2]);
+        route.session = decodeSegment(parts[2]);
         route.semester = null;
       } else {
         // Standard: 4 parts means Level/Semester/Session → Files
         route.view = 'files';
-        route.semester = decodeURIComponent(parts[2]);
-        route.session = decodeURIComponent(parts[3]);
+        route.semester = decodeSegment(parts[2]);
+        route.session = decodeSegment(parts[3]);
       }
     }
 

@@ -274,7 +274,7 @@ class App {
 
         <div class="department-grid" id="department-grid">
           ${departments.map(dept => `
-            <a href="#/${encodeURIComponent(dept)}" class="department-card" data-department="${dept}">
+            <a href="#/${encodeSegment(dept)}" class="department-card" data-department="${dept}">
               <div class="department-icon" style="background-color: ${getDepartmentColor(dept)}">
                 <i class="${this.getDepartmentIcon(dept)}"></i>
               </div>
@@ -345,7 +345,7 @@ class App {
         container.innerHTML = `
           <div class="level-grid">
             ${levels.map(level => `
-              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
+              <a href="#/${encodeSegment(route.department)}/${encodeSegment(level)}" 
                  class="level-card">
                 <div class="level-icon">
                   <i class="fas fa-book"></i>
@@ -359,7 +359,7 @@ class App {
         container.innerHTML = `
           <div class="level-grid">
             ${levels.map(level => `
-              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(level)}" 
+              <a href="#/${encodeSegment(route.department)}/${encodeSegment(level)}" 
                  class="level-card">
                 <div class="level-number">${level.match(/\d+/)?.[0] || level}</div>
                 <div class="level-label">Level</div>
@@ -397,7 +397,7 @@ class App {
       container.innerHTML = `
         <div class="semester-grid">
           ${semesters.map(semester => `
-            <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(semester)}" 
+            <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(semester)}" 
                class="semester-card">
               <div class="semester-name">${semester}</div>
             </a>
@@ -444,7 +444,7 @@ class App {
         container.innerHTML = `
           <div class="semester-grid">
             ${sessions.map(session => `
-              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(session)}" 
+              <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(session)}" 
                  class="semester-card">
                 <div class="semester-name">${session}</div>
               </a>
@@ -455,7 +455,7 @@ class App {
         container.innerHTML = `
           <div class="semester-grid">
             ${sessions.map(session => `
-              <a href="#/${encodeURIComponent(route.department)}/${encodeURIComponent(route.level)}/${encodeURIComponent(route.semester)}/${encodeURIComponent(session)}" 
+              <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(session)}" 
                  class="semester-card">
                 <div class="semester-name">${session}</div>
               </a>
@@ -826,6 +826,22 @@ class App {
         <h2 class="empty-state-title">Page Not Found</h2>
         <p class="empty-state-text">The page you're looking for doesn't exist.</p>
         <button onclick="appNavigator.goHome()" class="btn btn-primary">Go Home</button>
+      </div>
+    `;
+  }
+
+  /**
+   * Render error state HTML for inline display.
+   * @param {string} message - Error message to display.
+   * @returns {string} HTML string for error state.
+   */
+  renderErrorState(message) {
+    return `
+      <div class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
+        <h2 class="empty-state-title">Something went wrong</h2>
+        <p class="empty-state-text">${message || 'An error occurred'}</p>
+        <button onclick="app.handleRefresh()" class="btn btn-primary">Try Again</button>
       </div>
     `;
   }
