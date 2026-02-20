@@ -2,23 +2,10 @@
 const CONFIG = {
   // API base URL for serverless functions
   apiBase: '/api',
-  
-  // NOTE: Departments are now fetched dynamically from Google Drive
-  // This array is kept for reference but no longer used for rendering
-  // To add/remove departments, simply create/delete folders in Google Drive root
-  
-  // Departments with level exceptions (not all have 100-400)
-  // These define BEHAVIOR, not just data - must remain in config
-  levelExceptions: {
-    "Human Anatomy": [100],
-    "Human Physiology": [100],
-    "Software Engineering": [100],
-    "Nursing": [100, 200],
-    "Jupeb": ["Art", "Business", "Science"] // Jupeb has subjects, not levels
-  },
 
-  // Default levels for departments not in exceptions
-  defaultLevels: [100, 200, 300, 400],
+  // NOTE: Level exceptions (departments with non-standard levels) are managed
+  // exclusively in api/browse.js (server-side). No client-side copy is needed
+  // since the server handles all level filtering.
 
   // Semester names
   semesters: ["1st Semester", "2nd Semester"],
@@ -35,10 +22,10 @@ const CONFIG = {
     // Path cache TTL (6 hours) - after this, data is considered stale
     // Stale data is still shown immediately while fresh data is fetched in background
     ttlHours: 6,
-    
+
     // Hard expiry (24 hours) - after this, cached data is not used at all
     hardExpiryHours: 24,
-    
+
     // Legacy setting kept for compatibility
     durationDays: 30
   },
@@ -59,14 +46,14 @@ const CONFIG = {
   about: {
     tagline: "Bridging the gaps between students and academic resources",
     mission: "To consistently collect, curate, and upload high-quality past questions in PDF format for every course and department, ensuring that all students have clear and complete access to the materials they need to excel. Our goal is a fully functional, student-accessible platform where past questions are readily available, organized, and easy to navigate—fostering a culture of academic readiness and success across all departments.",
-    
+
     // Founder
     founder: {
       name: "Jesusegun",
       role: "Founder & Coordinator",
       color: "#0F9D58" // Primary green
     },
-    
+
     // Executive Team
     executives: [
       { name: "Esther", role: "Content Lead", department: "Head of Department Reps", color: "#1E88E5" },
@@ -75,7 +62,7 @@ const CONFIG = {
       { name: "Ebun", role: "Quality Control Lead", department: "Quality Assurance", color: "#F57C00" },
       { name: "Joy", role: "Head of New Departments", department: "Expansion", color: "#00897B" }
     ],
-    
+
     // Department Representatives (placeholders - update names when available)
     departmentReps: [
       { name: "Praise", department: "Computer Science" },
@@ -102,13 +89,6 @@ const CONFIG = {
   }
 };
 
-// Helper function to get levels for a department
-function getDepartmentLevels(departmentName) {
-  if (CONFIG.levelExceptions[departmentName]) {
-    return CONFIG.levelExceptions[departmentName];
-  }
-  return CONFIG.defaultLevels;
-}
 
 // Helper function to get department color
 // Uses predefined colors for known departments, generates for new ones
@@ -136,24 +116,24 @@ function getDepartmentColor(departmentName) {
     'Psychology': '#A5D6A7',
     'Software Engineering': '#B2DFDB'
   };
-  
+
   // Return predefined color if exists
   if (departmentColorMap[departmentName]) {
     return departmentColorMap[departmentName];
   }
-  
+
   // Generate consistent color for unknown departments
   // Uses a hash of the department name to always get same color
   let hash = 0;
   for (let i = 0; i < departmentName.length; i++) {
     hash = departmentName.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   // Generate a pleasant green-teal color (matching the app theme)
   const hue = 120 + (Math.abs(hash) % 60); // 120-180 (green to cyan)
   const saturation = 40 + (Math.abs(hash >> 8) % 30); // 40-70%
   const lightness = 65 + (Math.abs(hash >> 16) % 20); // 65-85%
-  
+
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
@@ -164,6 +144,6 @@ function formatLevel(level) {
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CONFIG, getDepartmentLevels, getDepartmentColor, formatLevel };
+  module.exports = { CONFIG, getDepartmentColor, formatLevel };
 }
 

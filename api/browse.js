@@ -27,11 +27,11 @@ function makeAPIRequest(url) {
   return new Promise((resolve, reject) => {
     https.get(url, (res) => {
       let data = '';
-      
+
       res.on('data', (chunk) => {
         data += chunk;
       });
-      
+
       res.on('end', () => {
         if (res.statusCode === 200) {
           try {
@@ -58,7 +58,7 @@ function makeAPIRequest(url) {
 async function listFolders(folderId, apiKey) {
   const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)&orderBy=name&key=${apiKey}`;
-  
+
   const response = await makeAPIRequest(url);
   return response.files || [];
 }
@@ -72,7 +72,7 @@ async function listFolders(folderId, apiKey) {
 async function listFiles(folderId, apiKey) {
   const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/pdf' and trashed=false`);
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size,webViewLink,webContentLink)&orderBy=name&key=${apiKey}`;
-  
+
   const response = await makeAPIRequest(url);
   return response.files || [];
 }
@@ -87,10 +87,10 @@ async function listFiles(folderId, apiKey) {
  */
 async function findFolderByName(parentId, folderName, apiKey) {
   const folders = await listFolders(parentId, apiKey);
-  
+
   // Normalize the target name - convert ~ back to / for matching
   const normalizedTarget = normalizeFolderName(folderName.replace(/~/g, '/'));
-  
+
   return folders.find(f => normalizeFolderName(f.name) === normalizedTarget) || null;
 }
 
@@ -121,11 +121,11 @@ function isCacheValid(cached) {
 function getCached(path) {
   const key = getCacheKey(path);
   const cached = pathCache.get(key);
-  
+
   if (cached && isCacheValid(cached)) {
     return cached;
   }
-  
+
   // Expired or not found
   pathCache.delete(key);
   return null;
@@ -160,13 +160,13 @@ const LEVEL_EXCEPTIONS = {
   "Human Physiology": [100],
   "Software Engineering": [100],
   "MLS": [100],
-  
+
   // Two-level departments
   "Nursing": [100, 200],
-  
+
   // Special structure departments
   "Jupeb": ["Art", "Business", "Science"],
-  
+
   // Add new departments with non-standard levels here:
   // "Department Name": [100, 200] // example: only 100 and 200 level
 };
@@ -181,11 +181,20 @@ const DEFAULT_LEVELS = [100, 200, 300, 400];
  * - type: What to return - "folders" or "files" (default: "folders")
  */
 module.exports = async (req, res) => {
-  // Enable CORS
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS - restrict to configured origin (set ALLOWED_ORIGIN env var on Vercel)
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || '';
+  const requestOrigin = req.headers.origin || '';
+
+  if (allowedOrigin && requestOrigin === allowedOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+    res.setHeader('Vary', 'Origin');
+  }
+  // If ALLOWED_ORIGIN is not configured or origin doesn't match,
+  // no CORS header is sent — browser will block cross-origin requests (safe default)
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
+
   // Handle preflight
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -205,7 +214,7 @@ module.exports = async (req, res) => {
 
     if (!apiKey || !rootFolderId) {
       console.error('Missing environment variables');
-      res.status(500).json({ 
+      res.status(500).json({
         error: 'Server configuration error',
         message: 'API credentials not configured.'
       });
@@ -215,7 +224,7 @@ module.exports = async (req, res) => {
     // Parse query parameters
     const path = req.query.path || '/';
     const type = req.query.type || 'folders'; // 'folders' or 'files'
-    
+
     // Note: ~ is used in URLs to represent / in folder names (e.g., "2024~25 Session")
     // The conversion from ~ to / happens in findFolderByName, not here
     // This preserves correct path splitting
@@ -223,7 +232,7 @@ module.exports = async (req, res) => {
     // Check cache first
     const cacheKey = `${path}:${type}`;
     const cached = getCached(cacheKey);
-    
+
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
       res.setHeader('Cache-Control', 'public, max-age=1800');
@@ -239,13 +248,13 @@ module.exports = async (req, res) => {
 
     // Parse the path into segments
     const segments = path.split('/').filter(s => s.length > 0);
-    
+
     // Navigate to the target folder
     let currentFolderId = rootFolderId;
-    
+
     for (const segment of segments) {
       const folder = await findFolderByName(currentFolderId, segment, apiKey);
-      
+
       if (!folder) {
         res.status(404).json({
           error: 'Path not found',
@@ -254,20 +263,20 @@ module.exports = async (req, res) => {
         });
         return;
       }
-      
+
       currentFolderId = folder.id;
     }
 
     // Fetch the requested content
     let data;
-    
+
     if (type === 'files') {
       // Get PDF files in this folder
       data = await listFiles(currentFolderId, apiKey);
     } else {
       // Get subfolders
       const folders = await listFolders(currentFolderId, apiKey);
-      
+
       // Filter and normalize folder names
       data = folders.map(f => ({
         id: f.id,
@@ -281,7 +290,7 @@ module.exports = async (req, res) => {
         // Department level - filter to valid levels for this department
         const deptName = normalizeFolderName(segments[0]);
         const validLevels = LEVEL_EXCEPTIONS[deptName] || DEFAULT_LEVELS;
-        
+
         data = data.filter(f => {
           const levelMatch = f.name.match(/(\d+)/);
           if (levelMatch) {
@@ -309,7 +318,7 @@ module.exports = async (req, res) => {
 
   } catch (error) {
     console.error('Error in browse endpoint:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to fetch data',
       message: error.message
     });

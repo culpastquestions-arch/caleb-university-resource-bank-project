@@ -77,11 +77,11 @@ class Navigator {
    */
   parseRoute() {
     let hash = window.location.hash.slice(1) || '';
-    
+
     // Backward compatibility: Fix old URLs with session years like "2024/25"
     // Convert patterns like "/2024/25 Session" or "/2023/24 Session" to use ~
     hash = hash.replace(/\/(\d{4})\/(\d{2})\s*(Session|session)/g, '/$1~$2 $3');
-    
+
     const parts = hash.split('/').filter(p => p);
 
     const route = {
@@ -102,11 +102,11 @@ class Navigator {
       route.view = 'levels';  // Show levels for this department
       route.department = decodeSegment(parts[0]);
     }
-    
+
     if (parts.length >= 2) {
       route.department = decodeSegment(parts[0]);
       route.level = decodeSegment(parts[1]);
-      
+
       // For Jupeb, level is actually subject
       // Next view after subject is sessions (direct, no semesters)
       if (route.department === 'Jupeb') {
@@ -115,11 +115,11 @@ class Navigator {
         route.view = 'semesters';  // Standard: Level → Semester
       }
     }
-    
+
     if (parts.length >= 3) {
       route.department = decodeSegment(parts[0]);
       route.level = decodeSegment(parts[1]);
-      
+
       if (route.department === 'Jupeb') {
         // Jupeb: 3 parts means Subject/Session → Files
         route.view = 'files';
@@ -131,11 +131,11 @@ class Navigator {
         route.semester = decodeSegment(parts[2]);
       }
     }
-    
+
     if (parts.length >= 4) {
       route.department = decodeSegment(parts[0]);
       route.level = decodeSegment(parts[1]);
-      
+
       if (route.department === 'Jupeb') {
         // Jupeb shouldn't have 4+ parts, but handle gracefully
         route.view = 'files';
@@ -332,6 +332,6 @@ const appNavigator = new Navigator();
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Navigator, appNavigator };
+  module.exports = { Navigator, appNavigator, encodeSegment, decodeSegment, displayName };
 }
 

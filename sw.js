@@ -1,5 +1,6 @@
 // Service Worker for CURB
-const CACHE_NAME = 'curb-v1.2.4';
+// IMPORTANT: Keep CACHE_NAME in sync with CONFIG.version in js/config.js
+const CACHE_NAME = 'curb-v1.4.0';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -9,6 +10,8 @@ const urlsToCache = [
   '/js/cache.js',
   '/js/drive-api.js',
   '/js/navigation.js',
+  '/js/pwa.js',
+  '/js/renderer.js',
   '/js/app.js',
   '/assets/caleb-university-logo-transparent.png',
   '/manifest.json',
@@ -53,14 +56,14 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   // Skip Google APIs and external CDNs
-  if (event.request.url.includes('googleapis.com') || 
-      event.request.url.includes('fontawesome.com') ||
-      event.request.url.includes('cdnjs.cloudflare.com')) {
+  if (event.request.url.includes('googleapis.com') ||
+    event.request.url.includes('fontawesome.com') ||
+    event.request.url.includes('cdnjs.cloudflare.com')) {
     return;
   }
 
   const url = new URL(event.request.url);
-  
+
   // API calls - Network First
   if (url.pathname.includes('/api/')) {
     event.respondWith(
@@ -87,9 +90,9 @@ self.addEventListener('fetch', event => {
   }
 
   // Static assets - Cache First
-  if (url.pathname.includes('/css/') || 
-      url.pathname.includes('/js/') || 
-      url.pathname.includes('/assets/')) {
+  if (url.pathname.includes('/css/') ||
+    url.pathname.includes('/js/') ||
+    url.pathname.includes('/assets/')) {
     event.respondWith(
       caches.match(event.request)
         .then(response => {
