@@ -70,7 +70,7 @@ class Renderer {
         ${departments.map(dept => `
           <a href="#/${encodeSegment(dept)}" class="department-card" data-department="${dept}">
             <div class="card-icon">
-              <i class="${this.getDepartmentIcon(dept)}"></i>
+              <i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i>
             </div>
             <span class="card-title">${dept}</span>
           </a>
@@ -79,6 +79,7 @@ class Renderer {
     `;
 
         this.ensureFontAwesomeIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         return departments;
     }
 
@@ -606,6 +607,62 @@ class Renderer {
         if (deptLower.includes('finance') || deptLower.includes('accounting') || deptLower.includes('banking')) return 'far fa-chart-line';
 
         return 'far fa-graduation-cap';
+    }
+
+    /**
+     * Get Lucide icon name for a department card.
+     * @param {string} dept - Department name.
+     * @returns {string} Lucide icon name.
+     */
+    getDepartmentLucideIcon(dept) {
+        const icons = {
+            'Accounting':                  'trending-up',
+            'Advertising':                 'megaphone',
+            'Architecture':                'building-2',
+            'Biochemistry':                'dna',
+            'Broadcasting':                'radio',
+            'Business Administration':     'briefcase',
+            'Computer Science':            'monitor',
+            'Communication':               'message-circle',
+            'Criminology':                 'scale',
+            'Cybersecurity':               'shield',
+            'Economics':                   'bar-chart-2',
+            'Human Anatomy':               'activity',
+            'Human Physiology':            'heart-pulse',
+            'Industrial Chemistry':        'flask-conical',
+            'International Relations':     'globe',
+            'Jupeb':                       'graduation-cap',
+            'Law':                         'scale',
+            'Mass Communication':          'newspaper',
+            'Microbiology':                'microscope',
+            'MLS':                         'microscope',
+            'Medical Lab Science':         'microscope',
+            'Nursing':                     'heart-pulse',
+            'Political Science':           'landmark',
+            'Psychology':                  'brain',
+            'Public Health':               'activity',
+            'Software Engineering':        'code-2',
+        };
+
+        if (icons[dept]) return icons[dept];
+
+        const d = dept.toLowerCase();
+        if (d.includes('computer') || d.includes('software') || d.includes('tech')) return 'monitor';
+        if (d.includes('business') || d.includes('management') || d.includes('admin')) return 'briefcase';
+        if (d.includes('law') || d.includes('legal') || d.includes('criminol')) return 'scale';
+        if (d.includes('nurs') || d.includes('physiol') || d.includes('anatomy')) return 'heart-pulse';
+        if (d.includes('engineering')) return 'cog';
+        if (d.includes('biochem') || d.includes('chem')) return 'flask-conical';
+        if (d.includes('micro') || d.includes('lab')) return 'microscope';
+        if (d.includes('art') || d.includes('design') || d.includes('architect')) return 'building-2';
+        if (d.includes('education') || d.includes('teach')) return 'book-open';
+        if (d.includes('communication') || d.includes('media') || d.includes('broadcast')) return 'newspaper';
+        if (d.includes('finance') || d.includes('account') || d.includes('banking') || d.includes('econ')) return 'trending-up';
+        if (d.includes('psych')) return 'brain';
+        if (d.includes('political') || d.includes('public') || d.includes('relation')) return 'landmark';
+        if (d.includes('health')) return 'activity';
+
+        return 'graduation-cap';
     }
 
     /**
