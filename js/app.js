@@ -325,8 +325,8 @@ class App {
         noResultsMsg.innerHTML = `
           <div class="empty-state">
             <div class="empty-state-icon"><i class="fas fa-search"></i></div>
-            <h3 class="empty-state-title">No departments found</h3>
-            <p class="empty-state-text">Try searching for a different term</p>
+            <h3 class="empty-state-title">No departments match your search</h3>
+            <p class="empty-state-text">Try a different keyword or check the spelling</p>
           </div>
         `;
         document.getElementById('department-grid').parentNode.appendChild(noResultsMsg);

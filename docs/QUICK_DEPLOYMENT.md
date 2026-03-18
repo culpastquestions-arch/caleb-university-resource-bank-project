@@ -59,7 +59,7 @@ git push -u origin main
 ### ✅ Quick Tests
 
 1. **Visit your site** - Should load without errors
-2. **Check backend** - Visit `/api/drive` - Should return JSON
+2. **Check backend** - Visit `/api/browse?path=/&type=folders` - Should return JSON
 3. **Browse departments** - Click through to verify data loads
 4. **View a PDF** - Ensure files open correctly
 

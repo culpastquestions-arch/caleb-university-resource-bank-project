@@ -52,6 +52,7 @@ class Renderer {
 
         container.innerHTML = `
       <div class="search-container">
+        <h2 class="search-headline">Find study materials for your department</h2>
         <div class="search-box">
           <span class="search-icon"><i class="fas fa-search"></i></span>
           <input

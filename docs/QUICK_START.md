@@ -7,6 +7,7 @@ Get CURB up and running in 30 minutes!
 ✅ Google account  
 ✅ Google Drive folder with organized files  
 ✅ GitHub account  
+✅ Vercel account (free)  
 ✅ 30 minutes of your time  
 
 ## Step-by-Step Setup
@@ -39,7 +40,7 @@ Caleb University Past Questions/
 2. Create new project: "CURB"
 3. Enable **Google Drive API**
 4. Create credentials → **API Key**
-5. Restrict key to your domain
+5. Restrict key to **Google Drive API only** (API restriction)
 6. Copy the API key
 
 **Detailed guide:** [SETUP_DRIVE_API.md](./SETUP_DRIVE_API.md)
@@ -57,35 +58,34 @@ Caleb University Past Questions/
 ### 4. Configure CURB (2 minutes)
 
 1. Download this project
-2. Open `index.html` in a text editor
-3. Find this section (around line 150):
-   ```javascript
-   window.ENV = {
-     GOOGLE_DRIVE_API_KEY: 'YOUR_API_KEY_HERE',
-     GOOGLE_DRIVE_ROOT_FOLDER_ID: 'YOUR_ROOT_FOLDER_ID_HERE'
-   };
-   ```
-4. Replace with your actual API key and folder ID
-5. Save the file
+2. Create your Vercel project (or open existing project)
+3. In Vercel, go to **Settings** → **Environment Variables**
+4. Add:
+   - `GOOGLE_DRIVE_API_KEY` = your API key
+   - `GOOGLE_DRIVE_ROOT_FOLDER_ID` = your root folder ID
+5. (Optional but recommended) Add `ALLOWED_ORIGIN` = your production URL
+
+**Important:** CURB now uses a serverless backend (`/api/browse`).
+Your API key is read server-side and should **not** be placed in client files.
 
 ### 5. Test Locally (2 minutes)
 
-**Option A:** Just open `index.html` in your browser
+Use Vercel local runtime so serverless API routes work:
 
-**Option B:** Use a local server:
 ```bash
-# Python
-python -m http.server 8000
-
-# Node.js
-npx serve
+npx vercel dev
 ```
 
-Visit `http://localhost:8000` and verify:
+Create `.env.local` (or copy from `env.example`) and set:
+- `GOOGLE_DRIVE_API_KEY`
+- `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+
+Visit `http://localhost:3000` and verify:
 - ✅ Departments show up
 - ✅ You can navigate through levels
 - ✅ Files are visible
 - ✅ PDFs can be viewed/downloaded
+- ✅ `http://localhost:3000/api/browse?path=/&type=folders` returns JSON
 
 ### 6. Deploy to Vercel (10 minutes)
 
@@ -101,8 +101,11 @@ Visit `http://localhost:8000` and verify:
 3. Go to [Vercel](https://vercel.com)
 4. Sign up with GitHub
 5. Import your repository
-6. Click Deploy
-7. Done! Get your URL: `https://your-project.vercel.app`
+6. Confirm environment variables are set:
+   - `GOOGLE_DRIVE_API_KEY`
+   - `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+7. Click Deploy
+8. Done! Get your URL: `https://your-project.vercel.app`
 
 **Detailed guide:** [DEPLOYMENT.md](./DEPLOYMENT.md)
 
@@ -135,7 +138,8 @@ Your resource bank is now live!
 ### "API key not valid"
 → Check you copied the entire key  
 → Verify Drive API is enabled  
-→ Check domain restrictions  
+→ Check API restriction is set to Google Drive API  
+→ Remove HTTP referrer restriction if using Vercel serverless backend  
 
 ### "Files not showing"
 → Verify folder is shared publicly  
@@ -145,7 +149,8 @@ Your resource bank is now live!
 ### "Departments not loading"
 → Open browser console (F12)  
 → Check for error messages  
-→ Verify API credentials in `index.html`  
+→ Verify `GOOGLE_DRIVE_API_KEY` and `GOOGLE_DRIVE_ROOT_FOLDER_ID` in Vercel Environment Variables  
+→ Test `/api/browse?path=/&type=folders` directly in browser  
 
 ## Need Help?
 

@@ -24,7 +24,7 @@ The deployment process:
 
 CURB now uses a **secure backend proxy architecture**:
 - ✅ API keys are NEVER exposed to clients
-- ✅ All Google Drive calls happen server-side via `api/drive.js`
+- ✅ Google Drive browsing happens server-side via `api/browse.js`
 - ✅ Credentials stored securely as environment variables
 
 **No changes needed to the code** - just configure environment variables in Vercel (Step 4).
@@ -127,7 +127,7 @@ If you skipped this during import, add them now:
 
 **How it works:**
 - These variables are stored securely on Vercel's servers
-- The serverless function (`api/drive.js`) accesses them server-side
+- The serverless function (`api/browse.js`) accesses them server-side
 - They are NEVER sent to client browsers
 - Your API key remains completely secure
 
@@ -228,8 +228,8 @@ Vercel will automatically redeploy in ~1 minute!
    - Go to Google Cloud Console
    - Check Drive API v3 is enabled
 4. **Test the backend endpoint directly**
-   - Visit: `https://your-site.vercel.app/api/drive`
-   - Should return JSON data or error message
+   - Visit: `https://your-site.vercel.app/api/browse?path=/&type=folders`
+   - Should return JSON data
 5. Check browser console for specific errors
 
 ### Files returning 404:
@@ -298,7 +298,7 @@ If you exceed limits:
 **CURB now uses a secure serverless backend:**
 
 - ✅ **API keys never exposed** - Stored only as Vercel environment variables
-- ✅ **Server-side API calls** - All Drive requests happen in backend function
+- ✅ **Server-side API calls** - Drive requests are handled by backend functions
 - ✅ **30-minute server cache** - Reduces API calls by 99%
 - ✅ **DDoS protection** - Provided by Vercel
 - ✅ **SSL/TLS certificates** - Automatic HTTPS

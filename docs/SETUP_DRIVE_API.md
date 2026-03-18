@@ -4,7 +4,8 @@ This guide will walk you through setting up the Google Drive API for CURB.
 
 ## ⚠️ SECURITY IMPORTANT
 
-**You MUST restrict your API key to specific domains.** Unrestricted API keys can be abused and may result in quota exhaustion or unexpected charges. Follow Step 4 carefully.
+CURB now uses a **server-side backend proxy** (`/api/browse`), so API keys are not exposed in browser code.
+Configure key restrictions for server-to-server usage (Step 4) and always restrict the key to Google Drive API.
 
 ## Prerequisites
 
@@ -42,22 +43,17 @@ This guide will walk you through setting up the Google Drive API for CURB.
 
 🔐 **This step is MANDATORY for security.** An unrestricted API key is a security risk.
 
-### Application Restrictions
+### Application Restrictions (Server-Side Key)
 
 1. After creating the key, click **"Restrict Key"** (or click the pencil icon to edit)
-2. Give your key a descriptive name: `CURB Web App Key`
+2. Give your key a descriptive name: `CURB Backend Key`
 3. Under **"Application restrictions"**:
-   - Select **"HTTP referrers (web sites)"** ← Important!
-   - Click **"Add an item"**
-   - Add BOTH of these referrers:
-     ```
-     http://localhost:*
-     http://127.0.0.1:*
-     https://your-domain.vercel.app/*
-     https://*.vercel.app/*
-     ```
-   - Replace `your-domain` with your actual Vercel domain
-   - The `*` wildcard allows all paths on that domain
+   - If hosted on Vercel (recommended): choose **"None"**
+   - If you have fixed backend egress IPs: choose **"IP addresses"** and add those IPs
+
+**Why not HTTP referrer restrictions?**
+Requests are made by Vercel serverless functions, not directly by browsers.
+HTTP referrer restrictions are for browser-origin requests and can break server-side calls.
 
 ### API Restrictions
 
@@ -70,9 +66,9 @@ This guide will walk you through setting up the Google Drive API for CURB.
 ### Verify Your Restrictions
 
 After saving, verify:
-- ✅ Application restrictions: HTTP referrers (shows your domains)
+- ✅ Application restrictions: `None` (Vercel) or fixed server IPs
 - ✅ API restrictions: Google Drive API only
-- ❌ NOT "None" for either restriction
+- ❌ API restrictions must NOT be "None"
 
 **Why this matters:**
 - Prevents unauthorized use of your API key
@@ -104,19 +100,7 @@ After saving, verify:
 
 ## Step 7: Add Credentials to Your Project
 
-### Option A: For Local Development
-
-1. Open `index.html` in your code editor
-2. Find the `window.ENV` section (around line 150)
-3. Replace the placeholder values:
-   ```javascript
-   window.ENV = {
-     GOOGLE_DRIVE_API_KEY: 'YOUR_ACTUAL_API_KEY',
-     GOOGLE_DRIVE_ROOT_FOLDER_ID: 'YOUR_ACTUAL_FOLDER_ID'
-   };
-   ```
-
-### Option B: For Vercel Deployment (Recommended)
+### Option A: For Vercel Deployment (Recommended)
 
 1. Go to your Vercel project dashboard
 2. Navigate to **"Settings"** > **"Environment Variables"**
@@ -131,7 +115,19 @@ After saving, verify:
 5. Click **"Save"**
 6. Redeploy your application
 
-**Note:** For Vercel, you'll also need to update `index.html` to read from environment variables injected at build time, or use Vercel's API to fetch them.
+### Option B: For Local Development (with serverless functions)
+
+1. Copy `env.example` to `.env.local`
+2. Set:
+   - `GOOGLE_DRIVE_API_KEY`
+   - `GOOGLE_DRIVE_ROOT_FOLDER_ID`
+3. Run:
+   ```bash
+   npx vercel dev
+   ```
+4. Open `http://localhost:3000`
+
+No API key should be added to client-side files.
 
 ## Step 8: Test the Connection
 
@@ -140,12 +136,14 @@ After saving, verify:
 3. Check the Console for any errors
 4. If setup correctly, you should see departments loading
 5. Click on a department to verify the API is fetching data
+6. Test backend endpoint directly:
+   - `/api/browse?path=/&type=folders` should return JSON
 
 ## Troubleshooting
 
 ### Error: "API key not valid"
 - Check that you copied the key correctly
-- Verify the key is unrestricted or properly restricted
+- Verify the key is configured for server-side usage (not HTTP referrer restricted)
 - Make sure Google Drive API is enabled
 
 ### Error: "The caller does not have permission"
@@ -179,7 +177,7 @@ After saving, verify:
 
 ## Security Best Practices
 
-1. ✅ Always restrict your API key to specific domains
+1. ✅ Keep API restrictions set to Google Drive API only
 2. ✅ Never commit API keys to public repositories
 3. ✅ Use environment variables for sensitive data
 4. ✅ Regularly rotate API keys (every 6-12 months)
@@ -199,17 +197,18 @@ If you're stuck:
 
 Before going live, verify ALL of these:
 
-- [ ] API key has HTTP referrer restrictions enabled
-- [ ] Your production domain is added to allowed referrers
-- [ ] localhost is added for testing (http://localhost:*)
+- [ ] Application restriction matches hosting model (Vercel: `None`; fixed backend: IP restricted)
+- [ ] API key is stored only in environment variables (not client code)
+- [ ] Vercel env vars include `GOOGLE_DRIVE_API_KEY` and `GOOGLE_DRIVE_ROOT_FOLDER_ID`
 - [ ] API restrictions limit key to Google Drive API only
 - [ ] Drive folder is shared as "Anyone with link" (Viewer)
 - [ ] No other sensitive data in the same Drive folder
-- [ ] API key name is descriptive (e.g., "CURB Web App Key")
+- [ ] API key name is descriptive (e.g., "CURB Backend Key")
+- [ ] `/api/browse?path=/&type=folders` returns JSON in production
 
 **Test your restrictions:**
-1. Try accessing your site from the allowed domain → Should work ✅
-2. Try using the API key from a different domain → Should fail ✅
+1. Open your deployed site and confirm data loads → Should work ✅
+2. View page source and confirm API key is not present → Should pass ✅
 
 ## Next Steps
 
