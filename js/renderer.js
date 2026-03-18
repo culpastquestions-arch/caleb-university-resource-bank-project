@@ -52,7 +52,7 @@ class Renderer {
 
         container.innerHTML = `
       <section class="search-section">
-        <h1 class="page-title">Find Past Questions</h1>
+        <h1 class="page-title">Find Past Questions for your department</h1>
         <div class="search-wrapper">
           <i class="fas fa-search search-icon"></i>
           <input
@@ -250,8 +250,8 @@ class Renderer {
         container.innerHTML = `
       <div class="file-list">
         ${files.map(file => `
-          <div class="file-item">
-            <div class="file-icon"><i class="fas fa-file-pdf"></i></div>
+          <div class="file-card">
+            <div class="file-icon"><i class="far fa-file-pdf"></i></div>
             <div class="file-info">
               <div class="file-name">${file.name}</div>
               <div class="file-meta">
@@ -259,8 +259,8 @@ class Renderer {
                 ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
               </div>
               <div class="file-actions">
-                <a href="${driveAPI.getViewLink(file)}" target="_blank" class="file-btn">View</a>
-                <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="file-btn">Download</a>
+                <a href="${driveAPI.getViewLink(file)}" target="_blank" class="btn-secondary">View</a>
+                <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="btn-primary">Download</a>
               </div>
             </div>
           </div>
@@ -510,10 +510,14 @@ class Renderer {
     renderEmptyState(title, message) {
         return `
       <div class="empty-state">
-        <div class="empty-state-icon"><i class="fas fa-folder-open"></i></div>
-        <h2 class="empty-state-title">${title}</h2>
-        <p class="empty-state-text">${message}</p>
-        <button onclick="app.handleRefresh()" class="btn btn-primary">Refresh Content</button>
+        <div class="empty-state-icon-wrap">
+          <i class="far fa-folder-open"></i>
+        </div>
+        <p class="empty-state-title">${title}</p>
+        <p class="meta-text">${message}</p>
+        <button onclick="app.handleRefresh()" class="btn-secondary">
+          <i class="fas fa-rotate-right"></i> Refresh Content
+        </button>
       </div>
     `;
     }
@@ -526,10 +530,14 @@ class Renderer {
     renderErrorState(message) {
         return `
       <div class="empty-state">
-        <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
-        <h2 class="empty-state-title">Something went wrong</h2>
-        <p class="empty-state-text">${message || 'An error occurred'}</p>
-        <button onclick="app.handleRefresh()" class="btn btn-primary">Try Again</button>
+        <div class="empty-state-icon-wrap">
+          <i class="far fa-circle-xmark"></i>
+        </div>
+        <p class="empty-state-title">Something went wrong</p>
+        <p class="meta-text">${message || 'An error occurred'}</p>
+        <button onclick="app.handleRefresh()" class="btn-secondary">
+          <i class="fas fa-rotate-right"></i> Try Again
+        </button>
       </div>
     `;
     }
@@ -541,10 +549,14 @@ class Renderer {
     renderNotFound() {
         return `
       <div class="empty-state">
-        <div class="empty-state-icon"><i class="fas fa-exclamation-triangle"></i></div>
-        <h2 class="empty-state-title">Page Not Found</h2>
-        <p class="empty-state-text">The page you're looking for doesn't exist.</p>
-        <button onclick="appNavigator.goHome()" class="btn btn-primary">Go Home</button>
+        <div class="empty-state-icon-wrap">
+          <i class="far fa-circle-question"></i>
+        </div>
+        <p class="empty-state-title">Page Not Found</p>
+        <p class="meta-text">The page you're looking for doesn't exist.</p>
+        <button onclick="appNavigator.goHome()" class="btn-secondary">
+          <i class="fas fa-house"></i> Go Home
+        </button>
       </div>
     `;
     }
