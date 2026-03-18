@@ -52,7 +52,7 @@ class Renderer {
 
         container.innerHTML = `
       <section class="search-section">
-        <h1 class="page-title">Find study materials for your department</h1>
+        <h1 class="page-title">Find Past Questions</h1>
         <div class="search-wrapper">
           <i class="fas fa-search search-icon"></i>
           <input
@@ -557,43 +557,43 @@ class Renderer {
      */
     getDepartmentIcon(dept) {
         const icons = {
-            'Accounting': 'fas fa-chart-line',
-            'Architecture': 'fas fa-building',
-            'Biochemistry': 'fas fa-dna',
-            'Business Administration': 'fas fa-briefcase',
-            'Computer Science': 'fas fa-laptop-code',
-            'Criminology': 'fas fa-gavel',
-            'Cybersecurity': 'fas fa-shield-alt',
-            'Economics': 'fas fa-chart-bar',
-            'Human Anatomy': 'fas fa-heartbeat',
-            'Human Physiology': 'fas fa-brain',
-            'Industrial Chemistry': 'fas fa-flask',
-            'International Relations': 'fas fa-globe',
-            'Jupeb': 'fas fa-graduation-cap',
-            'Law': 'fas fa-balance-scale',
-            'Mass Communication': 'fas fa-tv',
-            'Microbiology': 'fas fa-microscope',
-            'Nursing': 'fas fa-user-md',
-            'Political Science': 'fas fa-landmark',
-            'Psychology': 'fas fa-brain',
-            'Software Engineering': 'fas fa-cogs'
+            'Accounting': 'far fa-chart-line',
+            'Architecture': 'far fa-building',
+            'Biochemistry': 'far fa-dna',
+            'Business Administration': 'far fa-briefcase',
+            'Computer Science': 'far fa-laptop-code',
+            'Criminology': 'far fa-gavel',
+            'Cybersecurity': 'far fa-shield-alt',
+            'Economics': 'far fa-chart-bar',
+            'Human Anatomy': 'far fa-heartbeat',
+            'Human Physiology': 'far fa-brain',
+            'Industrial Chemistry': 'far fa-flask',
+            'International Relations': 'far fa-globe',
+            'Jupeb': 'far fa-graduation-cap',
+            'Law': 'far fa-balance-scale',
+            'Mass Communication': 'far fa-tv',
+            'Microbiology': 'far fa-microscope',
+            'Nursing': 'far fa-user-md',
+            'Political Science': 'far fa-landmark',
+            'Psychology': 'far fa-brain',
+            'Software Engineering': 'far fa-cogs'
         };
 
         if (icons[dept]) return icons[dept];
 
         const deptLower = dept.toLowerCase();
-        if (deptLower.includes('computer') || deptLower.includes('software') || deptLower.includes('tech')) return 'fas fa-laptop-code';
-        if (deptLower.includes('business') || deptLower.includes('management') || deptLower.includes('admin')) return 'fas fa-briefcase';
-        if (deptLower.includes('law') || deptLower.includes('legal')) return 'fas fa-balance-scale';
-        if (deptLower.includes('medicine') || deptLower.includes('medical') || deptLower.includes('health')) return 'fas fa-heartbeat';
-        if (deptLower.includes('engineering')) return 'fas fa-cogs';
-        if (deptLower.includes('science')) return 'fas fa-flask';
-        if (deptLower.includes('art') || deptLower.includes('design')) return 'fas fa-palette';
-        if (deptLower.includes('education') || deptLower.includes('teaching')) return 'fas fa-chalkboard-teacher';
-        if (deptLower.includes('communication') || deptLower.includes('media')) return 'fas fa-tv';
-        if (deptLower.includes('finance') || deptLower.includes('accounting') || deptLower.includes('banking')) return 'fas fa-chart-line';
+        if (deptLower.includes('computer') || deptLower.includes('software') || deptLower.includes('tech')) return 'far fa-laptop-code';
+        if (deptLower.includes('business') || deptLower.includes('management') || deptLower.includes('admin')) return 'far fa-briefcase';
+        if (deptLower.includes('law') || deptLower.includes('legal')) return 'far fa-balance-scale';
+        if (deptLower.includes('medicine') || deptLower.includes('medical') || deptLower.includes('health')) return 'far fa-heartbeat';
+        if (deptLower.includes('engineering')) return 'far fa-cogs';
+        if (deptLower.includes('science')) return 'far fa-flask';
+        if (deptLower.includes('art') || deptLower.includes('design')) return 'far fa-palette';
+        if (deptLower.includes('education') || deptLower.includes('teaching')) return 'far fa-chalkboard-teacher';
+        if (deptLower.includes('communication') || deptLower.includes('media')) return 'far fa-tv';
+        if (deptLower.includes('finance') || deptLower.includes('accounting') || deptLower.includes('banking')) return 'far fa-chart-line';
 
-        return 'fas fa-graduation-cap';
+        return 'far fa-graduation-cap';
     }
 
     /**
