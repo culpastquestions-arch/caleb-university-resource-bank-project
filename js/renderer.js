@@ -78,8 +78,10 @@ class Renderer {
       </div>
     `;
 
+        if (typeof lucide !== 'undefined') {
+            setTimeout(() => lucide.createIcons(), 0);
+        }
         this.ensureFontAwesomeIcons();
-        if (typeof lucide !== 'undefined') lucide.createIcons();
         return departments;
     }
 

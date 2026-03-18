@@ -418,12 +418,13 @@ body {
   font-size: 1.2rem;
 }
 
-/* Lucide icon SVGs inside card-icon */
-.card-icon i[data-lucide] svg {
+/* Lucide icon SVGs inside card-icon (Lucide replaces <i data-lucide> with <svg>) */
+.card-icon svg {
   width: 22px;
   height: 22px;
   stroke: #2E9E58;
   stroke-width: 1.75;
+  fill: none;
 }
 
 /* ============================================
