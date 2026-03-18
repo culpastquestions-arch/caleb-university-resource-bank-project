@@ -16,7 +16,7 @@ class Renderer {
     renderSkeleton(type, message = 'Loading...') {
         const skeletonCount = type === 'files' ? 5 : (type === 'departments' ? 8 : 4);
         const gridClass = type === 'files' ? 'file-list' :
-            (type === 'departments' ? 'department-grid' :
+            (type === 'departments' ? 'departments-grid' :
                 (type === 'levels' ? 'level-grid' : 'semester-grid'));
         const itemClass = type === 'files' ? 'skeleton-file' :
             (type === 'departments' ? 'skeleton-department' : 'skeleton-card');
@@ -51,10 +51,10 @@ class Renderer {
         }
 
         container.innerHTML = `
-      <div class="search-container">
-        <h2 class="search-headline">Find study materials for your department</h2>
-        <div class="search-box">
-          <span class="search-icon"><i class="fas fa-search"></i></span>
+      <section class="search-section">
+        <h1 class="page-title">Find study materials for your department</h1>
+        <div class="search-wrapper">
+          <i class="fas fa-search search-icon"></i>
           <input
             type="text"
             id="search-input"
@@ -63,15 +63,16 @@ class Renderer {
             aria-label="Search departments"
           />
         </div>
-      </div>
+      </section>
 
-      <div class="department-grid" id="department-grid">
+      <p class="departments-section-label">All Departments</p>
+      <div class="departments-grid" id="department-grid">
         ${departments.map(dept => `
           <a href="#/${encodeSegment(dept)}" class="department-card" data-department="${dept}">
-            <div class="department-icon" style="background-color: ${getDepartmentColor(dept)}">
+            <div class="card-icon">
               <i class="${this.getDepartmentIcon(dept)}"></i>
             </div>
-            <div class="department-name">${dept}</div>
+            <span class="card-title">${dept}</span>
           </a>
         `).join('')}
       </div>
@@ -608,7 +609,7 @@ class Renderer {
                 return;
             }
 
-            const icons = document.querySelectorAll('.department-icon i, .search-icon i, .empty-state-icon i');
+            const icons = document.querySelectorAll('.card-icon i, .search-icon i, .empty-state-icon i');
             icons.forEach(icon => {
                 const className = icon.className;
                 icon.className = '';

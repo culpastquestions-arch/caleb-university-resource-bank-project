@@ -192,7 +192,7 @@ class App {
     let ticking = false;
 
     const updateHeader = () => {
-      const header = document.querySelector('.header');
+      const header = document.querySelector('.app-header');
       if (header) {
         if (window.scrollY > 50) {
           header.classList.add('scrolled');
@@ -324,9 +324,9 @@ class App {
         noResultsMsg.className = 'no-results';
         noResultsMsg.innerHTML = `
           <div class="empty-state">
-            <div class="empty-state-icon"><i class="fas fa-search"></i></div>
-            <h3 class="empty-state-title">No departments match your search</h3>
-            <p class="empty-state-text">Try a different keyword or check the spelling</p>
+            <i class="fas fa-search empty-state-icon"></i>
+            <p class="empty-state-title">No departments found</p>
+            <p class="meta-text">Try a different search term</p>
           </div>
         `;
         document.getElementById('department-grid').parentNode.appendChild(noResultsMsg);

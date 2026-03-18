@@ -61,28 +61,23 @@
   </div>
 
   <!-- Header -->
-  <header class="header">
-    <div class="container">
-      <div class="header-content">
-        <div class="logo-section">
-          <img src="assets/caleb-university-logo-transparent.png" alt="Caleb University Logo" class="logo">
-          <div>
-            <h1 class="site-title">CURB</h1>
-            <p class="site-subtitle">Caleb University Resource Bank</p>
-            <h1 class="site-title-mobile">Caleb University Resource Bank</h1>
-          </div>
-        </div>
-        
-        <div class="header-actions">
-          <button id="install-button" class="btn btn-ghost" style="display: none;" onclick="app.installApp()" aria-label="Install app">
-            <i class="fas fa-download"></i>
-            <span class="btn-text">Install</span>
-          </button>
-          <button id="refresh-btn" class="btn btn-icon-only" aria-label="Refresh content" title="Refresh content">
-            <i class="fas fa-sync-alt"></i>
-          </button>
-        </div>
+  <header class="app-header">
+    <div class="logo-section">
+      <img src="assets/caleb-university-logo-transparent.png" alt="Caleb University Logo" class="logo">
+      <div>
+        <h1 class="site-title">CURB</h1>
+        <p class="site-subtitle">Caleb University Resource Bank</p>
+        <h1 class="site-title-mobile">Caleb University Resource Bank</h1>
       </div>
+    </div>
+    <div class="header-actions">
+      <button id="install-button" class="btn-install" style="display: none;" onclick="app.installApp()" aria-label="Install app">
+        <i class="fas fa-download"></i>
+        <span class="btn-text">Install</span>
+      </button>
+      <button id="refresh-btn" class="btn-refresh" aria-label="Refresh content" title="Refresh">
+        <i class="fas fa-sync-alt"></i>
+      </button>
     </div>
   </header>
 
@@ -149,7 +144,7 @@
           <h3 class="footer-title">Need Help?</h3>
           <p class="footer-text">
             Can't find what you're looking for? Have materials to contribute? 
-            <a href="#" id="contact-link-footer" class="contact-link">Get in touch</a> with us.
+            <a href="#" id="contact-link-footer" class="footer-cta-link">Get in touch</a> with us.
           </p>
         </div>
       </div>
