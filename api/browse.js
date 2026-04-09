@@ -149,29 +149,16 @@ function setCache(path, data) {
  */
 /**
  * Level exceptions for departments with non-standard level structures.
- * Departments NOT listed here default to [100, 200, 300, 400].
+ * Only departments listed here are filtered.
+ * All other departments return folders exactly as they exist in Google Drive.
  * 
  * NOTE: Department names here must EXACTLY match the Google Drive folder names.
- * New departments with standard levels (100-400) work automatically - no code change needed.
+ * Keep this list minimal and only for truly special structures.
  */
 const LEVEL_EXCEPTIONS = {
-  // Single-level departments (100 only)
-  "Human Anatomy": [100],
-  "Human Physiology": [100],
-  "Software Engineering": [100],
-  "MLS": [100],
-
-  // Two-level departments
-  "Nursing": [100, 200],
-
   // Special structure departments
   "Jupeb": ["Art", "Business", "Science"],
-
-  // Add new departments with non-standard levels here:
-  // "Department Name": [100, 200] // example: only 100 and 200 level
 };
-
-const DEFAULT_LEVELS = [100, 200, 300, 400];
 
 /**
  * Main handler for Vercel Serverless Function
@@ -284,21 +271,23 @@ module.exports = async (req, res) => {
         modifiedTime: f.modifiedTime
       }));
 
-      // Apply level filtering only at department level
-      // Root level shows ALL folders from Google Drive (no-code department management)
+      // Apply level filtering only for departments with special structures
+      // All other departments return exactly what exists in Google Drive
       if (segments.length === 1) {
-        // Department level - filter to valid levels for this department
+        // Department level - only filter when there is an explicit exception
         const deptName = normalizeFolderName(segments[0]);
-        const validLevels = LEVEL_EXCEPTIONS[deptName] || DEFAULT_LEVELS;
+        const validLevels = LEVEL_EXCEPTIONS[deptName];
 
-        data = data.filter(f => {
-          const levelMatch = f.name.match(/(\d+)/);
-          if (levelMatch) {
-            return validLevels.includes(parseInt(levelMatch[1]));
-          }
-          // For non-numeric levels (Jupeb subjects)
-          return validLevels.includes(f.name);
-        });
+        if (validLevels) {
+          data = data.filter(f => {
+            const levelMatch = f.name.match(/(\d+)/);
+            if (levelMatch) {
+              return validLevels.includes(parseInt(levelMatch[1]));
+            }
+            // For non-numeric levels (Jupeb subjects)
+            return validLevels.includes(f.name);
+          });
+        }
       }
     }
 
