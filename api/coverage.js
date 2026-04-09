@@ -80,8 +80,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing department or session parameter' });
   }
 
-  // Ensure "Session" is in the name, e.g. user passes "2025/26" we look for "2025~26 Session"
-  targetSessionQuery = targetSessionQuery.replace(/\//g, '~');
+  // Ensure "Session" is in the name, e.g. user passes "2025/26" we look for "2025/26 Session"
   if (!targetSessionQuery.toLowerCase().includes('session')) {
     targetSessionQuery += ' Session';
   }

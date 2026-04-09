@@ -728,23 +728,29 @@ class Renderer {
         }
 
         let html = '<div class="coverage-table-container"><table class="coverage-table">';
-        html += '<thead><tr><th>Level</th><th>Semester</th><th>Status</th></tr></thead>';
+        html += '<thead><tr><th style="width: 30%">Level</th><th style="width: 40%">Semester</th><th>Status</th></tr></thead>';
         html += '<tbody>';
 
+        // Group the data by Level
+        const grouped = {};
         coverageData.forEach(item => {
-            const statusHtml = item.status === 'uploaded' 
-                ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>'
-                : (item.status === 'empty-folder' 
-                    ? '<span class="status-no" style="background: rgba(255, 152, 0, 0.1); color: #f57c00;"><i class="fas fa-folder-open"></i> Empty Folder</span>'
-                    : '<span class="status-no"><i class="fas fa-times-circle"></i> Missing Folder</span>'
-                );
-
-            html += `<tr>
-                <td>${item.level}</td>
-                <td>${item.semester}</td>
-                <td>${statusHtml}</td>
-            </tr>`;
+            if (!grouped[item.level]) grouped[item.level] = [];
+            grouped[item.level].push(item);
         });
+
+        for (const [levelName, items] of Object.entries(grouped)) {
+            items.forEach((item, idx) => {
+                const statusHtml = item.status === 'uploaded' 
+                    ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>'
+                    : '<span class="status-no"><i class="fas fa-times-circle"></i> Pending Upload</span>';
+
+                html += `<tr>
+                    ${idx === 0 ? `<td rowspan="${items.length}" style="vertical-align: middle; border-right: 1px solid var(--color-border); font-weight: 600; color: var(--color-brand);">${item.level}</td>` : ''}
+                    <td>${item.semester}</td>
+                    <td>${statusHtml}</td>
+                </tr>`;
+            });
+        }
 
         html += '</tbody></table></div>';
         return html;
