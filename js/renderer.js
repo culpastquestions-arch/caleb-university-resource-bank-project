@@ -613,149 +613,141 @@ class Renderer {
      * @param {HTMLElement} container - Main content container
      */
     async renderCoverage(container) {
-        // Fallback to exactly '2025/26' if it's the standard, but users can edit it.
         const defaultSession = (CONFIG.about && CONFIG.about.session) ? CONFIG.about.session : '2025/26';
-        
+
         container.innerHTML = `
           <div class="about-page">
             <h1 class="page-title" style="margin-bottom: var(--space-2);">
               <i class="fas fa-chart-line" style="color: var(--color-brand); margin-right: 8px;"></i>
-              Per-Session Coverage Tracker
+              Content Coverage Tracker
             </h1>
             <p class="meta-text" style="margin-bottom: var(--space-6);">
-              Enter a target session and click "Scan Platform" to query the live Google Drive structure.
+              Select a target session and click a department to perform a live scan of its Drive structure.
             </p>
             
-            <div style="display: flex; gap: var(--space-4); margin-bottom: var(--space-6); align-items: center; flex-wrap: wrap;">
-                <div style="flex: 1; min-width: 200px; max-width: 300px;">
-                    <label style="display:block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">Target Session</label>
-                    <input type="text" id="target-session-input" class="search-input" value="${defaultSession}" style="width: 100%; border: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary);">
-                </div>
-                <button id="scan-all-btn" class="btn btn-primary" style="margin-top: 18px; padding: var(--space-2) var(--space-4); border: none; cursor: pointer;">
-                    <i class="fas fa-search"></i> Scan Platform
-                </button>
+            <div style="margin-bottom: var(--space-6); max-width: 300px;">
+                <label style="display:block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">Target Session</label>
+                <input type="text" id="target-session-input" class="search-input" value="${defaultSession}" style="width: 100%; border: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary);">
             </div>
 
-            <div id="coverage-results">
-                <div class="empty-state" style="padding: 3rem 1rem;">
-                    <div class="empty-state-icon-wrap"><i class="fas fa-robot"></i></div>
-                    <p class="empty-state-title">Ready to scan</p>
-                    <p class="meta-text">Click "Scan Platform" to begin the automated check.</p>
-                </div>
+            <div id="coverage-departments" class="coverage-accordion-group">
+              <div class="loading"><div class="spinner"></div><p>Loading departments...</p></div>
             </div>
           </div>
         `;
 
-        const scanBtn = document.getElementById('scan-all-btn');
-        const sessionInput = document.getElementById('target-session-input');
-        const resultsContainer = document.getElementById('coverage-results');
+        try {
+            const departments = await driveAPI.fetchDepartments();
+            const deptContainer = document.getElementById('coverage-departments');
+            const sessionInput = document.getElementById('target-session-input');
+            if (!deptContainer) return;
 
-        scanBtn.addEventListener('click', async () => {
-            const targetSession = sessionInput.value.trim();
-            if (!targetSession) {
-                app.showToast('Please enter a session to scan', 'error');
+            if (!departments || departments.length === 0) {
+                deptContainer.innerHTML = this.renderEmptyState('No departments found', 'Cannot generate coverage report.');
                 return;
             }
 
-            // Lock UI
-            scanBtn.disabled = true;
-            sessionInput.disabled = true;
-            scanBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching Departments...';
+            deptContainer.innerHTML = departments.map(dept => `
+              <div class="coverage-accordion" data-dept="${dept}">
+                <button class="coverage-accordion__header">
+                  <span><i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i> ${dept}</span>
+                  <i class="fas fa-chevron-down coverage-accordion__icon"></i>
+                </button>
+                <div class="coverage-accordion__body" style="display: none;">
+                   <!-- Coverage table will load here -->
+                </div>
+              </div>
+            `).join('');
 
-            try {
-                const departments = await driveAPI.fetchDepartments();
-                if (!departments || departments.length === 0) {
-                    throw new Error('No departments found in Google Drive.');
-                }
-
-                // Setup Table
-                resultsContainer.innerHTML = `
-                  <div class="coverage-table-container">
-                    <table class="coverage-table">
-                        <thead>
-                            <tr>
-                                <th>Department</th>
-                                <th>Level</th>
-                                <th>Semester</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="coverage-tbody">
-                            <!-- Rows go here -->
-                        </tbody>
-                    </table>
-                  </div>
-                `;
-                
-                const tbody = document.getElementById('coverage-tbody');
-
-                // Sequential Scan to avoid triggering Vercel timeouts/Drive rate limits
-                for (let i = 0; i < departments.length; i++) {
-                    const dept = departments[i];
-                    scanBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Scanning (${i + 1}/${departments.length})...`;
-                    
-                    // Add a temporary loading row for this department
-                    const loadingRow = document.createElement('tr');
-                    loadingRow.innerHTML = `<td><strong>${dept}</strong></td><td colspan="3" style="color: var(--color-text-muted);"><i class="fas fa-circle-notch fa-spin"></i> Checking Drive...</td>`;
-                    tbody.appendChild(loadingRow);
-
-                    try {
-                        const response = await fetch(`${CONFIG.apiBase}/coverage?department=${encodeURIComponent(dept)}&session=${encodeURIComponent(targetSession)}`);
-                        if (!response.ok) {
-                           const errData = await response.json().catch(() => ({}));
-                           throw new Error(errData.error || 'API Error');
-                        }
-                        const data = await response.json();
-                        
-                        // Remove loading row
-                        tbody.removeChild(loadingRow);
-
-                        // Append actual data rows
-                        if (data.data && data.data.length > 0) {
-                            data.data.forEach((item, idx) => {
-                                const tr = document.createElement('tr');
-                                const statusHtml = item.status === 'uploaded' 
-                                    ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>'
-                                    : (item.status === 'empty-folder' 
-                                        ? '<span class="status-no" style="background: rgba(255, 152, 0, 0.1); color: #f57c00;"><i class="fas fa-folder-open"></i> Empty Folder</span>'
-                                        : '<span class="status-no"><i class="fas fa-times-circle"></i> Missing Folder</span>'
-                                    );
-
-                                tr.innerHTML = `
-                                    <td style="white-space:nowrap;">${idx === 0 ? `<strong>${dept}</strong>` : ''}</td>
-                                    <td style="white-space:nowrap;">${item.level}</td>
-                                    <td style="white-space:nowrap;">${item.semester}</td>
-                                    <td>${statusHtml}</td>
-                                `;
-                                tbody.appendChild(tr);
-                            });
-                        } else {
-                            const tr = document.createElement('tr');
-                            tr.innerHTML = `<td><strong>${dept}</strong></td><td colspan="3" class="coverage-empty">No tracking data found</td>`;
-                            tbody.appendChild(tr);
-                        }
-                    } catch (err) {
-                        tbody.removeChild(loadingRow);
-                        const errRow = document.createElement('tr');
-                        errRow.innerHTML = `<td><strong>${dept}</strong></td><td colspan="3" style="color: #d32f2f;"><i class="fas fa-exclamation-triangle"></i> Scan failed: ${err.message}</td>`;
-                        tbody.appendChild(errRow);
-                    }
-                }
-
-                scanBtn.innerHTML = '<i class="fas fa-check"></i> Scan Complete';
-                setTimeout(() => {
-                    scanBtn.innerHTML = '<i class="fas fa-search"></i> Scan Platform';
-                    scanBtn.disabled = false;
-                    sessionInput.disabled = false;
-                }, 3000);
-
-            } catch (error) {
-                scanBtn.disabled = false;
-                sessionInput.disabled = false;
-                scanBtn.innerHTML = '<i class="fas fa-search"></i> Scan Platform';
-                resultsContainer.innerHTML = this.renderErrorState(error.message);
+            if (typeof lucide !== 'undefined') {
+                setTimeout(() => lucide.createIcons(), 0);
             }
+
+            // Attach listeners to accordions
+            deptContainer.querySelectorAll('.coverage-accordion__header').forEach(header => {
+                header.addEventListener('click', async (e) => {
+                    const accordion = e.currentTarget.closest('.coverage-accordion');
+                    const body = accordion.querySelector('.coverage-accordion__body');
+                    const dept = accordion.dataset.dept;
+                    const icon = e.currentTarget.querySelector('.coverage-accordion__icon');
+                    
+                    // Force refresh if they changed the session input
+                    const currentSession = sessionInput.value.trim();
+                    if (!currentSession) {
+                        app.showToast('Please enter a target session', 'error');
+                        return;
+                    }
+
+                    if (body.dataset.scannedSession !== currentSession) {
+                        body.dataset.loaded = "false";
+                    }
+
+                    const isOpen = body.style.display === 'block';
+
+                    // Close all others
+                    deptContainer.querySelectorAll('.coverage-accordion__body').forEach(b => b.style.display = 'none');
+                    deptContainer.querySelectorAll('.coverage-accordion__icon').forEach(i => i.style.transform = 'rotate(0deg)');
+
+                    if (!isOpen) {
+                        body.style.display = 'block';
+                        icon.style.transform = 'rotate(180deg)';
+                        
+                        // If not loaded yet (or session changed), fetch it
+                        if (body.dataset.loaded !== "true") {
+                            body.innerHTML = '<div class="loading" style="padding: 2rem 0;"><div class="spinner"></div><p>Scanning Drive...</p></div>';
+                            try {
+                                const response = await fetch(`${CONFIG.apiBase}/coverage?department=${encodeURIComponent(dept)}&session=${encodeURIComponent(currentSession)}`);
+                                if (!response.ok) {
+                                   const errData = await response.json().catch(() => ({}));
+                                   throw new Error(errData.error || 'Failed to fetch');
+                                }
+                                const data = await response.json();
+                                body.innerHTML = this._renderCoverageTable(data.data);
+                                body.dataset.loaded = "true";
+                                body.dataset.scannedSession = currentSession;
+                            } catch (err) {
+                                body.innerHTML = `<div class="empty-state"><p class="empty-state-title">Scan Failed</p><p class="meta-text">${err.message}</p></div>`;
+                            }
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            container.innerHTML = this.renderErrorState(error.message);
+        }
+    }
+
+    /**
+     * Renders the coverage data table for a department.
+     * @param {Array} coverageData - Coverage tree data returned from new API.
+     */
+    _renderCoverageTable(coverageData) {
+        if (!coverageData || coverageData.length === 0) {
+            return `<div class="empty-state" style="min-height: 150px; padding: 2rem;"><p class="meta-text">No data found in this department.</p></div>`;
+        }
+
+        let html = '<div class="coverage-table-container"><table class="coverage-table">';
+        html += '<thead><tr><th>Level</th><th>Semester</th><th>Status</th></tr></thead>';
+        html += '<tbody>';
+
+        coverageData.forEach(item => {
+            const statusHtml = item.status === 'uploaded' 
+                ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>'
+                : (item.status === 'empty-folder' 
+                    ? '<span class="status-no" style="background: rgba(255, 152, 0, 0.1); color: #f57c00;"><i class="fas fa-folder-open"></i> Empty Folder</span>'
+                    : '<span class="status-no"><i class="fas fa-times-circle"></i> Missing Folder</span>'
+                );
+
+            html += `<tr>
+                <td>${item.level}</td>
+                <td>${item.semester}</td>
+                <td>${statusHtml}</td>
+            </tr>`;
         });
+
+        html += '</tbody></table></div>';
+        return html;
     }
 
     /**
