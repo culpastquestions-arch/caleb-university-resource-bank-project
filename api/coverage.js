@@ -35,12 +35,28 @@ async function listFolders(folderId, apiKey) {
   return response.files || [];
 }
 
+function extractSessionNumbers(sessionName) {
+  return (sessionName.match(/\d+/g) || []); 
+}
+
 async function findTargetSessionFolder(parentId, targetSessionName, apiKey) {
   // We MUST fetch all folders and filter in JS because Google Drive's API 'q' parameter 
   // fails silently or doesn't support exact equality matches on names containing slashes (e.g., '2025/26 Session')
   const folders = await listFolders(parentId, apiKey);
-  const normalizedTarget = normalizeFolderName(targetSessionName);
-  return folders.find(f => normalizeFolderName(f.name) === normalizedTarget) || null;
+  
+  // Use fuzzy numerical matching to avoid exact string match failures 
+  // e.g., target "2024/25" will match folder "2024-2025 Session"
+  const targetNums = extractSessionNumbers(targetSessionName);
+  
+  if (targetNums.length === 0) {
+      const normalizedTarget = normalizeFolderName(targetSessionName).toLowerCase();
+      return folders.find(f => normalizeFolderName(f.name).toLowerCase().includes(normalizedTarget)) || null;
+  }
+
+  return folders.find(f => {
+      const folderNameLower = f.name.toLowerCase();
+      return targetNums.every(num => folderNameLower.includes(num));
+  }) || null;
 }
 
 async function hasFiles(folderId, apiKey) {
