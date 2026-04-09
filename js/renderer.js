@@ -319,7 +319,6 @@ class Renderer {
         const teamData = await this.fetchTeamData();
 
         const roleColors = {
-            founder: '#0F9D58',
             executive: '#1E88E5',
             rep: '#26A69A'
         };
@@ -337,20 +336,19 @@ class Renderer {
         };
 
         /**
-         * Render a team member card.
+         * Render a team member card matching the new clean card aesthetic.
          * @param {Object} member - Team member.
-         * @param {string} size - 'large', 'medium', or 'small'.
-         * @param {string} defaultColor - Fallback avatar color.
+         * @param {string} type - 'executive' or 'rep'.
+         * @param {number} index - Card index for staggered animation.
          * @returns {string} HTML string.
          */
-        const renderTeamCard = (member, size = 'medium', defaultColor = roleColors.rep) => {
+        const renderTeamCard = (member, type = 'rep', index = 0) => {
             const name = member.name || 'TBD';
             const initials = getInitials(name);
             const isPlaceholder = name === 'TBD' || name === 'Coming Soon';
-            const cardClass = `team-card team-card--${size}${isPlaceholder ? ' team-card--placeholder' : ''}`;
 
-            const role = member.role || `${member.department} Representative`;
-            const color = member.color || defaultColor;
+            const role = member.role || `${member.department} Rep`;
+            const color = member.color || roleColors[type];
             const photoUrl = member.photoUrl || member.photourl || '';
 
             const avatarContent = photoUrl
@@ -358,8 +356,10 @@ class Renderer {
            <span class="team-card__initials" style="display:none;">${initials}</span>`
                 : `<span class="team-card__initials">${initials}</span>`;
 
+            const delay = Math.min(index * 0.04, 0.4);
+
             return `
-        <div class="${cardClass}">
+        <div class="team-card team-card--${type}${isPlaceholder ? ' team-card--placeholder' : ''}" style="animation-delay: ${delay}s">
           <div class="team-card__avatar" style="background-color: ${color}">
             ${avatarContent}
           </div>
@@ -370,18 +370,6 @@ class Renderer {
         </div>
       `;
         };
-
-        let founder = teamData.executives.find(e =>
-            e.role && e.role.toLowerCase().includes('founder')
-        );
-
-        if (!founder) {
-            founder = about.founder;
-        }
-
-        const executives = teamData.executives.filter(e =>
-            !e.role || !e.role.toLowerCase().includes('founder')
-        );
 
         container.innerHTML = `
       <div class="about-page">
@@ -404,23 +392,14 @@ class Renderer {
           </div>
         </section>
 
-        <section class="about-section about-section--founder">
-          <h2 class="about-section__title">
-            <i class="fas fa-star"></i>
-            Founder
-          </h2>
-          <div class="about-founder">
-            ${renderTeamCard(founder, 'large', roleColors.founder)}
-          </div>
-        </section>
-
         <section class="about-section about-section--executives">
           <h2 class="about-section__title">
             <i class="fas fa-users-cog"></i>
             Executive Team
           </h2>
+          <p class="about-section__subtitle">The team driving CURB's vision and operations</p>
           <div class="about-team-grid about-team-grid--executives">
-            ${executives.map(exec => renderTeamCard(exec, 'medium', roleColors.executive)).join('')}
+            ${teamData.executives.map((exec, i) => renderTeamCard(exec, 'executive', i)).join('')}
           </div>
         </section>
 
@@ -429,8 +408,9 @@ class Renderer {
             <i class="fas fa-user-friends"></i>
             Department Representatives
           </h2>
+          <p class="about-section__subtitle">Our reps across every department ensuring resources are always up to date</p>
           <div class="about-team-grid about-team-grid--reps">
-            ${teamData.departmentReps.map(rep => renderTeamCard(rep, 'small', roleColors.rep)).join('')}
+            ${teamData.departmentReps.map((rep, i) => renderTeamCard(rep, 'rep', i)).join('')}
           </div>
         </section>
 

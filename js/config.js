@@ -47,43 +47,42 @@ const CONFIG = {
     tagline: "Bridging the gaps between students and academic resources",
     mission: "To consistently collect, curate, and upload high-quality past questions in PDF format for every course and department, ensuring that all students have clear and complete access to the materials they need to excel. Our goal is a fully functional, student-accessible platform where past questions are readily available, organized, and easy to navigate—fostering a culture of academic readiness and success across all departments.",
 
-    // Founder
+    // Founder (kept for legacy compatibility)
     founder: {
       name: "Jesusegun",
       role: "Founder & Coordinator",
-      color: "#0F9D58" // Primary green
+      color: "#0F9D58"
     },
 
-    // Executive Team
+    // Executive Team (7 excos — shown first for precedence)
     executives: [
-      { name: "Esther", role: "Content Lead", department: "Head of Department Reps", color: "#1E88E5" },
-      { name: "John", role: "Technical Head", department: "Development", color: "#7B1FA2" },
-      { name: "Jedidiah", role: "Technical Head", department: "Development", color: "#7B1FA2" },
-      { name: "Ebun", role: "Quality Control Lead", department: "Quality Assurance", color: "#F57C00" },
-      { name: "Joy", role: "Head of New Departments", department: "Expansion", color: "#00897B" }
+      { name: "Jesusegun", role: "Founder & Coordinator", color: "#0F9D58" },
+      { name: "Esther", role: "Content Lead", color: "#1E88E5" },
+      { name: "John", role: "Technical Head", color: "#7B1FA2" },
+      { name: "Jedidiah", role: "Technical Head", color: "#7B1FA2" },
+      { name: "Ebun", role: "Quality Control Lead", color: "#F57C00" },
+      { name: "Joy", role: "Head of New Departments", color: "#00897B" },
+      { name: "TBD", role: "Executive Member", color: "#546E7A" }
     ],
 
-    // Department Representatives (placeholders - update names when available)
+    // Department Representatives (17 reps — placeholders until spreadsheet is populated)
     departmentReps: [
-      { name: "Praise", department: "Computer Science" },
       { name: "TBD", department: "Accounting" },
       { name: "TBD", department: "Architecture" },
       { name: "TBD", department: "Biochemistry" },
       { name: "TBD", department: "Business Administration" },
+      { name: "TBD", department: "Computer Science" },
       { name: "TBD", department: "Criminology" },
       { name: "TBD", department: "Cybersecurity" },
       { name: "TBD", department: "Economics" },
       { name: "TBD", department: "Human Anatomy" },
-      { name: "TBD", department: "Human Physiology" },
       { name: "TBD", department: "Industrial Chemistry" },
       { name: "TBD", department: "International Relations" },
-      { name: "TBD", department: "Jupeb" },
       { name: "TBD", department: "Law" },
       { name: "TBD", department: "Mass Communication" },
       { name: "TBD", department: "Microbiology" },
       { name: "TBD", department: "Nursing" },
       { name: "TBD", department: "Political Science" },
-      { name: "TBD", department: "Psychology" },
       { name: "TBD", department: "Software Engineering" }
     ]
   }
