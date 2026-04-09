@@ -98,6 +98,12 @@ class Navigator {
       return route;
     }
 
+    // Special secret route for Coverage Tracking
+    if (parts.length === 1 && parts[0].toLowerCase() === 'trackj') {
+      route.view = 'trackj';
+      return route;
+    }
+
     if (parts.length >= 1) {
       route.view = 'levels';  // Show levels for this department
       route.department = decodeSegment(parts[0]);

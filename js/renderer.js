@@ -275,12 +275,18 @@ class Renderer {
     }
 
     /**
-     * Fetch team data from the API, falling back to CONFIG.about.
-     * @returns {Promise<Object>} Team data with executives and departmentReps.
+     * Fetch team data from the API, optionally filtered by session.
+     * Falls back to CONFIG.about when the API is unavailable.
+     * @param {string} [session] - Optional academic session to filter by (e.g. '2025/26').
+     * @returns {Promise<Object>} Team data with executives, departmentReps, session, and sessions list.
      */
-    async fetchTeamData() {
+    async fetchTeamData(session) {
         try {
-            const response = await fetch(`${CONFIG.apiBase}/team`);
+            const url = session
+                ? `${CONFIG.apiBase}/team?session=${encodeURIComponent(session)}`
+                : `${CONFIG.apiBase}/team`;
+
+            const response = await fetch(url);
 
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}`);
@@ -292,6 +298,8 @@ class Renderer {
                 return {
                     executives: data.executives,
                     departmentReps: data.departmentReps,
+                    session: data.session || '',
+                    sessions: data.sessions || [],
                     fromApi: true
                 };
             }
@@ -302,13 +310,15 @@ class Renderer {
             return {
                 executives: CONFIG.about.executives,
                 departmentReps: CONFIG.about.departmentReps,
+                session: CONFIG.about.session || '2025/26',
+                sessions: CONFIG.about.sessions || ['2025/26'],
                 fromApi: false
             };
         }
     }
 
     /**
-     * Render the About Us page.
+     * Render the About Us page with session picker.
      * @param {HTMLElement} container - Main content container.
      */
     async renderAboutPage(container) {
@@ -318,10 +328,113 @@ class Renderer {
 
         const teamData = await this.fetchTeamData();
 
-        const roleColors = {
-            executive: '#1E88E5',
-            rep: '#26A69A'
-        };
+        // Store reference for session switching
+        this._aboutContainer = container;
+        this._aboutMission = about.mission;
+
+        this._renderAboutFull(container, about, teamData);
+    }
+
+    /**
+     * Render the full about page structure (mission + session picker + team + CTA).
+     * @param {HTMLElement} container - Main content container.
+     * @param {Object} about - CONFIG.about data.
+     * @param {Object} teamData - Fetched team data with session info.
+     */
+    _renderAboutFull(container, about, teamData) {
+        container.innerHTML = `
+      <div class="about-page">
+        <div class="about-back">
+          <a href="#/" class="about-back__link">
+            <i class="fas fa-arrow-left"></i>
+            <span>Back to Home</span>
+          </a>
+        </div>
+
+        <section class="about-section about-section--mission">
+          <div class="about-mission">
+            <div class="about-mission__item about-mission__item--full">
+              <div class="about-mission__icon">
+                <i class="fas fa-bullseye"></i>
+              </div>
+              <h2 class="about-mission__title">Our Mission</h2>
+              <p class="about-mission__text">${about.mission}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="about-section about-section--team">
+          <h2 class="about-section__title">
+            <i class="fas fa-users"></i>
+            Meet the Team
+          </h2>
+          ${this._renderSessionPicker(teamData.sessions, teamData.session)}
+          <div id="team-content">
+            ${this._renderTeamContent(teamData)}
+          </div>
+        </section>
+
+        <section class="about-section about-section--cta">
+          <div class="about-cta">
+            <div class="about-cta__icon">
+              <i class="fas fa-hand-holding-heart"></i>
+            </div>
+            <h2 class="about-cta__title">Join the Team</h2>
+            <p class="about-cta__text">
+              Interested in contributing to CURB and helping students access quality academic resources?
+              We're always looking for passionate individuals to join our growing team.
+            </p>
+            <p class="about-cta__contact">
+              <i class="fas fa-envelope"></i>
+              Contact us if you'd like to get involved!
+            </p>
+          </div>
+        </section>
+      </div>
+    `;
+
+        // Attach session picker listeners
+        this._attachSessionListeners();
+    }
+
+    /**
+     * Render the session picker (horizontal pill tabs).
+     * Only renders if there are multiple sessions.
+     * @param {Array<string>} sessions - Available sessions.
+     * @param {string} activeSession - Currently active session.
+     * @returns {string} HTML string.
+     */
+    _renderSessionPicker(sessions, activeSession) {
+        if (!sessions || sessions.length <= 1) {
+            // Single session — show it as a subtle label, no picker needed
+            const label = activeSession || sessions[0] || '';
+            return label
+                ? `<p class="about-section__subtitle"><i class="fas fa-calendar-alt"></i> ${label} Session Team</p>`
+                : '';
+        }
+
+        return `
+      <div class="session-picker" id="session-picker">
+        ${sessions.map(s => `
+          <button class="session-picker__tab${s === activeSession ? ' session-picker__tab--active' : ''}"
+                  data-session="${s}"
+                  aria-label="View ${s} team"
+                  type="button">
+            ${s}
+          </button>
+        `).join('')}
+      </div>
+    `;
+    }
+
+    /**
+     * Render the team content (executives + reps grids).
+     * This is the part that gets swapped when switching sessions.
+     * @param {Object} teamData - Team data with executives and departmentReps.
+     * @returns {string} HTML string.
+     */
+    _renderTeamContent(teamData) {
+        const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
 
         /**
          * Generate initials from a name.
@@ -336,10 +449,10 @@ class Renderer {
         };
 
         /**
-         * Render a team member card matching the new clean card aesthetic.
-         * @param {Object} member - Team member.
+         * Render a single team member card.
+         * @param {Object} member - Team member object.
          * @param {string} type - 'executive' or 'rep'.
-         * @param {number} index - Card index for staggered animation.
+         * @param {number} index - Card index for animation delay.
          * @returns {string} HTML string.
          */
         const renderTeamCard = (member, type = 'rep', index = 0) => {
@@ -371,67 +484,98 @@ class Renderer {
       `;
         };
 
-        container.innerHTML = `
-      <div class="about-page">
-        <div class="about-back">
-          <a href="#/" class="about-back__link">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Home</span>
-          </a>
-        </div>
+        const hasExecutives = teamData.executives && teamData.executives.length > 0;
+        const hasReps = teamData.departmentReps && teamData.departmentReps.length > 0;
 
-        <section class="about-section about-section--mission">
-          <div class="about-mission">
-            <div class="about-mission__item about-mission__item--full">
-              <div class="about-mission__icon">
-                <i class="fas fa-bullseye"></i>
-              </div>
-              <h2 class="about-mission__title">Our Mission</h2>
-              <p class="about-mission__text">${about.mission}</p>
-            </div>
+        if (!hasExecutives && !hasReps) {
+            return `
+        <div class="empty-state" style="min-height: 200px;">
+          <div class="empty-state-icon-wrap">
+            <i class="far fa-users"></i>
           </div>
-        </section>
+          <p class="empty-state-title">No team data for this session</p>
+          <p class="meta-text">Team information hasn't been added yet</p>
+        </div>
+      `;
+        }
 
-        <section class="about-section about-section--executives">
-          <h2 class="about-section__title">
+        return `
+      ${hasExecutives ? `
+        <div class="team-content__section">
+          <h3 class="team-content__heading">
             <i class="fas fa-users-cog"></i>
             Executive Team
-          </h2>
-          <p class="about-section__subtitle">The team driving CURB's vision and operations</p>
+          </h3>
           <div class="about-team-grid about-team-grid--executives">
             ${teamData.executives.map((exec, i) => renderTeamCard(exec, 'executive', i)).join('')}
           </div>
-        </section>
+        </div>
+      ` : ''}
 
-        <section class="about-section about-section--reps">
-          <h2 class="about-section__title">
+      ${hasReps ? `
+        <div class="team-content__section">
+          <h3 class="team-content__heading">
             <i class="fas fa-user-friends"></i>
             Department Representatives
-          </h2>
-          <p class="about-section__subtitle">Our reps across every department ensuring resources are always up to date</p>
+          </h3>
           <div class="about-team-grid about-team-grid--reps">
             ${teamData.departmentReps.map((rep, i) => renderTeamCard(rep, 'rep', i)).join('')}
           </div>
-        </section>
-
-        <section class="about-section about-section--cta">
-          <div class="about-cta">
-            <div class="about-cta__icon">
-              <i class="fas fa-hand-holding-heart"></i>
-            </div>
-            <h2 class="about-cta__title">Join the Team</h2>
-            <p class="about-cta__text">
-              Interested in contributing to CURB and helping students access quality academic resources?
-              We're always looking for passionate individuals to join our growing team.
-            </p>
-            <p class="about-cta__contact">
-              <i class="fas fa-envelope"></i>
-              Contact us if you'd like to get involved!
-            </p>
-          </div>
-        </section>
-      </div>
+        </div>
+      ` : ''}
     `;
+    }
+
+    /**
+     * Attach click listeners to session picker tabs.
+     * Handles session switching by re-fetching and re-rendering only the team content.
+     */
+    _attachSessionListeners() {
+        const picker = document.getElementById('session-picker');
+        if (!picker) return;
+
+        picker.addEventListener('click', async (e) => {
+            const tab = e.target.closest('.session-picker__tab');
+            if (!tab || tab.classList.contains('session-picker__tab--active')) return;
+
+            const session = tab.dataset.session;
+            if (!session) return;
+
+            // Update active tab immediately
+            picker.querySelectorAll('.session-picker__tab').forEach(t =>
+                t.classList.remove('session-picker__tab--active')
+            );
+            tab.classList.add('session-picker__tab--active');
+
+            // Show loading in the team content area
+            const teamContent = document.getElementById('team-content');
+            if (teamContent) {
+                teamContent.innerHTML = `
+          <div class="loading" style="padding: var(--space-8) 0;">
+            <div class="spinner"></div>
+            <p>Loading team...</p>
+          </div>
+        `;
+            }
+
+            // Fetch new session data
+            try {
+                const teamData = await this.fetchTeamData(session);
+                if (teamContent) {
+                    teamContent.innerHTML = this._renderTeamContent(teamData);
+                }
+            } catch (error) {
+                console.error('Failed to switch session:', error);
+                if (teamContent) {
+                    teamContent.innerHTML = `
+            <div class="empty-state" style="min-height: 200px;">
+              <p class="empty-state-title">Failed to load team data</p>
+              <p class="meta-text">Please try again</p>
+            </div>
+          `;
+                }
+            }
+        });
     }
 
     /**
@@ -462,6 +606,140 @@ class Renderer {
         </section>
       </div>
     `;
+    }
+
+    /**
+     * Render the Coverage Dashboard (trackj route).
+     * @param {HTMLElement} container - Main content container
+     */
+    async renderCoverage(container) {
+        container.innerHTML = `
+          <div class="about-page">
+            <h1 class="page-title" style="margin-bottom: var(--space-2);">
+              <i class="fas fa-chart-line" style="color: var(--color-brand); margin-right: 8px;"></i>
+              Content Coverage Tracker
+            </h1>
+            <p class="meta-text" style="margin-bottom: var(--space-6);">
+              Select a department to perform a live scan of its Drive structure.
+            </p>
+            <div id="coverage-departments" class="coverage-accordion-group">
+              <div class="loading"><div class="spinner"></div><p>Loading departments...</p></div>
+            </div>
+          </div>
+        `;
+
+        try {
+            const departments = await driveAPI.fetchDepartments();
+            const deptContainer = document.getElementById('coverage-departments');
+            if (!deptContainer) return;
+
+            if (!departments || departments.length === 0) {
+                deptContainer.innerHTML = this.renderEmptyState('No departments found', 'Cannot generate coverage report.');
+                return;
+            }
+
+            deptContainer.innerHTML = departments.map(dept => `
+              <div class="coverage-accordion" data-dept="${dept}">
+                <button class="coverage-accordion__header">
+                  <span><i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i> ${dept}</span>
+                  <i class="fas fa-chevron-down coverage-accordion__icon"></i>
+                </button>
+                <div class="coverage-accordion__body" style="display: none;">
+                   <!-- Coverage table will load here -->
+                </div>
+              </div>
+            `).join('');
+
+            if (typeof lucide !== 'undefined') {
+                setTimeout(() => lucide.createIcons(), 0);
+            }
+
+            // Attach listeners to accordions
+            deptContainer.querySelectorAll('.coverage-accordion__header').forEach(header => {
+                header.addEventListener('click', async (e) => {
+                    const accordion = e.currentTarget.closest('.coverage-accordion');
+                    const body = accordion.querySelector('.coverage-accordion__body');
+                    const dept = accordion.dataset.dept;
+                    const icon = e.currentTarget.querySelector('.coverage-accordion__icon');
+
+                    const isOpen = body.style.display === 'block';
+
+                    // Close all others
+                    deptContainer.querySelectorAll('.coverage-accordion__body').forEach(b => b.style.display = 'none');
+                    deptContainer.querySelectorAll('.coverage-accordion__icon').forEach(i => i.style.transform = 'rotate(0deg)');
+
+                    if (!isOpen) {
+                        body.style.display = 'block';
+                        icon.style.transform = 'rotate(180deg)';
+                        
+                        // If not loaded yet, fetch it
+                        if (!body.dataset.loaded) {
+                            body.innerHTML = '<div class="loading" style="padding: 2rem 0;"><div class="spinner"></div><p>Scanning Drive...</p></div>';
+                            try {
+                                const response = await fetch(`${CONFIG.apiBase}/coverage?department=${encodeURIComponent(dept)}`);
+                                if (!response.ok) throw new Error('Failed to fetch');
+                                const data = await response.json();
+                                body.innerHTML = this._renderCoverageTable(data.data);
+                                body.dataset.loaded = 'true';
+                            } catch (err) {
+                                body.innerHTML = `<div class="empty-state"><p class="empty-state-title">Scan Failed</p><p class="meta-text">${err.message}</p></div>`;
+                            }
+                        }
+                    }
+                });
+            });
+
+        } catch (error) {
+            container.innerHTML = this.renderErrorState(error.message);
+        }
+    }
+
+    /**
+     * Renders the coverage data table for a department.
+     * @param {Array} levels - Coverage tree data.
+     */
+    _renderCoverageTable(levels) {
+        if (!levels || levels.length === 0) {
+            return `<div class="empty-state" style="min-height: 150px; padding: 2rem;"><p class="meta-text">No folders found in this department.</p></div>`;
+        }
+
+        let html = '<div class="coverage-table-container"><table class="coverage-table">';
+        html += '<thead><tr><th>Level</th><th>Semester</th><th>Session</th><th>Status</th></tr></thead>';
+        html += '<tbody>';
+
+        levels.forEach(level => {
+            if (!level.semesters || level.semesters.length === 0) {
+                html += `<tr><td>${level.level}</td><td colspan="3" class="coverage-empty">No content</td></tr>`;
+                return;
+            }
+
+            level.semesters.forEach((semester, sIdx) => {
+                if (!semester.sessions || semester.sessions.length === 0) {
+                     html += `<tr>
+                                <td>${sIdx === 0 ? level.level : ''}</td>
+                                <td>${semester.semester}</td>
+                                <td colspan="2" class="coverage-empty">No sessions</td>
+                              </tr>`;
+                     return;
+                }
+
+                semester.sessions.forEach((session, idx) => {
+                    const statusIcon = session.hasFiles 
+                        ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>' 
+                        : '<span class="status-no"><i class="fas fa-times-circle"></i> Pending</span>';
+                    
+                    html += `<tr>
+                        <td>${sIdx === 0 && idx === 0 ? level.level : ''}</td>
+                        <td>${idx === 0 ? semester.semester : ''}</td>
+                        <td>${session.session}</td>
+                        <td>${statusIcon}</td>
+                    </tr>`;
+                });
+            });
+        });
+
+        html += '</tbody></table></div>';
+        return html;
     }
 
     /**

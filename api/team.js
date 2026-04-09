@@ -1,10 +1,12 @@
 // Serverless Function: Team Data from Google Sheets CSV
 // Fetches team member data from published Google Sheets for the About page
-// This allows no-code maintenance of team information
+// Supports session-based filtering (e.g. ?session=2025/26)
+// This allows no-code maintenance of team information across academic years
 
 const https = require('https');
 
-// Cache for team data (24 hour TTL - team doesn't change often)
+// Cache for the full parsed sheet data (all sessions)
+// We cache the raw parsed data and filter per-request
 const cache = {
   executives: { data: null, timestamp: null },
   reps: { data: null, timestamp: null }
@@ -149,11 +151,31 @@ function isCacheValid(cacheEntry) {
 }
 
 /**
- * Fetch and parse executives data from Google Sheets.
- * @param {string} sheetUrl - Published CSV URL for executives sheet.
- * @returns {Promise<Array>} Array of executive objects.
+ * Extract unique session values from an array of rows,
+ * sorted in descending order (latest first).
+ * @param {Array<Object>} rows - Array of parsed row objects.
+ * @returns {Array<string>} Unique session strings.
  */
-async function fetchExecutives(sheetUrl) {
+function extractSessions(rows) {
+  const sessionSet = new Set();
+  for (const row of rows) {
+    const session = (row.session || '').trim();
+    if (session) {
+      sessionSet.add(session);
+    }
+  }
+
+  // Sort sessions descending so latest is first
+  // Handles formats like "2025/26", "2026/27" etc.
+  return Array.from(sessionSet).sort((a, b) => b.localeCompare(a));
+}
+
+/**
+ * Fetch and parse all executives data from Google Sheets (all sessions).
+ * @param {string} sheetUrl - Published CSV URL for executives sheet.
+ * @returns {Promise<Array>} Array of executive objects with session field.
+ */
+async function fetchAllExecutives(sheetUrl) {
   // Check cache first
   if (isCacheValid(cache.executives)) {
     return cache.executives.data;
@@ -163,15 +185,16 @@ async function fetchExecutives(sheetUrl) {
     const csvText = await fetchUrl(sheetUrl);
     const data = parseCSV(csvText);
 
-    // Transform and sanitize data
+    // Transform and sanitize data — preserve session column
     const executives = data.map(row => ({
       name: sanitize(row.name || 'TBD'),
       role: sanitize(row.role || 'Team Member'),
       photoUrl: row.photourl || row.photo || '', // Don't sanitize URLs
-      order: parseInt(row.order, 10) || 999
+      order: parseInt(row.order, 10) || 999,
+      session: (row.session || '').trim()
     }));
 
-    // Sort by order
+    // Sort by order within each session
     executives.sort((a, b) => a.order - b.order);
 
     // Update cache
@@ -189,11 +212,11 @@ async function fetchExecutives(sheetUrl) {
 }
 
 /**
- * Fetch and parse department reps data from Google Sheets.
+ * Fetch and parse all department reps data from Google Sheets (all sessions).
  * @param {string} sheetUrl - Published CSV URL for reps sheet.
- * @returns {Promise<Array>} Array of department rep objects.
+ * @returns {Promise<Array>} Array of department rep objects with session field.
  */
-async function fetchDepartmentReps(sheetUrl) {
+async function fetchAllDepartmentReps(sheetUrl) {
   // Check cache first
   if (isCacheValid(cache.reps)) {
     return cache.reps.data;
@@ -203,11 +226,12 @@ async function fetchDepartmentReps(sheetUrl) {
     const csvText = await fetchUrl(sheetUrl);
     const data = parseCSV(csvText);
 
-    // Transform and sanitize data
+    // Transform and sanitize data — preserve session column
     const reps = data.map(row => ({
       department: sanitize(row.department || 'Unknown'),
       name: sanitize(row.name || 'TBD'),
-      photoUrl: row.photourl || row.photo || '' // Don't sanitize URLs
+      photoUrl: row.photourl || row.photo || '', // Don't sanitize URLs
+      session: (row.session || '').trim()
     }));
 
     // Sort by department name
@@ -229,6 +253,8 @@ async function fetchDepartmentReps(sheetUrl) {
 
 /**
  * Main handler for Vercel serverless function.
+ * Accepts optional ?session=2025/26 query param.
+ * Returns team data filtered by session, plus available sessions list.
  * @param {Object} req - HTTP request object.
  * @param {Object} res - HTTP response object.
  */
@@ -271,18 +297,52 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // Fetch both sheets in parallel
-    const [executives, departmentReps] = await Promise.all([
-      fetchExecutives(executivesUrl),
-      fetchDepartmentReps(repsUrl)
+    // Fetch all data from both sheets (cached for 24h)
+    const [allExecutives, allReps] = await Promise.all([
+      fetchAllExecutives(executivesUrl),
+      fetchAllDepartmentReps(repsUrl)
     ]);
 
-    // Return combined data
+    // Discover all available sessions from both sheets
+    const execSessions = extractSessions(allExecutives);
+    const repSessions = extractSessions(allReps);
+    const allSessions = Array.from(
+      new Set([...execSessions, ...repSessions])
+    ).sort((a, b) => b.localeCompare(a)); // Latest first
+
+    // Determine which session to return
+    const requestedSession = req.query.session || '';
+    let activeSession = '';
+
+    if (requestedSession && allSessions.includes(requestedSession)) {
+      // User requested a valid session
+      activeSession = requestedSession;
+    } else if (allSessions.length > 0) {
+      // Default to the latest session
+      activeSession = allSessions[0];
+    }
+
+    // Filter data by the active session
+    const executives = activeSession
+      ? allExecutives.filter(e => e.session === activeSession)
+      : allExecutives;
+
+    const departmentReps = activeSession
+      ? allReps.filter(r => r.session === activeSession)
+      : allReps;
+
+    // Strip session field from response (frontend doesn't need it per-member)
+    const cleanExecutives = executives.map(({ session, ...rest }) => rest);
+    const cleanReps = departmentReps.map(({ session, ...rest }) => rest);
+
+    // Return combined data with session metadata
     res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
     return res.status(200).json({
       success: true,
-      executives,
-      departmentReps,
+      session: activeSession,
+      sessions: allSessions,
+      executives: cleanExecutives,
+      departmentReps: cleanReps,
       cached: isCacheValid(cache.executives) && isCacheValid(cache.reps)
     });
 
