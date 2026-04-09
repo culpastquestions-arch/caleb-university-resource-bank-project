@@ -106,7 +106,7 @@ class App {
         case 'about':
           await renderer.renderAboutPage(mainContent);
           break;
-        case 'trackj':
+        case 'track':
           await renderer.renderCoverage(mainContent);
           break;
         case 'levels':

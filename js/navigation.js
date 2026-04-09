@@ -99,8 +99,8 @@ class Navigator {
     }
 
     // Special secret route for Coverage Tracking
-    if (parts.length === 1 && parts[0].toLowerCase() === 'trackj') {
-      route.view = 'trackj';
+    if (parts.length === 1 && parts[0].toLowerCase() === 'track') {
+      route.view = 'track';
       return route;
     }
 
