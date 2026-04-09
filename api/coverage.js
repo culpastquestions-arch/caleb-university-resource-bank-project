@@ -36,10 +36,11 @@ async function listFolders(folderId, apiKey) {
 }
 
 async function findTargetSessionFolder(parentId, targetSessionName, apiKey) {
-  const query = encodeURIComponent(`'${parentId}' in parents and name = '${targetSessionName}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)&key=${apiKey}`;
-  const response = await makeAPIRequest(url);
-  return (response.files && response.files.length > 0) ? response.files[0] : null;
+  // We MUST fetch all folders and filter in JS because Google Drive's API 'q' parameter 
+  // fails silently or doesn't support exact equality matches on names containing slashes (e.g., '2025/26 Session')
+  const folders = await listFolders(parentId, apiKey);
+  const normalizedTarget = normalizeFolderName(targetSessionName);
+  return folders.find(f => normalizeFolderName(f.name) === normalizedTarget) || null;
 }
 
 async function hasFiles(folderId, apiKey) {
