@@ -87,6 +87,28 @@ function parseCSV(csvText) {
 }
 
 /**
+ * Get the first non-empty value from a row by trying multiple key variants.
+ * @param {Object} row - Parsed CSV row object.
+ * @param {Array<string>} keys - Candidate key names in priority order.
+ * @returns {string} First non-empty value, otherwise empty string.
+ */
+function pickRowValue(row, keys) {
+  if (!row || typeof row !== 'object' || !Array.isArray(keys)) {
+    return '';
+  }
+
+  for (const key of keys) {
+    if (!key) continue;
+    const value = row[key];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value;
+    }
+  }
+
+  return '';
+}
+
+/**
  * Parse a single CSV line, handling quoted values.
  * @param {string} line - A single CSV line.
  * @returns {Array<string>} Array of cell values.
@@ -260,7 +282,18 @@ async function fetchAllExecutives(sheetUrl, options = {}) {
     const executives = data.map(row => ({
       name: sanitize(row.name || 'TBD'),
       role: sanitize(row.role || 'Team Member'),
-      photoUrl: formatPhotoUrl(row.photourl || row.photo || ''), // Convert Drive links to direct image URLs
+      photoUrl: formatPhotoUrl(pickRowValue(row, [
+        'photourl',
+        'photo url',
+        'photo_url',
+        'photo',
+        'imageurl',
+        'image url',
+        'image_url',
+        'image',
+        'picture',
+        'avatar'
+      ])), // Convert Drive links to direct image URLs
 
       order: parseInt(row.order, 10) || 999,
       session: (row.session || '').trim()
@@ -304,7 +337,18 @@ async function fetchAllDepartmentReps(sheetUrl, options = {}) {
     const reps = data.map(row => ({
       department: sanitize(row.department || 'Unknown'),
       name: sanitize(row.name || 'TBD'),
-      photoUrl: formatPhotoUrl(row.photourl || row.photo || ''), // Convert Drive links to direct image URLs
+      photoUrl: formatPhotoUrl(pickRowValue(row, [
+        'photourl',
+        'photo url',
+        'photo_url',
+        'photo',
+        'imageurl',
+        'image url',
+        'image_url',
+        'image',
+        'picture',
+        'avatar'
+      ])), // Convert Drive links to direct image URLs
 
       session: (row.session || '').trim()
     }));
