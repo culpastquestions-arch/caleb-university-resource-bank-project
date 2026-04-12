@@ -212,9 +212,25 @@ function formatPhotoUrl(url) {
   if (!url || typeof url !== 'string') return '';
   const str = url.trim();
 
+  // If user already provided a Drive uc URL with a valid export mode,
+  // preserve it rather than forcing a different mode.
+  try {
+    const parsedInput = new URL(str);
+    if (parsedInput.hostname === 'drive.google.com' && parsedInput.pathname === '/uc') {
+      const exportMode = parsedInput.searchParams.get('export');
+      const id = parsedInput.searchParams.get('id');
+      const allowedExportModes = new Set(['download', 'view']);
+      if (id && exportMode && allowedExportModes.has(exportMode)) {
+        return `https://drive.google.com/uc?export=${exportMode}&id=${id}`;
+      }
+    }
+  } catch (error) {
+    // Ignore parse failure here and continue with ID extraction flow.
+  }
+
   const driveFileId = extractDriveFileId(str);
   if (driveFileId) {
-    return `https://drive.google.com/uc?export=view&id=${driveFileId}`;
+    return `https://drive.google.com/uc?export=download&id=${driveFileId}`;
   }
 
   // Accept only http/https URLs for direct image sources.

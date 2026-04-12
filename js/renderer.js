@@ -482,8 +482,10 @@ class Renderer {
             const safePhotoUrl = escapeAttr(photoUrl);
             const safeAlt = escapeAttr(name);
 
+            const driveFallbackOnError = "if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';if(this.src.includes('export=view')){this.src=this.src.replace('export=view','export=download');return;}if(this.src.includes('export=download')){const m=this.src.match(/[?&]id=([^&]+)/);if(m&&m[1]){this.src='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';return;}}}this.style.display='none';this.nextElementSibling.style.display='flex';";
+
             const avatarContent = photoUrl
-                ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+              ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" onerror="${driveFallbackOnError}">
            <span class="team-card__initials" style="display:none;">${initials}</span>`
                 : `<span class="team-card__initials">${initials}</span>`;
 
