@@ -1,6 +1,6 @@
 // Service Worker for CURB
 // IMPORTANT: Keep CACHE_NAME in sync with CONFIG.version in js/config.js
-const CACHE_NAME = 'curb-v1.4.0';
+const CACHE_NAME = 'curb-v1.4.1';
 const urlsToCache = [
   '/',
   '/index.html',

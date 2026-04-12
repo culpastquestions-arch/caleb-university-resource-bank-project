@@ -14,8 +14,8 @@ const CONFIG = {
   // The departmentColors array has been removed in favor of dynamic color assignment
 
   // App version - single source of truth for cache management
-  // 1.4.0 - Dynamic departments from Google Drive (no-code maintenance)
-  version: "1.4.0",
+  // 1.4.1 - Team image loading and CSP host updates
+  version: "1.4.1",
 
   // Cache settings for lazy loading
   cache: {
