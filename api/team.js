@@ -140,6 +140,47 @@ function sanitize(text) {
 }
 
 /**
+ * Check whether a parsed URL uses an allowed protocol.
+ * @param {URL} parsedUrl - Parsed URL instance.
+ * @returns {boolean} True if protocol is safe for image src.
+ */
+function isSafeImageProtocol(parsedUrl) {
+  return parsedUrl && (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:');
+}
+
+/**
+ * Extract a Google Drive file id from a URL-like string.
+ * Supports common share URL variants and plain file IDs.
+ * @param {string} input - URL-like input.
+ * @returns {string|null} Drive file id if found.
+ */
+function extractDriveFileId(input) {
+  if (!input || typeof input !== 'string') {
+    return null;
+  }
+
+  const trimmed = input.trim();
+
+  // Allow pasting only the Drive file id directly.
+  if (/^[a-zA-Z0-9_-]{10,}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Common URL patterns: /d/<id> and ?id=<id>
+  const pathMatch = trimmed.match(/\/d\/([a-zA-Z0-9_-]{10,})/);
+  if (pathMatch && pathMatch[1]) {
+    return pathMatch[1];
+  }
+
+  const queryMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (queryMatch && queryMatch[1]) {
+    return queryMatch[1];
+  }
+
+  return null;
+}
+
+/**
  * Convert a Google Drive share link into a direct image URL.
  * If the URL is not a recognized Drive link, return it as-is.
  * @param {string} url - The URL to format.
@@ -148,16 +189,23 @@ function sanitize(text) {
 function formatPhotoUrl(url) {
   if (!url || typeof url !== 'string') return '';
   const str = url.trim();
-  
-  // Extract file ID from typical Drive URLs
-  const driveRegex = /(?:drive\.google\.com\/.*?(?:id=|\/d\/))([a-zA-Z0-9_-]+)/;
-  const match = str.match(driveRegex);
-  
-  if (match && match[1]) {
-    // Generate a secure image tag URL for Drive file IDs
-    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
+
+  const driveFileId = extractDriveFileId(str);
+  if (driveFileId) {
+    return `https://drive.google.com/uc?export=view&id=${driveFileId}`;
   }
-  return str;
+
+  // Accept only http/https URLs for direct image sources.
+  try {
+    const parsed = new URL(str);
+    if (!isSafeImageProtocol(parsed)) {
+      return '';
+    }
+    return parsed.toString();
+  } catch (error) {
+    // Invalid URL should not be returned to the client.
+    return '';
+  }
 }
 
 /**
@@ -196,9 +244,11 @@ function extractSessions(rows) {
  * @param {string} sheetUrl - Published CSV URL for executives sheet.
  * @returns {Promise<Array>} Array of executive objects with session field.
  */
-async function fetchAllExecutives(sheetUrl) {
+async function fetchAllExecutives(sheetUrl, options = {}) {
+  const { bypassCache = false } = options;
+
   // Check cache first
-  if (isCacheValid(cache.executives)) {
+  if (!bypassCache && isCacheValid(cache.executives)) {
     return cache.executives.data;
   }
 
@@ -238,9 +288,11 @@ async function fetchAllExecutives(sheetUrl) {
  * @param {string} sheetUrl - Published CSV URL for reps sheet.
  * @returns {Promise<Array>} Array of department rep objects with session field.
  */
-async function fetchAllDepartmentReps(sheetUrl) {
+async function fetchAllDepartmentReps(sheetUrl, options = {}) {
+  const { bypassCache = false } = options;
+
   // Check cache first
-  if (isCacheValid(cache.reps)) {
+  if (!bypassCache && isCacheValid(cache.reps)) {
     return cache.reps.data;
   }
 
@@ -320,10 +372,12 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const forceRefresh = req.query.refresh === '1' || req.query.force === '1';
+
     // Fetch all data from both sheets (cached for 24h)
     const [allExecutives, allReps] = await Promise.all([
-      fetchAllExecutives(executivesUrl),
-      fetchAllDepartmentReps(repsUrl)
+      fetchAllExecutives(executivesUrl, { bypassCache: forceRefresh }),
+      fetchAllDepartmentReps(repsUrl, { bypassCache: forceRefresh })
     ]);
 
     // Discover all available sessions from both sheets
@@ -359,7 +413,11 @@ module.exports = async function handler(req, res) {
     const cleanReps = departmentReps.map(({ session, ...rest }) => rest);
 
     // Return combined data with session metadata
-    res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    if (forceRefresh) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    }
     return res.status(200).json({
       success: true,
       session: activeSession,

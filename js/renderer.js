@@ -282,11 +282,13 @@ class Renderer {
      */
     async fetchTeamData(session) {
         try {
-            const url = session
-                ? `${CONFIG.apiBase}/team?session=${encodeURIComponent(session)}`
-                : `${CONFIG.apiBase}/team`;
+            const queryParts = ['refresh=1'];
+            if (session) {
+                queryParts.push(`session=${encodeURIComponent(session)}`);
+            }
+            const url = `${CONFIG.apiBase}/team?${queryParts.join('&')}`;
 
-            const response = await fetch(url);
+            const response = await fetch(url, { cache: 'no-store' });
 
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}`);
@@ -437,6 +439,20 @@ class Renderer {
         const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
 
         /**
+         * Escape text for safe use in HTML attributes.
+         * @param {string} value - Raw attribute value.
+         * @returns {string} Escaped value.
+         */
+        const escapeAttr = (value) => {
+            if (value === null || value === undefined) return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        };
+
+        /**
          * Generate initials from a name.
          * @param {string} name - Person's name.
          * @returns {string} Initials.
@@ -463,9 +479,11 @@ class Renderer {
             const role = member.role || `${member.department} Rep`;
             const color = member.color || roleColors[type];
             const photoUrl = member.photoUrl || member.photourl || '';
+            const safePhotoUrl = escapeAttr(photoUrl);
+            const safeAlt = escapeAttr(name);
 
             const avatarContent = photoUrl
-                ? `<img src="${photoUrl}" alt="${name}" class="team-card__photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
            <span class="team-card__initials" style="display:none;">${initials}</span>`
                 : `<span class="team-card__initials">${initials}</span>`;
 
