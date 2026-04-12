@@ -155,7 +155,7 @@ function formatPhotoUrl(url) {
   
   if (match && match[1]) {
     // Generate a secure image tag URL for Drive file IDs
-    return \`https://drive.google.com/uc?export=view&id=\${match[1]}\`;
+    return `https://drive.google.com/uc?export=view&id=${match[1]}`;
   }
   return str;
 }
