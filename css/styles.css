@@ -1363,6 +1363,15 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
 }
 
+.about-team-grid--executives-top {
+  grid-template-columns: repeat(2, minmax(220px, 280px));
+  justify-content: center;
+}
+
+.about-team-grid--executives-bottom {
+  grid-template-columns: repeat(var(--exec-bottom-columns, 3), minmax(180px, 1fr));
+}
+
 .about-team-grid--reps {
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 }
@@ -1950,6 +1959,11 @@ body {
 
   .about-team-grid--executives {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .about-team-grid--executives-top,
+  .about-team-grid--executives-bottom {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
   .about-team-grid--reps {

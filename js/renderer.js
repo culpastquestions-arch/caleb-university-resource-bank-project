@@ -506,6 +506,10 @@ class Renderer {
 
         const hasExecutives = teamData.executives && teamData.executives.length > 0;
         const hasReps = teamData.departmentReps && teamData.departmentReps.length > 0;
+        const executiveMembers = hasExecutives ? teamData.executives : [];
+        const topExecutives = executiveMembers.slice(0, 2);
+        const remainingExecutives = executiveMembers.slice(2);
+        const bottomExecutiveColumns = Math.min(Math.max(remainingExecutives.length, 1), 5);
 
         if (!hasExecutives && !hasReps) {
             return `
@@ -526,9 +530,14 @@ class Renderer {
             <i class="fas fa-users-cog"></i>
             Executive Team
           </h3>
-          <div class="about-team-grid about-team-grid--executives">
-            ${teamData.executives.map((exec, i) => renderTeamCard(exec, 'executive', i)).join('')}
+          <div class="about-team-grid about-team-grid--executives about-team-grid--executives-top">
+            ${topExecutives.map((exec, i) => renderTeamCard(exec, 'executive', i)).join('')}
           </div>
+          ${remainingExecutives.length ? `
+            <div class="about-team-grid about-team-grid--executives about-team-grid--executives-bottom" style="--exec-bottom-columns: ${bottomExecutiveColumns};">
+              ${remainingExecutives.map((exec, i) => renderTeamCard(exec, 'executive', i + topExecutives.length)).join('')}
+            </div>
+          ` : ''}
         </div>
       ` : ''}
 
