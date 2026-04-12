@@ -140,6 +140,27 @@ function sanitize(text) {
 }
 
 /**
+ * Convert a Google Drive share link into a direct image URL.
+ * If the URL is not a recognized Drive link, return it as-is.
+ * @param {string} url - The URL to format.
+ * @returns {string} Formatted URL.
+ */
+function formatPhotoUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  const str = url.trim();
+  
+  // Extract file ID from typical Drive URLs
+  const driveRegex = /(?:drive\.google\.com\/.*?(?:id=|\/d\/))([a-zA-Z0-9_-]+)/;
+  const match = str.match(driveRegex);
+  
+  if (match && match[1]) {
+    // Generate a secure image tag URL for Drive file IDs
+    return \`https://drive.google.com/uc?export=view&id=\${match[1]}\`;
+  }
+  return str;
+}
+
+/**
  * Check if cache is still valid.
  * @param {Object} cacheEntry - Cache entry with timestamp.
  * @returns {boolean} True if cache is valid.
@@ -189,7 +210,8 @@ async function fetchAllExecutives(sheetUrl) {
     const executives = data.map(row => ({
       name: sanitize(row.name || 'TBD'),
       role: sanitize(row.role || 'Team Member'),
-      photoUrl: row.photourl || row.photo || '', // Don't sanitize URLs
+      photoUrl: formatPhotoUrl(row.photourl || row.photo || ''), // Convert Drive links to direct image URLs
+
       order: parseInt(row.order, 10) || 999,
       session: (row.session || '').trim()
     }));
@@ -230,7 +252,8 @@ async function fetchAllDepartmentReps(sheetUrl) {
     const reps = data.map(row => ({
       department: sanitize(row.department || 'Unknown'),
       name: sanitize(row.name || 'TBD'),
-      photoUrl: row.photourl || row.photo || '', // Don't sanitize URLs
+      photoUrl: formatPhotoUrl(row.photourl || row.photo || ''), // Convert Drive links to direct image URLs
+
       session: (row.session || '').trim()
     }));
 
