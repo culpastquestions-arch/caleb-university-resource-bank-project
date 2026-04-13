@@ -272,7 +272,7 @@ function formatPhotoUrl(url) {
 
   const driveFileId = extractDriveFileId(str);
   if (driveFileId) {
-    return `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+    return `https://drive.google.com/thumbnail?id=${driveFileId}&sz=w1000`;
   }
 
   // Accept only http/https URLs for direct image sources.

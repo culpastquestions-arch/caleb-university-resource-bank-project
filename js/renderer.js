@@ -41,7 +41,14 @@ class Renderer {
     if (!value || typeof value !== 'string') return fallback;
 
     try {
-      const parsed = new URL(value, window.location.origin);
+      let normalizedValue = value.trim();
+      if (normalizedValue.startsWith('//')) {
+        normalizedValue = `https:${normalizedValue}`;
+      } else if (/^(drive\.google\.com|docs\.google\.com|docs\.googleusercontent\.com)\//i.test(normalizedValue)) {
+        normalizedValue = `https://${normalizedValue}`;
+      }
+
+      const parsed = new URL(normalizedValue, window.location.origin);
       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
         return parsed.toString();
       }
