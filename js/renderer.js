@@ -324,15 +324,21 @@ class Renderer {
      * @param {string} [session] - Optional academic session to filter by (e.g. '2025/26').
      * @returns {Promise<Object>} Team data with executives, departmentReps, session, and sessions list.
      */
-    async fetchTeamData(session) {
+    async fetchTeamData(session, options = {}) {
         try {
-            const queryParts = ['refresh=1'];
+        const { forceRefresh = false } = options;
+        const queryParts = [];
+        if (forceRefresh) {
+          queryParts.push('refresh=1');
+        }
             if (session) {
                 queryParts.push(`session=${encodeURIComponent(session)}`);
             }
-            const url = `${CONFIG.apiBase}/team?${queryParts.join('&')}`;
+        const url = queryParts.length
+          ? `${CONFIG.apiBase}/team?${queryParts.join('&')}`
+          : `${CONFIG.apiBase}/team`;
 
-            const response = await fetch(url, { cache: 'no-store' });
+        const response = await fetch(url, forceRefresh ? { cache: 'no-store' } : undefined);
 
             if (!response.ok) {
                 throw new Error(`API returned ${response.status}`);
