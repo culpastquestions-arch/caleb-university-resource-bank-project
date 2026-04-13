@@ -1,6 +1,6 @@
 // Service Worker for CURB
-// IMPORTANT: Keep CACHE_NAME in sync with CONFIG.version in js/config.js
-const CACHE_NAME = 'curb-v1.4.1';
+// Versioned cache name; bump only when cache schema/behavior changes.
+const CACHE_NAME = 'curb-v1.5';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -17,6 +17,63 @@ const urlsToCache = [
   '/manifest.json',
   '/offline.html'
 ];
+
+/**
+ * Try network first, fallback to cache/offline.
+ * @param {Request} request - Fetch request.
+ * @param {string} [fallbackUrl] - Optional cache fallback URL.
+ * @returns {Promise<Response>} Response.
+ */
+async function networkFirst(request, fallbackUrl) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse && networkResponse.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (fallbackUrl) {
+      const fallback = await caches.match(fallbackUrl);
+      if (fallback) return fallback;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Return cached response immediately and revalidate in background.
+ * @param {Request} request - Fetch request.
+ * @returns {Promise<Response>} Response.
+ */
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkPromise = fetch(request)
+    .then((networkResponse) => {
+      if (networkResponse && networkResponse.status === 200) {
+        cache.put(request, networkResponse.clone());
+      }
+      return networkResponse;
+    })
+    .catch(() => null);
+
+  if (cached) {
+    // Keep cache warm without blocking current response.
+    networkPromise.catch(() => null);
+    return cached;
+  }
+
+  const networkResponse = await networkPromise;
+  if (networkResponse) return networkResponse;
+
+  const fallback = await caches.match('/offline.html');
+  if (fallback) return fallback;
+  return new Response('Offline', { status: 503, statusText: 'Offline' });
+}
 
 // Install event - cache resources
 self.addEventListener('install', event => {
@@ -64,104 +121,28 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
 
-  // API calls - Network First
+  // API calls - Network First (fresh data preferred, offline fallback preserved)
   if (url.pathname.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          // Cache successful API responses
-          if (response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => cache.put(event.request, responseToCache));
-          }
-          return response;
-        })
-        .catch(error => {
-          // Fallback to cache for API calls
-          return caches.match(event.request)
-            .then(response => response || new Response('{"error": "Offline"}', {
-              status: 503,
-              headers: { 'Content-Type': 'application/json' }
-            }));
-        })
-    );
+    event.respondWith(networkFirst(event.request));
     return;
   }
 
-  // Static assets - Cache First
+  // App code/assets - Stale While Revalidate (fast first paint + quick update pickup)
   if (url.pathname.includes('/css/') ||
     url.pathname.includes('/js/') ||
     url.pathname.includes('/assets/')) {
-    event.respondWith(
-      caches.match(event.request)
-        .then(response => {
-          if (response) {
-            return response;
-          }
-          return fetch(event.request)
-            .then(fetchResponse => {
-              if (fetchResponse.status === 200) {
-                const responseToCache = fetchResponse.clone();
-                caches.open(CACHE_NAME)
-                  .then(cache => cache.put(event.request, responseToCache));
-              }
-              return fetchResponse;
-            });
-        })
-    );
+    event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // HTML - Stale While Revalidate
+  // HTML shell - Network First so navigation picks latest deploys quickly
   if (url.pathname.endsWith('.html') || url.pathname === '/') {
-    event.respondWith(
-      caches.match(event.request)
-        .then(response => {
-          const fetchPromise = fetch(event.request)
-            .then(fetchResponse => {
-              if (fetchResponse.status === 200) {
-                const responseToCache = fetchResponse.clone();
-                caches.open(CACHE_NAME)
-                  .then(cache => cache.put(event.request, responseToCache));
-              }
-              return fetchResponse;
-            })
-            .catch(error => {
-              console.error('Fetch failed:', error);
-              // Return offline page for HTML requests
-              return caches.match('/offline.html');
-            });
-
-          // Return cached version immediately, update in background
-          return response || fetchPromise;
-        })
-    );
+    event.respondWith(networkFirst(event.request, '/offline.html'));
     return;
   }
 
   // Default strategy for other requests
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request)
-          .then(fetchResponse => {
-            if (fetchResponse.status === 200) {
-              const responseToCache = fetchResponse.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(event.request, responseToCache));
-            }
-            return fetchResponse;
-          })
-          .catch(error => {
-            console.error('Fetch failed:', error);
-            throw error;
-          });
-      })
-  );
+  event.respondWith(networkFirst(event.request));
 });
 
 // Handle messages from the main thread

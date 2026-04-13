@@ -70,15 +70,15 @@ describe('PathCacheManager', () => {
             expect(cache.isStale(Date.now(), '/test')).toBe(false);
         });
 
-        test('data older than 6 hours is stale for non-root paths', () => {
-            const sevenHoursAgo = Date.now() - (7 * 60 * 60 * 1000);
-            expect(cache.isStale(sevenHoursAgo, '/Computer Science')).toBe(true);
+        test('data older than 30 minutes is stale for non-root paths', () => {
+            const fortyMinutesAgo = Date.now() - (40 * 60 * 1000);
+            expect(cache.isStale(fortyMinutesAgo, '/Computer Science')).toBe(true);
         });
 
-        test('root path has longer TTL (24 hours)', () => {
-            const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
-            expect(cache.isStale(twelveHoursAgo, '/')).toBe(false);
-            expect(cache.isStale(twelveHoursAgo, '')).toBe(false);
+        test('root path has longer TTL (2 hours)', () => {
+            const ninetyMinutesAgo = Date.now() - (90 * 60 * 1000);
+            expect(cache.isStale(ninetyMinutesAgo, '/')).toBe(false);
+            expect(cache.isStale(ninetyMinutesAgo, '')).toBe(false);
         });
     });
 
@@ -87,17 +87,17 @@ describe('PathCacheManager', () => {
             expect(cache.isExpired(Date.now(), '/test')).toBe(false);
         });
 
-        test('data older than 24 hours is expired for non-root paths', () => {
-            const thirtyHoursAgo = Date.now() - (30 * 60 * 60 * 1000);
-            expect(cache.isExpired(thirtyHoursAgo, '/Computer Science')).toBe(true);
+        test('data older than 6 hours is expired for non-root paths', () => {
+            const sevenHoursAgo = Date.now() - (7 * 60 * 60 * 1000);
+            expect(cache.isExpired(sevenHoursAgo, '/Computer Science')).toBe(true);
         });
 
-        test('root path has 7-day hard expiry', () => {
-            const threeDaysAgo = Date.now() - (3 * 24 * 60 * 60 * 1000);
-            expect(cache.isExpired(threeDaysAgo, '/')).toBe(false);
+        test('root path has 24-hour hard expiry', () => {
+            const twelveHoursAgo = Date.now() - (12 * 60 * 60 * 1000);
+            expect(cache.isExpired(twelveHoursAgo, '/')).toBe(false);
 
-            const eightDaysAgo = Date.now() - (8 * 24 * 60 * 60 * 1000);
-            expect(cache.isExpired(eightDaysAgo, '/')).toBe(true);
+            const thirtyHoursAgo = Date.now() - (30 * 60 * 60 * 1000);
+            expect(cache.isExpired(thirtyHoursAgo, '/')).toBe(true);
         });
     });
 

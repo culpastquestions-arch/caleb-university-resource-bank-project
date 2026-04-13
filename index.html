@@ -194,7 +194,31 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
+        let isRefreshing = false;
+
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (isRefreshing) return;
+          isRefreshing = true;
+          window.location.reload();
+        });
+
         navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            const triggerUpdate = (worker) => {
+              if (!worker) return;
+              worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                  worker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            };
+
+            triggerUpdate(registration.waiting);
+
+            registration.addEventListener('updatefound', () => {
+              triggerUpdate(registration.installing);
+            });
+          })
           .catch(error => {
             console.error('Service worker registration failed:', error);
           });

@@ -5,10 +5,10 @@ class PathCacheManager {
   constructor() {
     this.storagePrefix = 'curb_path_';
     this.metaKey = 'curb_cache_meta';
-    this.defaultTTL = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
-    this.departmentTTL = 24 * 60 * 60 * 1000; // 24 hours for departments (root path)
-    this.defaultHardExpiry = 24 * 60 * 60 * 1000; // 24 hours hard expiry
-    this.departmentHardExpiry = 7 * 24 * 60 * 60 * 1000; // 7 days for departments
+    this.defaultTTL = 30 * 60 * 1000; // 30 minutes
+    this.departmentTTL = 2 * 60 * 60 * 1000; // 2 hours for departments (root path)
+    this.defaultHardExpiry = 6 * 60 * 60 * 1000; // 6 hours hard expiry
+    this.departmentHardExpiry = 24 * 60 * 60 * 1000; // 24 hours for departments
   }
 
   /**
