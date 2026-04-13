@@ -1641,7 +1641,33 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+}
+
+.coverage-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+.coverage-summary-grid--single {
+  grid-template-columns: 1fr;
+}
+
+.coverage-summary-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  padding: var(--space-3);
+}
+
+.coverage-summary-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .coverage-table {
@@ -1718,6 +1744,12 @@ body {
   color: var(--color-text-muted);
   font-style: italic;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .coverage-summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 [data-theme="dark"] .coverage-accordion,

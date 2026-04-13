@@ -826,14 +826,38 @@ class Renderer {
             return `<div class="empty-state" style="min-height: 150px; padding: 2rem;"><p class="meta-text">No data found in this department.</p></div>`;
         }
 
-      const summary = {
+      const createSummary = () => ({
         uploaded: 0,
         emptyFolder: 0,
         missingFolder: 0,
         other: 0
+      });
+
+      const buildSummaryHtml = (title, summary) => `
+        <div class="coverage-summary-card">
+          <p class="coverage-summary-title">${title}</p>
+          <div class="coverage-summary">
+            <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
+            <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
+            <span class="status-missing"><i class="fas fa-folder-times"></i> Missing: ${summary.missingFolder}</span>
+            ${summary.other > 0 ? `<span class="status-no"><i class="fas fa-circle-question"></i> Other: ${summary.other}</span>` : ''}
+          </div>
+        </div>
+      `;
+
+      const summaryBySemester = {
+        '1st Semester': createSummary(),
+        '2nd Semester': createSummary()
       };
 
       coverageData.forEach(item => {
+        const semesterLabel = (item.semester || '').trim();
+        if (!summaryBySemester[semesterLabel]) {
+          summaryBySemester[semesterLabel] = createSummary();
+        }
+
+        const summary = summaryBySemester[semesterLabel];
+
         if (item.status === 'uploaded') {
           summary.uploaded += 1;
         } else if (item.status === 'empty-folder') {
@@ -845,14 +869,27 @@ class Renderer {
         }
       });
 
+      const hasFirstOrSecondSemester = coverageData.some(item => {
+        const semesterLabel = (item.semester || '').trim();
+        return semesterLabel === '1st Semester' || semesterLabel === '2nd Semester';
+      });
+
+      const summaryCardsHtml = hasFirstOrSecondSemester
+        ? `
+          <div class="coverage-summary-grid">
+            ${buildSummaryHtml('1st Semester Summary', summaryBySemester['1st Semester'])}
+            ${buildSummaryHtml('2nd Semester Summary', summaryBySemester['2nd Semester'])}
+          </div>
+        `
+        : `
+          <div class="coverage-summary-grid coverage-summary-grid--single">
+            ${buildSummaryHtml('Coverage Summary', summaryBySemester['Full Year'] || createSummary())}
+          </div>
+        `;
+
         let html = '<div class="coverage-table-container"><table class="coverage-table">';
       html = `
-        <div class="coverage-summary">
-        <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
-        <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
-        <span class="status-missing"><i class="fas fa-folder-times"></i> Missing: ${summary.missingFolder}</span>
-        ${summary.other > 0 ? `<span class="status-no"><i class="fas fa-circle-question"></i> Other: ${summary.other}</span>` : ''}
-        </div>
+        ${summaryCardsHtml}
         <div class="coverage-table-container"><table class="coverage-table">
       `;
         html += '<thead><tr><th style="width: 30%">Level</th><th style="width: 40%">Semester</th><th>Status</th></tr></thead>';
