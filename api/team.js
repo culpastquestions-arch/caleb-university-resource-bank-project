@@ -258,6 +258,84 @@ function isCacheValid(cacheEntry) {
 }
 
 /**
+ * Normalize an academic session label to a canonical format.
+ * Canonical format is "YYYY/YY" when a year range is detected.
+ * Examples: "2025~26", "2025/2026", "2025/26 Session" -> "2025/26".
+ * Non-matching values are returned trimmed with normalized spacing.
+ * @param {string} value - Raw session label.
+ * @returns {string} Normalized session label.
+ */
+function normalizeSessionLabel(value) {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  const trimmed = value.trim().replace(/\s+/g, ' ');
+  if (!trimmed) {
+    return '';
+  }
+
+  const match = trimmed.match(/(\d{4})\s*[\/~-]\s*(\d{2}|\d{4})(?:\s*session)?/i);
+  if (!match) {
+    return trimmed;
+  }
+
+  const startYear = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(startYear)) {
+    return trimmed;
+  }
+
+  const endRaw = match[2];
+  const endTwoDigit = endRaw.length === 4 ? endRaw.slice(-2) : endRaw.padStart(2, '0');
+  return `${startYear}/${endTwoDigit}`;
+}
+
+/**
+ * Build a numeric sort key for an academic session label.
+ * Higher values represent newer sessions.
+ * @param {string} sessionLabel - Session label.
+ * @returns {number} Sort key.
+ */
+function getSessionSortKey(sessionLabel) {
+  const normalized = normalizeSessionLabel(sessionLabel);
+  const fullMatch = normalized.match(/^(\d{4})\/(\d{2})$/);
+  if (fullMatch) {
+    const startYear = Number.parseInt(fullMatch[1], 10);
+    const endYearTwoDigit = Number.parseInt(fullMatch[2], 10);
+    if (Number.isFinite(startYear) && Number.isFinite(endYearTwoDigit)) {
+      return (startYear * 100) + endYearTwoDigit;
+    }
+  }
+
+  const fallbackMatch = normalized.match(/(\d{4})/);
+  if (fallbackMatch) {
+    const year = Number.parseInt(fallbackMatch[1], 10);
+    if (Number.isFinite(year)) {
+      return year * 100;
+    }
+  }
+
+  return Number.NEGATIVE_INFINITY;
+}
+
+/**
+ * Compare two session labels with latest first ordering.
+ * @param {string} a - Session A.
+ * @param {string} b - Session B.
+ * @returns {number} Sort comparator result.
+ */
+function compareSessionsDesc(a, b) {
+  const keyDiff = getSessionSortKey(b) - getSessionSortKey(a);
+  if (keyDiff !== 0) {
+    return keyDiff;
+  }
+
+  const normalizedA = normalizeSessionLabel(a);
+  const normalizedB = normalizeSessionLabel(b);
+  return normalizedB.localeCompare(normalizedA);
+}
+
+/**
  * Extract unique session values from an array of rows,
  * sorted in descending order (latest first).
  * @param {Array<Object>} rows - Array of parsed row objects.
@@ -266,15 +344,14 @@ function isCacheValid(cacheEntry) {
 function extractSessions(rows) {
   const sessionSet = new Set();
   for (const row of rows) {
-    const session = (row.session || '').trim();
+    const session = normalizeSessionLabel(row.session || '');
     if (session) {
       sessionSet.add(session);
     }
   }
 
-  // Sort sessions descending so latest is first
-  // Handles formats like "2025/26", "2026/27" etc.
-  return Array.from(sessionSet).sort((a, b) => b.localeCompare(a));
+  // Sort sessions descending so latest is first.
+  return Array.from(sessionSet).sort(compareSessionsDesc);
 }
 
 /**
@@ -312,7 +389,7 @@ async function fetchAllExecutives(sheetUrl, options = {}) {
       ])), // Convert Drive links to direct image URLs
 
       order: parseInt(row.order, 10) || 999,
-      session: (row.session || '').trim()
+      session: normalizeSessionLabel(row.session || '')
     }));
 
     // Sort by order within each session
@@ -366,7 +443,7 @@ async function fetchAllDepartmentReps(sheetUrl, options = {}) {
         'avatar'
       ])), // Convert Drive links to direct image URLs
 
-      session: (row.session || '').trim()
+      session: normalizeSessionLabel(row.session || '')
     }));
 
     // Sort by department name
@@ -445,10 +522,10 @@ module.exports = async function handler(req, res) {
     const repSessions = extractSessions(allReps);
     const allSessions = Array.from(
       new Set([...execSessions, ...repSessions])
-    ).sort((a, b) => b.localeCompare(a)); // Latest first
+    ).sort(compareSessionsDesc); // Latest first
 
     // Determine which session to return
-    const requestedSession = req.query.session || '';
+    const requestedSession = normalizeSessionLabel(req.query.session || '');
     let activeSession = '';
 
     if (requestedSession && allSessions.includes(requestedSession)) {

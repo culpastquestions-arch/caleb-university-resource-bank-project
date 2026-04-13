@@ -1380,7 +1380,7 @@ body {
 .team-card {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-4);
   text-align: center;
   box-shadow: var(--shadow-card);
   border: 1px solid var(--color-border);
@@ -1413,12 +1413,12 @@ body {
 
 /* Executive cards — slightly more prominent */
 .team-card--executive {
-  padding: var(--space-6);
+  padding: var(--space-5) var(--space-4);
 }
 
 .team-card--executive .team-card__avatar {
-  width: 64px;
-  height: 64px;
+  width: 86px;
+  height: 86px;
   font-size: 1.5rem;
 }
 
@@ -1432,8 +1432,8 @@ body {
 }
 
 .team-card--rep .team-card__avatar {
-  width: 64px;
-  height: 64px;
+  width: 78px;
+  height: 78px;
   font-size: 1.25rem;
 }
 
@@ -1446,8 +1446,8 @@ body {
 }
 
 .team-card__avatar {
-  width: 64px;
-  height: 64px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1477,7 +1477,7 @@ body {
 }
 
 .team-card__info {
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .team-card__name {
@@ -1920,13 +1920,17 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .about-team-grid--reps {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
   .team-card--rep {
     padding: var(--space-4) var(--space-3);
   }
 
   .team-card--rep .team-card__avatar {
-    width: 52px;
-    height: 52px;
+    width: 62px;
+    height: 62px;
     font-size: 1rem;
   }
 

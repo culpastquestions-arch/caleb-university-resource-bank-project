@@ -309,11 +309,59 @@ class Renderer {
             throw new Error('Invalid API response');
         } catch (error) {
             console.warn('Failed to fetch team data from API, using fallback:', error.message);
+
+          const configuredSessions = Array.isArray(CONFIG.about.sessions)
+            ? CONFIG.about.sessions.filter(s => typeof s === 'string' && s.trim())
+            : [];
+          const configuredPrimarySession = typeof CONFIG.about.session === 'string'
+            ? CONFIG.about.session.trim()
+            : '';
+          const fallbackSessions = Array.from(
+            new Set([...configuredSessions, configuredPrimarySession].filter(Boolean))
+          );
+
+          const getSessionStartYear = (value) => {
+            const match = String(value).match(/(\d{4})\s*[\/~-]\s*(\d{2,4})/);
+            if (!match) return Number.NEGATIVE_INFINITY;
+            const year = Number.parseInt(match[1], 10);
+            return Number.isFinite(year) ? year : Number.NEGATIVE_INFINITY;
+          };
+
+          fallbackSessions.sort((a, b) => {
+            const yearDiff = getSessionStartYear(b) - getSessionStartYear(a);
+            if (yearDiff !== 0) return yearDiff;
+            return b.localeCompare(a);
+          });
+
+          const activeFallbackSession = (session && fallbackSessions.includes(session))
+            ? session
+            : (fallbackSessions[0] || '');
+
+          const fallbackExecutivesRaw = Array.isArray(CONFIG.about.executives) ? CONFIG.about.executives : [];
+          const fallbackRepsRaw = Array.isArray(CONFIG.about.departmentReps) ? CONFIG.about.departmentReps : [];
+
+          const hasExecutiveSessions = fallbackExecutivesRaw.some(member =>
+            member && typeof member.session === 'string' && member.session.trim()
+          );
+          const hasRepSessions = fallbackRepsRaw.some(member =>
+            member && typeof member.session === 'string' && member.session.trim()
+          );
+
+          const fallbackExecutives = (activeFallbackSession && hasExecutiveSessions)
+            ? fallbackExecutivesRaw.filter(member => member.session === activeFallbackSession)
+            : fallbackExecutivesRaw;
+          const fallbackReps = (activeFallbackSession && hasRepSessions)
+            ? fallbackRepsRaw.filter(member => member.session === activeFallbackSession)
+            : fallbackRepsRaw;
+
+          const cleanFallbackExecutives = fallbackExecutives.map(({ session: memberSession, ...rest }) => rest);
+          const cleanFallbackReps = fallbackReps.map(({ session: memberSession, ...rest }) => rest);
+
             return {
-                executives: CONFIG.about.executives,
-                departmentReps: CONFIG.about.departmentReps,
-                session: CONFIG.about.session || '2025/26',
-                sessions: CONFIG.about.sessions || ['2025/26'],
+            executives: cleanFallbackExecutives,
+            departmentReps: cleanFallbackReps,
+            session: activeFallbackSession,
+            sessions: fallbackSessions,
                 fromApi: false
             };
         }
@@ -338,7 +386,7 @@ class Renderer {
     }
 
     /**
-     * Render the full about page structure (mission + session picker + team + CTA).
+     * Render the full about page structure (team + mission + CTA).
      * @param {HTMLElement} container - Main content container.
      * @param {Object} about - CONFIG.about data.
      * @param {Object} teamData - Fetched team data with session info.
@@ -353,6 +401,17 @@ class Renderer {
           </a>
         </div>
 
+        <section class="about-section about-section--team">
+          <h2 class="about-section__title">
+            <i class="fas fa-users"></i>
+            Meet the Team
+          </h2>
+          ${this._renderSessionPicker(teamData.sessions, teamData.session)}
+          <div id="team-content">
+            ${this._renderTeamContent(teamData)}
+          </div>
+        </section>
+
         <section class="about-section about-section--mission">
           <div class="about-mission">
             <div class="about-mission__item about-mission__item--full">
@@ -362,17 +421,6 @@ class Renderer {
               <h2 class="about-mission__title">Our Mission</h2>
               <p class="about-mission__text">${about.mission}</p>
             </div>
-          </div>
-        </section>
-
-        <section class="about-section about-section--team">
-          <h2 class="about-section__title">
-            <i class="fas fa-users"></i>
-            Meet the Team
-          </h2>
-          ${this._renderSessionPicker(teamData.sessions, teamData.session)}
-          <div id="team-content">
-            ${this._renderTeamContent(teamData)}
           </div>
         </section>
 
