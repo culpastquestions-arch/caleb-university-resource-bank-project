@@ -99,6 +99,56 @@ async function hasFiles(folderId, apiKey) {
   return response.files && response.files.length > 0;
 }
 
+/**
+ * Check whether a folder tree contains at least one PDF.
+ * This handles structures where PDFs are placed in nested course folders.
+ * @param {string} rootFolderId - Session folder ID.
+ * @param {string} apiKey - Google API key.
+ * @returns {Promise<boolean>} True if any PDF exists in the subtree.
+ */
+async function hasFilesDeep(rootFolderId, apiKey) {
+  if (!rootFolderId) return false;
+
+  const queue = [{ id: rootFolderId, depth: 0 }];
+  const visited = new Set();
+  const MAX_DEPTH = 5;
+  const MAX_FOLDERS_SCANNED = 300;
+  let scannedCount = 0;
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || !current.id || visited.has(current.id)) {
+      continue;
+    }
+
+    visited.add(current.id);
+    scannedCount += 1;
+
+    // Prevent runaway scans on unexpectedly large trees.
+    if (scannedCount > MAX_FOLDERS_SCANNED) {
+      break;
+    }
+
+    const hasPdfDirectly = await hasFiles(current.id, apiKey);
+    if (hasPdfDirectly) {
+      return true;
+    }
+
+    if (current.depth >= MAX_DEPTH) {
+      continue;
+    }
+
+    const children = await listFolders(current.id, apiKey);
+    for (const child of children) {
+      if (child && child.id && !visited.has(child.id)) {
+        queue.push({ id: child.id, depth: current.depth + 1 });
+      }
+    }
+  }
+
+  return false;
+}
+
 const LEVEL_EXCEPTIONS = {
   "Jupeb": ["Art", "Business", "Science"],
 };
@@ -172,7 +222,7 @@ module.exports = async (req, res) => {
         const sessionFolder = await findTargetSessionFolder(level.id, targetSessionQuery, apiKey);
         let hasPdf = false;
         if (sessionFolder) {
-            hasPdf = await hasFiles(sessionFolder.id, apiKey);
+          hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
         }
         coverageData.push({
             level: level.name,
@@ -185,7 +235,7 @@ module.exports = async (req, res) => {
           const sessionFolder = await findTargetSessionFolder(semester.id, targetSessionQuery, apiKey);
           let hasPdf = false;
           if (sessionFolder) {
-              hasPdf = await hasFiles(sessionFolder.id, apiKey);
+              hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
           }
           coverageData.push({
               level: level.name,
