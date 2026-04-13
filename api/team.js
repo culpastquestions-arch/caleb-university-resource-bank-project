@@ -23,6 +23,25 @@ const TRUSTED_CSV_HOSTS = new Set([
 ]);
 
 /**
+ * Check whether a CSV host is trusted.
+ * Allows known Google hosts and googleusercontent subdomains used by redirects.
+ * @param {string} hostname - URL hostname.
+ * @returns {boolean} True if host is trusted.
+ */
+function isTrustedCsvHost(hostname) {
+  if (!hostname || typeof hostname !== 'string') {
+    return false;
+  }
+
+  const host = hostname.toLowerCase();
+  if (TRUSTED_CSV_HOSTS.has(host)) {
+    return true;
+  }
+
+  return host.endsWith('.googleusercontent.com');
+}
+
+/**
  * Validate that an outbound CSV URL is HTTPS and on an expected host.
  * @param {string} value - Raw URL string.
  * @returns {URL} Parsed and validated URL.
@@ -34,8 +53,7 @@ function validateTrustedCsvUrl(value) {
     throw new Error('CSV URL must use HTTPS');
   }
 
-  const host = parsed.hostname.toLowerCase();
-  if (!TRUSTED_CSV_HOSTS.has(host)) {
+  if (!isTrustedCsvHost(parsed.hostname)) {
     throw new Error('CSV URL host is not allowed');
   }
 
@@ -553,11 +571,35 @@ module.exports = async function handler(req, res) {
   try {
     const forceRefresh = req.query.refresh === '1' || req.query.force === '1';
 
-    // Fetch all data from both sheets (cached for 24h)
-    const [allExecutives, allReps] = await Promise.all([
+    // Fetch both sheets, but tolerate one failing so the endpoint doesn't hard-fail.
+    const [execResult, repResult] = await Promise.allSettled([
       fetchAllExecutives(executivesUrl, { bypassCache: forceRefresh }),
       fetchAllDepartmentReps(repsUrl, { bypassCache: forceRefresh })
     ]);
+
+    const allExecutives = execResult.status === 'fulfilled' ? execResult.value : [];
+    const allReps = repResult.status === 'fulfilled' ? repResult.value : [];
+
+    if (execResult.status === 'rejected') {
+      console.error('Executives sheet fetch failed:', execResult.reason?.message || execResult.reason);
+    }
+    if (repResult.status === 'rejected') {
+      console.error('Department reps sheet fetch failed:', repResult.reason?.message || repResult.reason);
+    }
+
+    // If both fail and nothing is cached, return graceful empty success payload instead of 500.
+    if (allExecutives.length === 0 && allReps.length === 0) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return res.status(200).json({
+        success: true,
+        session: '',
+        sessions: [],
+        executives: [],
+        departmentReps: [],
+        cached: false,
+        degraded: true
+      });
+    }
 
     // Discover all available sessions from both sheets
     const execSessions = extractSessions(allExecutives);
@@ -603,7 +645,8 @@ module.exports = async function handler(req, res) {
       sessions: allSessions,
       executives: cleanExecutives,
       departmentReps: cleanReps,
-      cached: isCacheValid(cache.executives) && isCacheValid(cache.reps)
+      cached: isCacheValid(cache.executives) && isCacheValid(cache.reps),
+      degraded: execResult.status === 'rejected' || repResult.status === 'rejected'
     });
 
   } catch (error) {
