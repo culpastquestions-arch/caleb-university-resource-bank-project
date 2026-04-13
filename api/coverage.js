@@ -39,10 +39,43 @@ function extractSessionNumbers(sessionName) {
   return (sessionName.match(/\d+/g) || []); 
 }
 
+function normalizeSessionLabel(label) {
+  if (!label || typeof label !== 'string') {
+    return '';
+  }
+
+  const compact = normalizeFolderName(label)
+    .toLowerCase()
+    .replace(/\bsession\b/g, '')
+    .replace(/[~\-_]/g, '/')
+    .replace(/\s*\/\s*/g, '/')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const match = compact.match(/(\d{4})\/(\d{2}|\d{4})/);
+  if (!match) {
+    return compact;
+  }
+
+  const startYear = match[1];
+  const endRaw = match[2];
+  const endTwoDigit = endRaw.length === 4 ? endRaw.slice(-2) : endRaw.padStart(2, '0');
+  return `${startYear}/${endTwoDigit}`;
+}
+
 async function findTargetSessionFolder(parentId, targetSessionName, apiKey) {
   // We MUST fetch all folders and filter in JS because Google Drive's API 'q' parameter 
   // fails silently or doesn't support exact equality matches on names containing slashes (e.g., '2025/26 Session')
   const folders = await listFolders(parentId, apiKey);
+
+  // Prefer exact match against normalized session labels to avoid wrong fuzzy hits.
+  const normalizedTargetLabel = normalizeSessionLabel(targetSessionName);
+  if (normalizedTargetLabel) {
+    const exactMatch = folders.find(f => normalizeSessionLabel(f.name) === normalizedTargetLabel);
+    if (exactMatch) {
+      return exactMatch;
+    }
+  }
   
   // Use fuzzy numerical matching to avoid exact string match failures 
   // e.g., target "2024/25" will match folder "2024-2025 Session"

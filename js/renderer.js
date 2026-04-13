@@ -690,8 +690,6 @@ class Renderer {
      * @param {HTMLElement} container - Main content container
      */
     async renderCoverage(container) {
-        const defaultSession = (CONFIG.about && CONFIG.about.session) ? CONFIG.about.session : '2025/26';
-
         container.innerHTML = `
           <div class="about-page">
             <h1 class="page-title" style="margin-bottom: var(--space-2);">
@@ -704,7 +702,9 @@ class Renderer {
             
             <div style="margin-bottom: var(--space-6); max-width: 300px;">
                 <label style="display:block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">Target Session</label>
-                <input type="text" id="target-session-input" class="search-input" value="${defaultSession}" style="width: 100%; border: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary);">
+                <select id="target-session-select" class="search-input" style="width: 100%; border: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary);" aria-label="Select target session">
+                  <option value="">Loading sessions...</option>
+                </select>
             </div>
 
             <div id="coverage-departments" class="coverage-accordion-group">
@@ -714,10 +714,30 @@ class Renderer {
         `;
 
         try {
+          const teamData = await this.fetchTeamData();
             const departments = await driveAPI.fetchDepartments();
             const deptContainer = document.getElementById('coverage-departments');
-            const sessionInput = document.getElementById('target-session-input');
+          const sessionSelect = document.getElementById('target-session-select');
             if (!deptContainer) return;
+
+          const sessions = (teamData && Array.isArray(teamData.sessions)) ? teamData.sessions : [];
+          const selectedSession = (teamData && teamData.session) ? teamData.session : (sessions[0] || '');
+
+          if (sessionSelect) {
+            if (sessions.length > 0) {
+              sessionSelect.innerHTML = sessions.map(session => {
+                const selected = session === selectedSession ? ' selected' : '';
+                return `<option value="${session}"${selected}>${session}</option>`;
+              }).join('');
+            } else {
+              const fallbackSession = (CONFIG.about && CONFIG.about.session) ? CONFIG.about.session : '';
+              if (fallbackSession) {
+                sessionSelect.innerHTML = `<option value="${fallbackSession}">${fallbackSession}</option>`;
+              } else {
+                sessionSelect.innerHTML = '<option value="">No sessions available</option>';
+              }
+            }
+          }
 
             if (!departments || departments.length === 0) {
                 deptContainer.innerHTML = this.renderEmptyState('No departments found', 'Cannot generate coverage report.');
@@ -749,9 +769,11 @@ class Renderer {
                     const icon = e.currentTarget.querySelector('.coverage-accordion__icon');
                     
                     // Force refresh if they changed the session input
-                    const currentSession = sessionInput.value.trim();
+                    const currentSession = sessionSelect && sessionSelect.value
+                      ? sessionSelect.value.trim()
+                      : '';
                     if (!currentSession) {
-                        app.showToast('Please enter a target session', 'error');
+                      app.showToast('Please select a target session', 'error');
                         return;
                     }
 
@@ -804,7 +826,35 @@ class Renderer {
             return `<div class="empty-state" style="min-height: 150px; padding: 2rem;"><p class="meta-text">No data found in this department.</p></div>`;
         }
 
+      const summary = {
+        uploaded: 0,
+        emptyFolder: 0,
+        missingFolder: 0,
+        other: 0
+      };
+
+      coverageData.forEach(item => {
+        if (item.status === 'uploaded') {
+          summary.uploaded += 1;
+        } else if (item.status === 'empty-folder') {
+          summary.emptyFolder += 1;
+        } else if (item.status === 'missing-folder') {
+          summary.missingFolder += 1;
+        } else {
+          summary.other += 1;
+        }
+      });
+
         let html = '<div class="coverage-table-container"><table class="coverage-table">';
+      html = `
+        <div class="coverage-summary">
+        <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
+        <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
+        <span class="status-missing"><i class="fas fa-folder-times"></i> Missing: ${summary.missingFolder}</span>
+        ${summary.other > 0 ? `<span class="status-no"><i class="fas fa-circle-question"></i> Other: ${summary.other}</span>` : ''}
+        </div>
+        <div class="coverage-table-container"><table class="coverage-table">
+      `;
         html += '<thead><tr><th style="width: 30%">Level</th><th style="width: 40%">Semester</th><th>Status</th></tr></thead>';
         html += '<tbody>';
 
@@ -817,9 +867,15 @@ class Renderer {
 
         for (const [levelName, items] of Object.entries(grouped)) {
             items.forEach((item, idx) => {
-                const statusHtml = item.status === 'uploaded' 
-                    ? '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>'
-                    : '<span class="status-no"><i class="fas fa-times-circle"></i> Pending Upload</span>';
+              let statusHtml = '<span class="status-no"><i class="fas fa-circle-question"></i> Unknown</span>';
+
+              if (item.status === 'uploaded') {
+                statusHtml = '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>';
+              } else if (item.status === 'empty-folder') {
+                statusHtml = '<span class="status-empty"><i class="fas fa-folder-open"></i> Session Found, No PDFs</span>';
+              } else if (item.status === 'missing-folder') {
+                statusHtml = '<span class="status-missing"><i class="fas fa-folder-times"></i> Session Folder Missing</span>';
+              }
 
                 html += `<tr>
                     ${idx === 0 ? `<td rowspan="${items.length}" style="vertical-align: middle; border-right: 1px solid var(--color-border); font-weight: 600; color: var(--color-brand);">${item.level}</td>` : ''}
