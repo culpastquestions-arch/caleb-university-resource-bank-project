@@ -7,6 +7,50 @@
  * and replaces the container content with the final view.
  */
 class Renderer {
+  /**
+   * Escape text for safe HTML rendering.
+   * @param {string} value - Raw text.
+   * @returns {string} Escaped text.
+   */
+  escapeHtml(value) {
+    if (value === null || value === undefined) return '';
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Escape attribute values.
+   * @param {string} value - Raw attribute value.
+   * @returns {string} Escaped attribute-safe string.
+   */
+  escapeAttr(value) {
+    return this.escapeHtml(value);
+  }
+
+  /**
+   * Ensure URLs are safe before injecting into href/src attributes.
+   * @param {string} value - Raw URL string.
+   * @param {string} fallback - Fallback URL when invalid.
+   * @returns {string} Safe URL.
+   */
+  safeUrl(value, fallback = '#') {
+    if (!value || typeof value !== 'string') return fallback;
+
+    try {
+      const parsed = new URL(value, window.location.origin);
+      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+        return parsed.toString();
+      }
+      return fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
     /**
      * Render skeleton loading UI.
      * @param {string} type - 'departments', 'levels', 'semesters', 'sessions', or 'files'.
@@ -23,7 +67,7 @@ class Renderer {
 
         return `
       <div class="skeleton-container">
-        <p class="skeleton-message">${message}</p>
+        <p class="skeleton-message">${this.escapeHtml(message)}</p>
         <div class="${gridClass}">
           ${Array(skeletonCount).fill(0).map(() => `
             <div class="${itemClass} skeleton-loading">
@@ -68,11 +112,11 @@ class Renderer {
       <p class="departments-section-label">All Departments</p>
       <div class="departments-grid" id="department-grid">
         ${departments.map(dept => `
-          <a href="#/${encodeSegment(dept)}" class="department-card" data-department="${dept}">
+          <a href="#/${encodeSegment(dept)}" class="department-card" data-department="${this.escapeAttr(dept)}">
             <div class="card-icon">
               <i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i>
             </div>
-            <span class="card-title">${dept}</span>
+            <span class="card-title">${this.escapeHtml(dept)}</span>
           </a>
         `).join('')}
       </div>
@@ -110,7 +154,7 @@ class Renderer {
               <div class="level-icon">
                 <i class="fas fa-book"></i>
               </div>
-              <h3>${level}</h3>
+              <h3>${this.escapeHtml(level)}</h3>
             </a>
           `).join('')}
         </div>
@@ -121,7 +165,7 @@ class Renderer {
           ${levels.map(level => `
             <a href="#/${encodeSegment(route.department)}/${encodeSegment(level)}"
                class="level-card">
-              <div class="level-number">${level.match(/\d+/)?.[0] || level}</div>
+              <div class="level-number">${this.escapeHtml(level.match(/\d+/)?.[0] || level)}</div>
               <div class="level-label">Level</div>
             </a>
           `).join('')}
@@ -152,7 +196,7 @@ class Renderer {
         ${semesters.map(semester => `
           <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(semester)}"
              class="semester-card">
-            <div class="semester-name">${semester}</div>
+            <div class="semester-name">${this.escapeHtml(semester)}</div>
           </a>
         `).join('')}
       </div>
@@ -193,7 +237,7 @@ class Renderer {
           ${sessions.map(session => `
             <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(session)}"
                class="semester-card">
-              <div class="semester-name">${session}</div>
+              <div class="semester-name">${this.escapeHtml(session)}</div>
             </a>
           `).join('')}
         </div>
@@ -204,7 +248,7 @@ class Renderer {
           ${sessions.map(session => `
             <a href="#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(session)}"
                class="semester-card">
-              <div class="semester-name">${session}</div>
+              <div class="semester-name">${this.escapeHtml(session)}</div>
             </a>
           `).join('')}
         </div>
@@ -256,14 +300,14 @@ class Renderer {
           <div class="file-card">
             <div class="file-icon"><i class="far fa-file-pdf"></i></div>
             <div class="file-info">
-              <div class="file-name">${file.name}</div>
+              <div class="file-name">${this.escapeHtml(file.name)}</div>
               <div class="file-meta">
-                ${file.size ? driveAPI.formatFileSize(file.size) : ''} •
-                ${file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : ''}
+                ${this.escapeHtml(file.size ? driveAPI.formatFileSize(file.size) : '')} •
+                ${this.escapeHtml(file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : '')}
               </div>
               <div class="file-actions">
-                <a href="${driveAPI.getViewLink(file)}" target="_blank" class="btn-secondary">View</a>
-                <a href="${driveAPI.getDownloadLink(file)}" target="_blank" class="btn-primary">Download</a>
+                <a href="${this.escapeAttr(this.safeUrl(driveAPI.getViewLink(file)))}" target="_blank" rel="noopener noreferrer" class="btn-secondary">View</a>
+                <a href="${this.escapeAttr(this.safeUrl(driveAPI.getDownloadLink(file)))}" target="_blank" rel="noopener noreferrer" class="btn-primary">Download</a>
               </div>
             </div>
           </div>
@@ -419,7 +463,7 @@ class Renderer {
                 <i class="fas fa-bullseye"></i>
               </div>
               <h2 class="about-mission__title">Our Mission</h2>
-              <p class="about-mission__text">${about.mission}</p>
+              <p class="about-mission__text">${this.escapeHtml(about.mission)}</p>
             </div>
           </div>
         </section>
@@ -459,7 +503,7 @@ class Renderer {
             // Single session — show it as a subtle label, no picker needed
             const label = activeSession || sessions[0] || '';
             return label
-                ? `<p class="about-section__subtitle"><i class="fas fa-calendar-alt"></i> ${label} Session Team</p>`
+              ? `<p class="about-section__subtitle"><i class="fas fa-calendar-alt"></i> ${this.escapeHtml(label)} Session Team</p>`
                 : '';
         }
 
@@ -467,10 +511,10 @@ class Renderer {
       <div class="session-picker" id="session-picker">
         ${sessions.map(s => `
           <button class="session-picker__tab${s === activeSession ? ' session-picker__tab--active' : ''}"
-                  data-session="${s}"
-                  aria-label="View ${s} team"
+                  data-session="${this.escapeAttr(s)}"
+                  aria-label="View ${this.escapeAttr(s)} team"
                   type="button">
-            ${s}
+            ${this.escapeHtml(s)}
           </button>
         `).join('')}
       </div>
@@ -527,15 +571,18 @@ class Renderer {
             const role = member.role || `${member.department} Rep`;
             const color = member.color || roleColors[type];
             const photoUrl = member.photoUrl || member.photourl || '';
-            const safePhotoUrl = escapeAttr(photoUrl);
-            const safeAlt = escapeAttr(name);
+            const safePhotoUrl = this.escapeAttr(this.safeUrl(photoUrl, ''));
+            const safeAlt = this.escapeAttr(name);
+            const safeName = this.escapeHtml(name);
+            const safeRole = this.escapeHtml(role);
+            const safeInitials = this.escapeHtml(initials);
 
             const driveFallbackOnError = "if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';if(this.src.includes('export=view')){this.src=this.src.replace('export=view','export=download');return;}if(this.src.includes('export=download')){const m=this.src.match(/[?&]id=([^&]+)/);if(m&&m[1]){this.src='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';return;}}}this.style.display='none';this.nextElementSibling.style.display='flex';";
 
             const avatarContent = photoUrl
               ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" onerror="${driveFallbackOnError}">
-           <span class="team-card__initials" style="display:none;">${initials}</span>`
-                : `<span class="team-card__initials">${initials}</span>`;
+             <span class="team-card__initials" style="display:none;">${safeInitials}</span>`
+               : `<span class="team-card__initials">${safeInitials}</span>`;
 
             const delay = Math.min(index * 0.04, 0.4);
 
@@ -545,8 +592,8 @@ class Renderer {
             ${avatarContent}
           </div>
           <div class="team-card__info">
-            <h3 class="team-card__name">${isPlaceholder ? 'Coming Soon' : name}</h3>
-            <p class="team-card__role">${role}</p>
+            <h3 class="team-card__name">${isPlaceholder ? 'Coming Soon' : safeName}</h3>
+            <p class="team-card__role">${safeRole}</p>
           </div>
         </div>
       `;
@@ -727,12 +774,12 @@ class Renderer {
             if (sessions.length > 0) {
               sessionSelect.innerHTML = sessions.map(session => {
                 const selected = session === selectedSession ? ' selected' : '';
-                return `<option value="${session}"${selected}>${session}</option>`;
+                return `<option value="${this.escapeAttr(session)}"${selected}>${this.escapeHtml(session)}</option>`;
               }).join('');
             } else {
               const fallbackSession = (CONFIG.about && CONFIG.about.session) ? CONFIG.about.session : '';
               if (fallbackSession) {
-                sessionSelect.innerHTML = `<option value="${fallbackSession}">${fallbackSession}</option>`;
+                sessionSelect.innerHTML = `<option value="${this.escapeAttr(fallbackSession)}">${this.escapeHtml(fallbackSession)}</option>`;
               } else {
                 sessionSelect.innerHTML = '<option value="">No sessions available</option>';
               }
@@ -745,9 +792,9 @@ class Renderer {
             }
 
             deptContainer.innerHTML = departments.map(dept => `
-              <div class="coverage-accordion" data-dept="${dept}">
+              <div class="coverage-accordion" data-dept="${this.escapeAttr(dept)}">
                 <button class="coverage-accordion__header">
-                  <span><i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i> ${dept}</span>
+                  <span><i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i> ${this.escapeHtml(dept)}</span>
                   <i class="fas fa-chevron-down coverage-accordion__icon"></i>
                 </button>
                 <div class="coverage-accordion__body" style="display: none;">
@@ -805,7 +852,7 @@ class Renderer {
                                 body.dataset.loaded = "true";
                                 body.dataset.scannedSession = currentSession;
                             } catch (err) {
-                                body.innerHTML = `<div class="empty-state"><p class="empty-state-title">Scan Failed</p><p class="meta-text">${err.message}</p></div>`;
+                              body.innerHTML = `<div class="empty-state"><p class="empty-state-title">Scan Failed</p><p class="meta-text">${this.escapeHtml(err.message)}</p></div>`;
                             }
                         }
                     }
@@ -835,7 +882,7 @@ class Renderer {
 
       const buildSummaryHtml = (title, summary) => `
         <div class="coverage-summary-card">
-          <p class="coverage-summary-title">${title}</p>
+          <p class="coverage-summary-title">${this.escapeHtml(title)}</p>
           <div class="coverage-summary">
             <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
             <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
@@ -915,8 +962,8 @@ class Renderer {
               }
 
                 html += `<tr>
-                    ${idx === 0 ? `<td rowspan="${items.length}" style="vertical-align: middle; border-right: 1px solid var(--color-border); font-weight: 600; color: var(--color-brand);">${item.level}</td>` : ''}
-                    <td>${item.semester}</td>
+                  ${idx === 0 ? `<td rowspan="${items.length}" style="vertical-align: middle; border-right: 1px solid var(--color-border); font-weight: 600; color: var(--color-brand);">${this.escapeHtml(item.level)}</td>` : ''}
+                  <td>${this.escapeHtml(item.semester)}</td>
                     <td>${statusHtml}</td>
                 </tr>`;
             });
@@ -938,8 +985,8 @@ class Renderer {
         breadcrumbContainer.innerHTML = breadcrumbs.map((crumb, index) => {
             const isLast = index === breadcrumbs.length - 1;
             const crumbHTML = isLast || crumb.active
-                ? `<span class="breadcrumb-item active">${crumb.label}</span>`
-                : `<a href="#${crumb.path}" class="breadcrumb-item">${crumb.label}</a>`;
+              ? `<span class="breadcrumb-item active">${this.escapeHtml(crumb.label)}</span>`
+              : `<a href="#${this.escapeAttr(crumb.path)}" class="breadcrumb-item">${this.escapeHtml(crumb.label)}</a>`;
 
             const separator = isLast ? '' : '<span class="breadcrumb-separator">›</span>';
             return crumbHTML + separator;
@@ -958,8 +1005,8 @@ class Renderer {
         <div class="empty-state-icon-wrap">
           <i class="far fa-folder-open"></i>
         </div>
-        <p class="empty-state-title">${title}</p>
-        <p class="meta-text">${message}</p>
+        <p class="empty-state-title">${this.escapeHtml(title)}</p>
+        <p class="meta-text">${this.escapeHtml(message)}</p>
         <button onclick="app.handleRefresh()" class="btn-secondary">
           <i class="fas fa-rotate-right"></i> Refresh Content
         </button>
@@ -979,7 +1026,7 @@ class Renderer {
           <i class="far fa-circle-xmark"></i>
         </div>
         <p class="empty-state-title">Something went wrong</p>
-        <p class="meta-text">${message || 'An error occurred'}</p>
+        <p class="meta-text">${this.escapeHtml(message || 'An error occurred')}</p>
         <button onclick="app.handleRefresh()" class="btn-secondary">
           <i class="fas fa-rotate-right"></i> Try Again
         </button>
@@ -1004,53 +1051,6 @@ class Renderer {
         </button>
       </div>
     `;
-    }
-
-    /**
-     * Get Font Awesome icon class for a department.
-     * Falls back to keyword matching for new departments.
-     * @param {string} dept - Department name.
-     * @returns {string} CSS class string.
-     */
-    getDepartmentIcon(dept) {
-        const icons = {
-            'Accounting': 'far fa-chart-line',
-            'Architecture': 'far fa-building',
-            'Biochemistry': 'far fa-dna',
-            'Business Administration': 'far fa-briefcase',
-            'Computer Science': 'far fa-laptop-code',
-            'Criminology': 'far fa-gavel',
-            'Cybersecurity': 'far fa-shield-alt',
-            'Economics': 'far fa-chart-bar',
-            'Human Anatomy': 'far fa-heartbeat',
-            'Human Physiology': 'far fa-brain',
-            'Industrial Chemistry': 'far fa-flask',
-            'International Relations': 'far fa-globe',
-            'Jupeb': 'far fa-graduation-cap',
-            'Law': 'far fa-balance-scale',
-            'Mass Communication': 'far fa-tv',
-            'Microbiology': 'far fa-microscope',
-            'Nursing': 'far fa-user-md',
-            'Political Science': 'far fa-landmark',
-            'Psychology': 'far fa-brain',
-            'Software Engineering': 'far fa-cogs'
-        };
-
-        if (icons[dept]) return icons[dept];
-
-        const deptLower = dept.toLowerCase();
-        if (deptLower.includes('computer') || deptLower.includes('software') || deptLower.includes('tech')) return 'far fa-laptop-code';
-        if (deptLower.includes('business') || deptLower.includes('management') || deptLower.includes('admin')) return 'far fa-briefcase';
-        if (deptLower.includes('law') || deptLower.includes('legal')) return 'far fa-balance-scale';
-        if (deptLower.includes('medicine') || deptLower.includes('medical') || deptLower.includes('health')) return 'far fa-heartbeat';
-        if (deptLower.includes('engineering')) return 'far fa-cogs';
-        if (deptLower.includes('science')) return 'far fa-flask';
-        if (deptLower.includes('art') || deptLower.includes('design')) return 'far fa-palette';
-        if (deptLower.includes('education') || deptLower.includes('teaching')) return 'far fa-chalkboard-teacher';
-        if (deptLower.includes('communication') || deptLower.includes('media')) return 'far fa-tv';
-        if (deptLower.includes('finance') || deptLower.includes('accounting') || deptLower.includes('banking')) return 'far fa-chart-line';
-
-        return 'far fa-graduation-cap';
     }
 
     /**

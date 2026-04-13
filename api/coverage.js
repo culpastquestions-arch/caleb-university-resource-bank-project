@@ -6,6 +6,7 @@ const https = require('https');
 
 const coverageCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
+const MAX_PARAM_LENGTH = 120;
 
 function normalizeFolderName(name) {
   if (!name || typeof name !== 'string') return name;
@@ -169,8 +170,8 @@ module.exports = async (req, res) => {
 
   const apiKey = process.env.GOOGLE_DRIVE_API_KEY;
   const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
-  const departmentQuery = req.query.department;
-  let targetSessionQuery = req.query.session;
+  const departmentQuery = typeof req.query.department === 'string' ? req.query.department.trim() : '';
+  let targetSessionQuery = typeof req.query.session === 'string' ? req.query.session.trim() : '';
 
   if (!apiKey || !rootFolderId) {
     return res.status(500).json({ error: 'Server configuration error' });
@@ -178,6 +179,14 @@ module.exports = async (req, res) => {
 
   if (!departmentQuery || !targetSessionQuery) {
     return res.status(400).json({ error: 'Missing department or session parameter' });
+  }
+
+  if (departmentQuery.length > MAX_PARAM_LENGTH || targetSessionQuery.length > MAX_PARAM_LENGTH) {
+    return res.status(400).json({ error: 'Invalid parameter length' });
+  }
+
+  if (/[\u0000-\u001F\u007F\\]/.test(departmentQuery) || /[\u0000-\u001F\u007F\\]/.test(targetSessionQuery)) {
+    return res.status(400).json({ error: 'Invalid department or session value' });
   }
 
   // Ensure "Session" is in the name, e.g. user passes "2025/26" we look for "2025/26 Session"

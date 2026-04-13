@@ -7,8 +7,6 @@
  */
 class App {
   constructor() {
-    this.loading = false;
-    this.error = null;
     this.departments = null;
   }
 
@@ -140,12 +138,6 @@ class App {
       refreshBtn.addEventListener('click', () => this.handleRefresh());
     }
 
-    // Quick start toggle
-    const quickStartHeader = document.querySelector('.quick-start-header');
-    if (quickStartHeader) {
-      quickStartHeader.addEventListener('click', () => this.toggleQuickStart());
-    }
-
     // Scroll detection for header styling
     this.setupScrollListener();
 
@@ -163,10 +155,23 @@ class App {
     }
 
     // Contact modal
+    const installButton = document.getElementById('install-button');
+    const installLinkFooter = document.getElementById('install-link-footer');
     const contactBtn = document.getElementById('contact-btn');
     const contactLink = document.getElementById('contact-link');
     const contactLinkFooter = document.getElementById('contact-link-footer');
     const contactModal = document.getElementById('contact-modal');
+
+    if (installButton) {
+      installButton.addEventListener('click', () => this.installApp());
+    }
+    if (installLinkFooter) {
+      installLinkFooter.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.installApp();
+      });
+    }
+
     if (contactBtn && contactModal) {
       contactBtn.addEventListener('click', () => this.openContactModal());
       contactModal.querySelector('.modal-close')?.addEventListener('click', () => this.closeContactModal());
@@ -217,35 +222,13 @@ class App {
   }
 
   /**
-   * Show loading state.
-   */
-  showLoading() {
-    const mainContent = document.getElementById('main-content');
-    if (mainContent) {
-      mainContent.innerHTML = `
-        <div class="loading">
-          <div class="spinner"></div>
-          <p>Loading content...</p>
-        </div>
-      `;
-    }
-  }
-
-  /**
    * Show error state.
    * @param {Error} error - The error object.
    */
   showError(error) {
     const mainContent = document.getElementById('main-content');
     if (mainContent) {
-      mainContent.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon"><i class="fas fa-exclamation-circle"></i></div>
-          <h2 class="empty-state-title">Something went wrong</h2>
-          <p class="empty-state-text">${error.message || 'An error occurred'}</p>
-          <button onclick="app.init()" class="btn btn-primary">Try Again</button>
-        </div>
-      `;
+      mainContent.innerHTML = renderer.renderErrorState(error?.message || 'An error occurred');
     }
   }
 
@@ -343,18 +326,6 @@ class App {
   }
 
   /**
-   * Toggle quick start guide visibility.
-   */
-  toggleQuickStart() {
-    const content = document.querySelector('.quick-start-content');
-    const header = document.querySelector('.quick-start-header');
-    if (content && header) {
-      content.classList.toggle('open');
-      header.classList.toggle('open');
-    }
-  }
-
-  /**
    * Dismiss the announcement banner.
    */
   dismissAnnouncement() {
@@ -413,11 +384,14 @@ class App {
   showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-      <div class="notification-content">
-        <span class="notification-message">${message}</span>
-      </div>
-    `;
+
+    const content = document.createElement('div');
+    content.className = 'notification-content';
+    const text = document.createElement('span');
+    text.className = 'notification-message';
+    text.textContent = message;
+    content.appendChild(text);
+    notification.appendChild(content);
 
     document.body.appendChild(notification);
 

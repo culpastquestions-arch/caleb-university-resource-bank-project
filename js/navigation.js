@@ -292,14 +292,6 @@ class Navigator {
   }
 
   /**
-   * Generate a shareable URL for current route
-   * @returns {string} Full URL
-   */
-  getShareableURL() {
-    return window.location.href;
-  }
-
-  /**
    * Get title for current route
    * @returns {string} Page title
    */

@@ -18,6 +18,36 @@ class PWAManager {
         this.currentProgressModal = null;
     }
 
+        /**
+         * Create a centered full-screen overlay.
+         * @param {number} zIndex - Overlay stacking order.
+         * @returns {HTMLDivElement} Overlay element.
+         */
+        createOverlay(zIndex = 10000) {
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); display: flex;
+            justify-content: center; align-items: center; z-index: ${zIndex};
+        `;
+                return overlay;
+        }
+
+        /**
+         * Create a base modal card.
+         * @param {string} maxWidth - CSS max-width value.
+         * @returns {HTMLDivElement} Modal card element.
+         */
+        createModalCard(maxWidth = '400px') {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+            background: white; padding: 2rem; border-radius: 8px;
+            max-width: ${maxWidth}; margin: 1rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        `;
+                return modal;
+        }
+
     /**
      * Initialize all PWA features.
      * Should be called once during app startup.
@@ -192,19 +222,9 @@ class PWAManager {
      * @param {string} type - 'info', 'success', 'warning', or 'error'.
      */
     showInstallProgress(message, type = 'info') {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5); display: flex;
-      justify-content: center; align-items: center; z-index: 10001;
-    `;
-
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-      background: white; padding: 2rem; border-radius: 8px;
-      max-width: 400px; margin: 1rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3); text-align: center;
-    `;
+                const overlay = this.createOverlay(10001);
+                const modal = this.createModalCard('400px');
+                modal.style.textAlign = 'center';
 
         let color = '#0F9D58';
         if (type === 'error') color = '#dc3545';
@@ -285,19 +305,8 @@ class PWAManager {
      * @param {string} message - Instructions to display.
      */
     showInstallModal(message) {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5); display: flex;
-      justify-content: center; align-items: center; z-index: 10000;
-    `;
-
-        const modal = document.createElement('div');
-        modal.style.cssText = `
-      background: white; padding: 2rem; border-radius: 8px;
-      max-width: 400px; margin: 1rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    `;
+                const overlay = this.createOverlay(10000);
+                const modal = this.createModalCard('400px');
 
         modal.innerHTML = `
       <h3 style="margin-top: 0; color: var(--primary-green);">Install CURB</h3>
@@ -367,44 +376,38 @@ class PWAManager {
       `;
         }
 
-        const guide = document.createElement('div');
-        guide.style.cssText = `
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: white; padding: 24px; border-radius: 12px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 1001;
-      max-width: 400px; width: 90%;
-    `;
+                const overlay = this.createOverlay(1000);
+                const guide = this.createModalCard('400px');
+                guide.style.padding = '24px';
+                guide.style.borderRadius = '12px';
+                guide.style.boxShadow = '0 8px 32px rgba(0,0,0,0.2)';
+                guide.style.width = '90%';
 
         guide.innerHTML = `
       ${instructions}
       <div style="text-align: center; margin-top: 20px;">
-        <button onclick="this.closest('div').remove()" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Got it!</button>
+        <button id="install-guide-close" style="background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">Got it!</button>
       </div>
     `;
 
-        const backdrop = document.createElement('div');
-        backdrop.style.cssText = `
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 1000;
-    `;
-        backdrop.onclick = () => {
-            document.body.removeChild(backdrop);
-            document.body.removeChild(guide);
+        overlay.appendChild(guide);
+        document.body.appendChild(overlay);
+
+        const closeGuide = () => {
+            if (overlay.parentNode) {
+                overlay.remove();
+            }
         };
 
-        document.body.appendChild(backdrop);
-        document.body.appendChild(guide);
-    }
-
-    /**
-     * Check if PWA meets basic installation criteria.
-     * @returns {boolean} True if criteria are met.
-     */
-    checkPWACriteria() {
-        const hasManifest = document.querySelector('link[rel="manifest"]') !== null;
-        const hasServiceWorker = 'serviceWorker' in navigator;
-        const isHTTPS = location.protocol === 'https:' || location.hostname === 'localhost';
-        return hasManifest && hasServiceWorker && isHTTPS;
+        const closeButton = guide.querySelector('#install-guide-close');
+        if (closeButton) {
+            closeButton.addEventListener('click', closeGuide);
+        }
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeGuide();
+            }
+        });
     }
 }
 

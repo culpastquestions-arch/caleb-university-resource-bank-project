@@ -4,6 +4,7 @@
 // This allows no-code maintenance of team information across academic years
 
 const https = require('https');
+const { URL } = require('url');
 
 // Cache for the full parsed sheet data (all sessions)
 // We cache the raw parsed data and filter per-request
@@ -12,6 +13,34 @@ const cache = {
   reps: { data: null, timestamp: null }
 };
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+const FETCH_TIMEOUT_MS = 10000;
+const MAX_REDIRECTS = 3;
+
+const TRUSTED_CSV_HOSTS = new Set([
+  'docs.google.com',
+  'docs.googleusercontent.com',
+  'drive.google.com'
+]);
+
+/**
+ * Validate that an outbound CSV URL is HTTPS and on an expected host.
+ * @param {string} value - Raw URL string.
+ * @returns {URL} Parsed and validated URL.
+ * @throws {Error} If URL is invalid or host/protocol are not allowed.
+ */
+function validateTrustedCsvUrl(value) {
+  const parsed = new URL(value);
+  if (parsed.protocol !== 'https:') {
+    throw new Error('CSV URL must use HTTPS');
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  if (!TRUSTED_CSV_HOSTS.has(host)) {
+    throw new Error('CSV URL host is not allowed');
+  }
+
+  return parsed;
+}
 
 /**
  * Fetch data from a URL using HTTPS.
@@ -19,12 +48,19 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
  * @returns {Promise<string>} Raw response text.
  * @throws {Error} If the request fails.
  */
-function fetchUrl(url) {
+function fetchUrl(url, redirectCount = 0) {
+  const parsedUrl = validateTrustedCsvUrl(url);
+
+  if (redirectCount > MAX_REDIRECTS) {
+    return Promise.reject(new Error('Too many redirects while fetching CSV URL'));
+  }
+
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const request = https.get(parsedUrl, (res) => {
       // Handle redirects (Google Sheets often redirects)
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchUrl(res.headers.location).then(resolve).catch(reject);
+        const redirected = new URL(res.headers.location, parsedUrl.toString()).toString();
+        return fetchUrl(redirected, redirectCount + 1).then(resolve).catch(reject);
       }
 
       let data = '';
@@ -40,8 +76,14 @@ function fetchUrl(url) {
           reject(new Error(`Fetch failed with status ${res.statusCode}`));
         }
       });
-    }).on('error', (err) => {
+    });
+
+    request.on('error', (err) => {
       reject(err);
+    });
+
+    request.setTimeout(FETCH_TIMEOUT_MS, () => {
+      request.destroy(new Error('CSV fetch timed out'));
     });
   });
 }
@@ -167,7 +209,7 @@ function sanitize(text) {
  * @returns {boolean} True if protocol is safe for image src.
  */
 function isSafeImageProtocol(parsedUrl) {
-  return parsedUrl && (parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:');
+  return parsedUrl && parsedUrl.protocol === 'https:';
 }
 
 /**

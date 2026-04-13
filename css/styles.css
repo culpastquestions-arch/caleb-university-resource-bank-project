@@ -710,59 +710,6 @@ body {
 }
 
 /* ============================================
-   QUICK START GUIDE
-   ============================================ */
-.quick-start {
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  margin-bottom: var(--space-4);
-}
-
-.quick-start-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  padding: var(--space-4) var(--space-6);
-}
-
-.quick-start-title {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.quick-start-title i {
-  margin-right: var(--space-2);
-  color: var(--color-brand);
-}
-
-.quick-start-content {
-  padding: 0 var(--space-6) var(--space-6);
-  display: none;
-}
-
-.quick-start-content.open {
-  display: block;
-}
-
-.quick-start-content ol {
-  padding-left: var(--space-6);
-}
-
-.quick-start-content li {
-  margin-bottom: var(--space-2);
-  color: var(--color-text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-/* ============================================
    FOOTER
    ============================================ */
 .footer {
@@ -1880,16 +1827,6 @@ body {
 
   .semester-grid {
     gap: var(--space-3);
-  }
-
-  /* Quick Start */
-  .quick-start-header span {
-    transform: rotate(-90deg);
-    transition: transform 0.3s ease;
-  }
-
-  .quick-start-header.open span {
-    transform: rotate(0deg);
   }
 
   /* Breadcrumb */

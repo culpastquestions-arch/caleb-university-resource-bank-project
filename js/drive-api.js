@@ -10,11 +10,10 @@ class DriveAPI {
 
   /**
    * Initialize the Drive API client
-   * @param {string} apiEndpoint - Backend API endpoint URL (optional, for legacy compatibility)
+   * @param {string} apiEndpoint - Backend API endpoint URL (optional)
    */
   async init(apiEndpoint) {
-    // Set browse endpoint if custom one provided
-    if (apiEndpoint && apiEndpoint !== '/api/drive') {
+    if (apiEndpoint) {
       this.browseEndpoint = apiEndpoint;
     }
     this.loaded = true;
@@ -254,32 +253,10 @@ class DriveAPI {
   }
 
   /**
-   * Check API health/connectivity
-   * @returns {Promise<boolean>} True if API is accessible
-   */
-  async checkHealth() {
-    try {
-      const response = await fetch(`${this.browseEndpoint}?path=/&type=folders`, {
-        method: 'GET'
-      });
-      return response.ok;
-    } catch (error) {
-      console.error('API health check failed:', error);
-      return false;
-    }
-  }
-
-  /**
    * Clear all cached data and force fresh fetch on next navigation
    */
   clearCache() {
     pathCache.clearAll();
-  }
-
-  // Legacy method for backward compatibility
-  async fetchStructure() {
-    console.warn('fetchStructure() is deprecated. Data now loads on-demand.');
-    return {};
   }
 }
 

@@ -7,6 +7,10 @@ const https = require('https');
 // Per-path cache with 30-minute TTL (survives within same serverless instance)
 const pathCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const MAX_PATH_LENGTH = 512;
+const MAX_SEGMENTS = 8;
+const MAX_SEGMENT_LENGTH = 120;
+const ALLOWED_TYPES = new Set(['folders', 'files']);
 
 /**
  * Normalize folder names to handle trailing spaces and inconsistent formatting
@@ -209,8 +213,26 @@ module.exports = async (req, res) => {
     }
 
     // Parse query parameters
-    const path = req.query.path || '/';
-    const type = req.query.type || 'folders'; // 'folders' or 'files'
+    const rawPath = typeof req.query.path === 'string' ? req.query.path : '/';
+    const rawType = typeof req.query.type === 'string' ? req.query.type : 'folders';
+    const path = rawPath.trim() || '/';
+    const type = rawType.trim().toLowerCase(); // 'folders' or 'files'
+
+    if (!ALLOWED_TYPES.has(type)) {
+      res.status(400).json({
+        error: 'Invalid query parameter',
+        message: 'type must be either "folders" or "files".'
+      });
+      return;
+    }
+
+    if (path.length > MAX_PATH_LENGTH) {
+      res.status(400).json({
+        error: 'Invalid query parameter',
+        message: 'path is too long.'
+      });
+      return;
+    }
 
     // Note: ~ is used in URLs to represent / in folder names (e.g., "2024~25 Session")
     // The conversion from ~ to / happens in findFolderByName, not here
@@ -235,6 +257,26 @@ module.exports = async (req, res) => {
 
     // Parse the path into segments
     const segments = path.split('/').filter(s => s.length > 0);
+
+    if (segments.length > MAX_SEGMENTS) {
+      res.status(400).json({
+        error: 'Invalid query parameter',
+        message: 'path has too many segments.'
+      });
+      return;
+    }
+
+    const hasInvalidSegment = segments.some(segment =>
+      segment.length > MAX_SEGMENT_LENGTH || /[\u0000-\u001F\u007F\\]/.test(segment)
+    );
+
+    if (hasInvalidSegment) {
+      res.status(400).json({
+        error: 'Invalid query parameter',
+        message: 'path contains invalid segment values.'
+      });
+      return;
+    }
 
     // Navigate to the target folder
     let currentFolderId = rootFolderId;

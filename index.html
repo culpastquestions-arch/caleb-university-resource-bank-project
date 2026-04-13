@@ -74,7 +74,7 @@
       </div>
     </div>
     <div class="header-actions">
-      <button id="install-button" class="btn-install" style="display: none;" onclick="app.installApp()" aria-label="Install app">
+      <button id="install-button" class="btn-install" style="display: none;" aria-label="Install app">
         <i class="fas fa-download"></i>
         <span class="btn-text">Install</span>
       </button>
@@ -119,8 +119,8 @@
             <li><a href="#/">Home</a></li>
             <li><a href="#/about">Meet the team</a></li>
             <li><a href="#" id="contact-btn">Contact Us</a></li>
-            <li><a href="#" id="install-link-footer" onclick="app.installApp(); return false;">Install App</a></li>
-            <li><a href="https://calebuniversity.edu.ng" target="_blank">Caleb University Website</a></li>
+            <li><a href="#" id="install-link-footer">Install App</a></li>
+            <li><a href="https://calebuniversity.edu.ng" target="_blank" rel="noopener noreferrer">Caleb University Website</a></li>
           </ul>
         </div>
 
@@ -165,7 +165,7 @@
           <div class="contact-info">
             <strong>Prefer direct contact?</strong>
             📧 Email: <a href="mailto:cul.pastquestions@gmail.com">cul.pastquestions@gmail.com</a><br>
-            💬 WhatsApp: <a href="https://wa.me/2348029239273" target="_blank">+234 802 923 9273</a>
+            💬 WhatsApp: <a href="https://wa.me/2348029239273" target="_blank" rel="noopener noreferrer">+234 802 923 9273</a>
           </div>
         </div>
       </div>
@@ -177,7 +177,7 @@
     // API credentials are now secured on the server
     // The backend proxy handles all Google Drive API calls
     window.ENV = {
-      API_ENDPOINT: '/api/drive'
+      API_ENDPOINT: '/api/browse'
     };
   </script>
 
