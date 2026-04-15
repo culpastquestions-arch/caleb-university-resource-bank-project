@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="/css/variables.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="icon" href="/assets/caleb-university-logo-transparent.png">
-    <!-- Lucide Icons (department cards) -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- No external CDN scripts — this page must work fully offline -->
     <style>
         .offline-container {
             display: flex;
@@ -110,33 +109,45 @@
 
     <script>
         function retryConnection() {
-            if (navigator.onLine) {
-                window.location.href = '/';
-            } else {
-                // Show a brief message that we're still offline
-                const button = document.querySelector('.retry-button');
-                const originalText = button.textContent;
-                button.textContent = 'Still Offline';
-                button.style.opacity = '0.7';
-                
-                setTimeout(() => {
-                    button.textContent = originalText;
-                    button.style.opacity = '1';
-                }, 2000);
+            try {
+                if (navigator.onLine) {
+                    window.location.href = '/';
+                } else {
+                    const button = document.querySelector('.retry-button');
+                    if (button) {
+                        const originalText = button.textContent;
+                        button.textContent = 'Still Offline';
+                        button.style.opacity = '0.7';
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                            button.style.opacity = '1';
+                        }, 2000);
+                    }
+                }
+            } catch (e) {
+                // Defensive — offline page should never crash
             }
         }
         
         // Listen for online event
         window.addEventListener('online', () => {
-            window.location.href = '/';
+            try {
+                window.location.href = '/';
+            } catch (e) {
+                // Ignore navigation errors
+            }
         });
         
-        // Check connection status periodically
+        // Check connection status periodically (every 10s, not 5s to save battery)
         setInterval(() => {
-            if (navigator.onLine) {
-                window.location.href = '/';
+            try {
+                if (navigator.onLine) {
+                    window.location.href = '/';
+                }
+            } catch (e) {
+                // Ignore
             }
-        }, 5000);
+        }, 10000);
     </script>
 </body>
 </html>

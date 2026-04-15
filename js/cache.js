@@ -344,30 +344,8 @@ class PathCacheManager {
 // Create singleton instance
 const pathCache = new PathCacheManager();
 
-// Legacy compatibility - keep old cacheManager for migration
-const cacheManager = {
-  get: () => {
-    console.warn('cacheManager.get() is deprecated. Data now loads on-demand.');
-    return null;
-  },
-  set: () => {
-    console.warn('cacheManager.set() is deprecated. Data now caches per-path.');
-    return false;
-  },
-  clear: () => {
-    pathCache.clearAll();
-    // Also clear legacy cache key
-    try {
-      localStorage.removeItem('curb_data');
-      localStorage.removeItem('curb_meta');
-    } catch (e) {}
-    return true;
-  },
-  isAvailable: () => pathCache.isAvailable()
-};
-
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { PathCacheManager, pathCache, cacheManager };
+  module.exports = { PathCacheManager, pathCache };
 }
 

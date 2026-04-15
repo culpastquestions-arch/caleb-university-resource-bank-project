@@ -2,7 +2,14 @@
 // This endpoint fetches contents of a specific folder path on-demand
 // Much faster than fetching the entire structure upfront
 
-const https = require('https');
+const {
+  LEVEL_EXCEPTIONS,
+  normalizeFolderName,
+  makeAPIRequest,
+  listFolders,
+  setupCors,
+  handlePreflightAndMethodGuard
+} = require('./_utils');
 
 // Per-path cache with 30-minute TTL (survives within same serverless instance)
 const pathCache = new Map();
@@ -11,61 +18,6 @@ const MAX_PATH_LENGTH = 512;
 const MAX_SEGMENTS = 8;
 const MAX_SEGMENT_LENGTH = 120;
 const ALLOWED_TYPES = new Set(['folders', 'files']);
-
-/**
- * Normalize folder names to handle trailing spaces and inconsistent formatting
- * @param {string} name - The folder name to normalize
- * @returns {string} Normalized folder name
- */
-function normalizeFolderName(name) {
-  if (!name || typeof name !== 'string') return name;
-  return name.trim().replace(/\s+/g, ' ');
-}
-
-/**
- * Make HTTPS request to Google Drive API
- * @param {string} url - The API URL to request
- * @returns {Promise<Object>} Parsed JSON response
- */
-function makeAPIRequest(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            reject(new Error(`Failed to parse API response: ${e.message}`));
-          }
-        } else {
-          reject(new Error(`API request failed with status ${res.statusCode}: ${data}`));
-        }
-      });
-    }).on('error', (err) => {
-      reject(err);
-    });
-  });
-}
-
-/**
- * List folders in a Google Drive directory
- * @param {string} folderId - The Drive folder ID
- * @param {string} apiKey - Google API key
- * @returns {Promise<Array>} Array of folder objects
- */
-async function listFolders(folderId, apiKey) {
-  const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime)&orderBy=name&key=${apiKey}`;
-
-  const response = await makeAPIRequest(url);
-  return response.files || [];
-}
 
 /**
  * List PDF files in a Google Drive folder
@@ -90,7 +42,7 @@ async function listFiles(folderId, apiKey) {
  * @returns {Promise<Object|null>} Folder object or null if not found
  */
 async function findFolderByName(parentId, folderName, apiKey) {
-  const folders = await listFolders(parentId, apiKey);
+  const folders = await listFolders(parentId, apiKey, 'files(id,name,modifiedTime)');
 
   // Normalize the target name - convert ~ back to / for matching
   const normalizedTarget = normalizeFolderName(folderName.replace(/~/g, '/'));
@@ -149,22 +101,6 @@ function setCache(path, data) {
 }
 
 /**
- * Department configuration
- */
-/**
- * Level exceptions for departments with non-standard level structures.
- * Only departments listed here are filtered.
- * All other departments return folders exactly as they exist in Google Drive.
- * 
- * NOTE: Department names here must EXACTLY match the Google Drive folder names.
- * Keep this list minimal and only for truly special structures.
- */
-const LEVEL_EXCEPTIONS = {
-  // Special structure departments
-  "Jupeb": ["Art", "Business", "Science"],
-};
-
-/**
  * Main handler for Vercel Serverless Function
  * 
  * Query parameters:
@@ -172,31 +108,11 @@ const LEVEL_EXCEPTIONS = {
  * - type: What to return - "folders" or "files" (default: "folders")
  */
 module.exports = async (req, res) => {
-  // CORS - restrict to configured origin (set ALLOWED_ORIGIN env var on Vercel)
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || '';
-  const requestOrigin = req.headers.origin || '';
+  // CORS — restrict to configured origin
+  setupCors(req, res);
 
-  if (allowedOrigin && requestOrigin === allowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-    res.setHeader('Vary', 'Origin');
-  }
-  // If ALLOWED_ORIGIN is not configured or origin doesn't match,
-  // no CORS header is sent — browser will block cross-origin requests (safe default)
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  // Only allow GET requests
-  if (req.method !== 'GET') {
-    res.status(405).json({ error: 'Method not allowed' });
-    return;
-  }
+  // Preflight + method guard
+  if (handlePreflightAndMethodGuard(req, res)) return;
 
   try {
     // Get credentials from environment variables
@@ -244,7 +160,9 @@ module.exports = async (req, res) => {
 
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'public, max-age=1800');
+      // Item #4: CDN-level caching. s-maxage lets Vercel's edge cache serve
+      // the same response to all 200 concurrent students without invoking the function.
+      res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
       res.status(200).json({
         path,
         type,
@@ -304,7 +222,7 @@ module.exports = async (req, res) => {
       data = await listFiles(currentFolderId, apiKey);
     } else {
       // Get subfolders
-      const folders = await listFolders(currentFolderId, apiKey);
+      const folders = await listFolders(currentFolderId, apiKey, 'files(id,name,modifiedTime)');
 
       // Filter and normalize folder names
       data = folders.map(f => ({
@@ -338,7 +256,8 @@ module.exports = async (req, res) => {
 
     // Return response
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, max-age=1800');
+    // Item #4: CDN-level caching for scalability
+    res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
     res.status(200).json({
       path,
       type,

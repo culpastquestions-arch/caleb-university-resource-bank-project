@@ -543,19 +543,9 @@ class Renderer {
     _renderTeamContent(teamData) {
         const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
 
-        /**
-         * Escape text for safe use in HTML attributes.
-         * @param {string} value - Raw attribute value.
-         * @returns {string} Escaped value.
-         */
-        const escapeAttr = (value) => {
-            if (value === null || value === undefined) return '';
-            return String(value)
-                .replace(/&/g, '&amp;')
-                .replace(/"/g, '&quot;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-        };
+        // Use the class-level escape methods (avoid duplicating logic)
+        const escapeAttr = (value) => this.escapeAttr(value);
+        const escapeHtml = (value) => this.escapeHtml(value);
 
         /**
          * Generate initials from a name.

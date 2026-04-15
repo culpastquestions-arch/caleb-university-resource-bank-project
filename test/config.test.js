@@ -48,9 +48,9 @@ describe('CONFIG', () => {
         expect(CONFIG.app.shortName).toBe('CURB');
     });
 
-    test('has cache settings', () => {
-        expect(CONFIG.cache.ttlHours).toBe(6);
-        expect(CONFIG.cache.hardExpiryHours).toBe(24);
+    test('has cache settings object', () => {
+        expect(CONFIG.cache).toBeDefined();
+        expect(typeof CONFIG.cache).toBe('object');
     });
 
     test('has version string', () => {

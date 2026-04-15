@@ -2,45 +2,42 @@
 // Scans a specific department's Drive hierarchy to see if a TARGET SESSION exists and has PDFs.
 // Very fast because it uses targeted Google Drive queries.
 
-const https = require('https');
+const {
+  LEVEL_EXCEPTIONS,
+  normalizeFolderName,
+  makeAPIRequest,
+  listFolders,
+  setupCors,
+  handlePreflightAndMethodGuard,
+  normalizeSessionLabel
+} = require('./_utils');
 
 const coverageCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 const MAX_PARAM_LENGTH = 120;
 
-function normalizeFolderName(name) {
-  if (!name || typeof name !== 'string') return name;
-  return name.trim().replace(/\s+/g, ' ');
-}
+// Item #13: Rate limiter — track active scans to prevent Google API quota exhaustion.
+// In serverless, this only protects within a single warm instance, but that's still valuable.
+let activeScans = 0;
+const MAX_CONCURRENT_SCANS = 5;
 
-function makeAPIRequest(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = '';
-      res.on('data', (chunk) => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode === 200) {
-          try { resolve(JSON.parse(data)); } catch (e) { reject(e); }
-        } else {
-          reject(new Error(`API request failed [${res.statusCode}]: ${data}`));
-        }
-      });
-    }).on('error', reject);
-  });
-}
-
-async function listFolders(folderId, apiKey) {
-  const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name)&orderBy=name&key=${apiKey}`;
-  const response = await makeAPIRequest(url);
-  return response.files || [];
-}
-
+/**
+ * Extract numeric tokens from a session name for fuzzy matching.
+ * @param {string} sessionName - Session name string.
+ * @returns {Array<string>} Array of numeric strings found.
+ */
 function extractSessionNumbers(sessionName) {
-  return (sessionName.match(/\d+/g) || []); 
+  return (sessionName.match(/\d+/g) || []);
 }
 
-function normalizeSessionLabel(label) {
+/**
+ * Normalize a session label for folder-name matching.
+ * More aggressive than the canonical normalizeSessionLabel — lowercases,
+ * strips "session", and normalizes separators for Drive folder comparison.
+ * @param {string} label - Raw folder name.
+ * @returns {string} Normalized label for comparison.
+ */
+function normalizeSessionFolderName(label) {
   if (!label || typeof label !== 'string') {
     return '';
   }
@@ -64,35 +61,46 @@ function normalizeSessionLabel(label) {
   return `${startYear}/${endTwoDigit}`;
 }
 
+/**
+ * Find the target session folder inside a parent.
+ * Uses exact normalized label matching first, then falls back to fuzzy numeric matching.
+ * @param {string} parentId - Parent folder Drive ID.
+ * @param {string} targetSessionName - Desired session (e.g. "2025/26 Session").
+ * @param {string} apiKey - Google API key.
+ * @returns {Promise<Object|null>} Matching folder or null.
+ */
 async function findTargetSessionFolder(parentId, targetSessionName, apiKey) {
-  // We MUST fetch all folders and filter in JS because Google Drive's API 'q' parameter 
-  // fails silently or doesn't support exact equality matches on names containing slashes (e.g., '2025/26 Session')
   const folders = await listFolders(parentId, apiKey);
 
-  // Prefer exact match against normalized session labels to avoid wrong fuzzy hits.
-  const normalizedTargetLabel = normalizeSessionLabel(targetSessionName);
+  // Prefer exact match against normalized session labels
+  const normalizedTargetLabel = normalizeSessionFolderName(targetSessionName);
   if (normalizedTargetLabel) {
-    const exactMatch = folders.find(f => normalizeSessionLabel(f.name) === normalizedTargetLabel);
+    const exactMatch = folders.find(f => normalizeSessionFolderName(f.name) === normalizedTargetLabel);
     if (exactMatch) {
       return exactMatch;
     }
   }
-  
-  // Use fuzzy numerical matching to avoid exact string match failures 
-  // e.g., target "2024/25" will match folder "2024-2025 Session"
+
+  // Fuzzy numerical matching (e.g. target "2024/25" matches "2024-2025 Session")
   const targetNums = extractSessionNumbers(targetSessionName);
-  
+
   if (targetNums.length === 0) {
-      const normalizedTarget = normalizeFolderName(targetSessionName).toLowerCase();
-      return folders.find(f => normalizeFolderName(f.name).toLowerCase().includes(normalizedTarget)) || null;
+    const normalizedTarget = normalizeFolderName(targetSessionName).toLowerCase();
+    return folders.find(f => normalizeFolderName(f.name).toLowerCase().includes(normalizedTarget)) || null;
   }
 
   return folders.find(f => {
-      const folderNameLower = f.name.toLowerCase();
-      return targetNums.every(num => folderNameLower.includes(num));
+    const folderNameLower = f.name.toLowerCase();
+    return targetNums.every(num => folderNameLower.includes(num));
   }) || null;
 }
 
+/**
+ * Check whether a folder contains at least one PDF.
+ * @param {string} folderId - Drive folder ID.
+ * @param {string} apiKey - Google API key.
+ * @returns {Promise<boolean>} True if any PDF exists.
+ */
 async function hasFiles(folderId, apiKey) {
   const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/pdf' and trashed=false`);
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)&pageSize=1&key=${apiKey}`;
@@ -101,8 +109,8 @@ async function hasFiles(folderId, apiKey) {
 }
 
 /**
- * Check whether a folder tree contains at least one PDF.
- * This handles structures where PDFs are placed in nested course folders.
+ * Check whether a folder tree contains at least one PDF (BFS).
+ * Handles structures where PDFs are placed in nested course folders.
  * @param {string} rootFolderId - Session folder ID.
  * @param {string} apiKey - Google API key.
  * @returns {Promise<boolean>} True if any PDF exists in the subtree.
@@ -112,8 +120,8 @@ async function hasFilesDeep(rootFolderId, apiKey) {
 
   const queue = [{ id: rootFolderId, depth: 0 }];
   const visited = new Set();
-  const MAX_DEPTH = 5;
-  const MAX_FOLDERS_SCANNED = 300;
+  const MAX_DEPTH = 3;            // Item #13: Tightened from 5 → 3
+  const MAX_FOLDERS_SCANNED = 50; // Item #13: Tightened from 300 → 50
   let scannedCount = 0;
 
   while (queue.length > 0) {
@@ -125,7 +133,6 @@ async function hasFilesDeep(rootFolderId, apiKey) {
     visited.add(current.id);
     scannedCount += 1;
 
-    // Prevent runaway scans on unexpectedly large trees.
     if (scannedCount > MAX_FOLDERS_SCANNED) {
       break;
     }
@@ -150,23 +157,14 @@ async function hasFilesDeep(rootFolderId, apiKey) {
   return false;
 }
 
-const LEVEL_EXCEPTIONS = {
-  "Jupeb": ["Art", "Business", "Science"],
-};
-
+/**
+ * Main handler for Vercel serverless function.
+ * @param {Object} req - HTTP request.
+ * @param {Object} res - HTTP response.
+ */
 module.exports = async (req, res) => {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || '';
-  const requestOrigin = req.headers.origin || '';
-
-  if (allowedOrigin && requestOrigin === allowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-    res.setHeader('Vary', 'Origin');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+  setupCors(req, res);
+  if (handlePreflightAndMethodGuard(req, res)) return;
 
   const apiKey = process.env.GOOGLE_DRIVE_API_KEY;
   const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
@@ -203,6 +201,16 @@ module.exports = async (req, res) => {
     return res.status(200).json({ department: deptNameTarget, session: targetSessionQuery, data: cached.data, cached: true });
   }
 
+  // Item #13: Rate limiter — reject if too many scans active in this instance
+  if (activeScans >= MAX_CONCURRENT_SCANS) {
+    return res.status(429).json({
+      error: 'Too many concurrent scans',
+      message: 'Please wait a moment and try again.'
+    });
+  }
+
+  activeScans += 1;
+
   try {
     const rootFolders = await listFolders(rootFolderId, apiKey);
     const deptFolder = rootFolders.find(f => normalizeFolderName(f.name) === deptNameTarget);
@@ -210,7 +218,7 @@ module.exports = async (req, res) => {
 
     const isJupeb = deptNameTarget === 'Jupeb';
     let levels = await listFolders(deptFolder.id, apiKey);
-    
+
     const validLevels = LEVEL_EXCEPTIONS[deptNameTarget];
     if (validLevels) {
       levels = levels.filter(f => {
@@ -226,30 +234,27 @@ module.exports = async (req, res) => {
       const subFolders = await listFolders(level.id, apiKey);
 
       if (isJupeb) {
-        // Jupeb: Subject (Level) -> Session (Target)
-        // Check if the subject folder contains the target session directly
         const sessionFolder = await findTargetSessionFolder(level.id, targetSessionQuery, apiKey);
         let hasPdf = false;
         if (sessionFolder) {
           hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
         }
         coverageData.push({
-            level: level.name,
-            semester: 'Full Year',
-            status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
+          level: level.name,
+          semester: 'Full Year',
+          status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
         });
       } else {
-        // Standard: Level -> Semesters -> Session (Target)
         await Promise.all(subFolders.map(async (semester) => {
           const sessionFolder = await findTargetSessionFolder(semester.id, targetSessionQuery, apiKey);
           let hasPdf = false;
           if (sessionFolder) {
-              hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
+            hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
           }
           coverageData.push({
-              level: level.name,
-              semester: semester.name,
-              status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
+            level: level.name,
+            semester: semester.name,
+            status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
           });
         }));
       }
@@ -257,14 +262,14 @@ module.exports = async (req, res) => {
 
     // Sort properly
     coverageData.sort((a, b) => {
-        if (a.level !== b.level) return a.level.localeCompare(b.level);
-        return a.semester.localeCompare(b.semester);
+      if (a.level !== b.level) return a.level.localeCompare(b.level);
+      return a.semester.localeCompare(b.semester);
     });
 
     coverageCache.set(cacheKey, { data: coverageData, timestamp: Date.now() });
-    
+
     res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({
       department: deptNameTarget,
       session: targetSessionQuery,
@@ -275,5 +280,7 @@ module.exports = async (req, res) => {
   } catch (error) {
     console.error(`Coverage API Error:`, error);
     return res.status(500).json({ error: 'Failed to generate coverage', message: error.message });
+  } finally {
+    activeScans -= 1;
   }
 };

@@ -1,11 +1,12 @@
 // Service Worker for CURB
 // Versioned cache name; bump only when cache schema/behavior changes.
-const CACHE_NAME = 'curb-v1.5';
+const CACHE_NAME = 'curb-v1.5.0';
 const urlsToCache = [
   '/',
   '/index.html',
   '/css/variables.css',
   '/css/styles.css',
+  '/js/bootstrap.js',
   '/js/config.js',
   '/js/cache.js',
   '/js/drive-api.js',

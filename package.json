@@ -1,6 +1,6 @@
 {
   "name": "curb",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Caleb University Resource Bank - Past questions and study materials",
   "scripts": {
     "test": "jest --verbose"

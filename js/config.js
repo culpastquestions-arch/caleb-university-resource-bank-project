@@ -14,21 +14,12 @@ const CONFIG = {
   // The departmentColors array has been removed in favor of dynamic color assignment
 
   // App version - single source of truth for cache management
-  // 1.4.1 - Team image loading and CSP host updates
-  version: "1.4.1",
+  // 1.5.0 - Production hardening: security, performance, code quality audit
+  version: "1.5.0",
 
-  // Cache settings for lazy loading
-  cache: {
-    // Path cache TTL (6 hours) - after this, data is considered stale
-    // Stale data is still shown immediately while fresh data is fetched in background
-    ttlHours: 6,
-
-    // Hard expiry (24 hours) - after this, cached data is not used at all
-    hardExpiryHours: 24,
-
-    // Legacy setting kept for compatibility
-    durationDays: 30
-  },
+  // Cache settings — actual TTL values are in PathCacheManager (cache.js)
+  // This section is intentionally empty; CONFIG.version drives cache invalidation.
+  cache: {},
 
   // API settings (will be set from environment)
   api: {

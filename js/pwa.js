@@ -101,31 +101,13 @@ class PWAManager {
 
     /**
      * Track user engagement to inform install prompt timing.
+     * NOTE: This only tracks engagement passively. The install prompt
+     * is shown based on the browser's native beforeinstallprompt event,
+     * NOT by force-reloading the page.
      */
     trackUserEngagement() {
-        let engagementScore = 0;
-
-        document.addEventListener('click', () => {
-            engagementScore += 1;
-        });
-
-        let scrollTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(scrollTimeout);
-            scrollTimeout = setTimeout(() => {
-                engagementScore += 1;
-            }, 1000);
-        });
-
-        setTimeout(() => {
-            engagementScore += 5;
-        }, 30000);
-
-        setTimeout(() => {
-            if (engagementScore >= 3 && !this.deferredPrompt && !this.isInstalled) {
-                this.reloadForPrompt();
-            }
-        }, 10000);
+        // Engagement tracking is handled by the browser's native
+        // beforeinstallprompt heuristics. No forced reloads.
     }
 
     /**

@@ -5,6 +5,11 @@
 
 const https = require('https');
 const { URL } = require('url');
+const {
+  setupCors,
+  handlePreflightAndMethodGuard,
+  normalizeSessionLabel
+} = require('./_utils');
 
 // Cache for the full parsed sheet data (all sessions)
 // We cache the raw parsed data and filter per-request
@@ -317,38 +322,7 @@ function isCacheValid(cacheEntry) {
     (Date.now() - cacheEntry.timestamp) < CACHE_TTL;
 }
 
-/**
- * Normalize an academic session label to a canonical format.
- * Canonical format is "YYYY/YY" when a year range is detected.
- * Examples: "2025~26", "2025/2026", "2025/26 Session" -> "2025/26".
- * Non-matching values are returned trimmed with normalized spacing.
- * @param {string} value - Raw session label.
- * @returns {string} Normalized session label.
- */
-function normalizeSessionLabel(value) {
-  if (!value || typeof value !== 'string') {
-    return '';
-  }
-
-  const trimmed = value.trim().replace(/\s+/g, ' ');
-  if (!trimmed) {
-    return '';
-  }
-
-  const match = trimmed.match(/(\d{4})\s*[\/~-]\s*(\d{2}|\d{4})(?:\s*session)?/i);
-  if (!match) {
-    return trimmed;
-  }
-
-  const startYear = Number.parseInt(match[1], 10);
-  if (!Number.isFinite(startYear)) {
-    return trimmed;
-  }
-
-  const endRaw = match[2];
-  const endTwoDigit = endRaw.length === 4 ? endRaw.slice(-2) : endRaw.padStart(2, '0');
-  return `${startYear}/${endTwoDigit}`;
-}
+// normalizeSessionLabel is imported from ./_utils.js
 
 /**
  * Build a numeric sort key for an academic session label.
@@ -531,29 +505,11 @@ async function fetchAllDepartmentReps(sheetUrl, options = {}) {
  * @param {Object} res - HTTP response object.
  */
 module.exports = async function handler(req, res) {
-  // CORS - restrict to configured origin (set ALLOWED_ORIGIN env var on Vercel)
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || '';
-  const requestOrigin = req.headers.origin || '';
+  // CORS — restrict to configured origin
+  setupCors(req, res);
 
-  if (allowedOrigin && requestOrigin === allowedOrigin) {
-    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
-    res.setHeader('Vary', 'Origin');
-  }
-  // If ALLOWED_ORIGIN is not configured or origin doesn't match,
-  // no CORS header is sent — browser will block cross-origin requests (safe default)
-
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Only allow GET
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  // Preflight + method guard
+  if (handlePreflightAndMethodGuard(req, res)) return;
 
   // Get sheet URLs from environment variables
   const executivesUrl = process.env.TEAM_SHEET_EXECUTIVES_URL;
