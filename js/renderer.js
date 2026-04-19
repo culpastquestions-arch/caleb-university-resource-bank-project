@@ -440,6 +440,7 @@ class Renderer {
         this._aboutMission = about.mission;
 
         this._renderAboutFull(container, about, teamData);
+        this.attachTeamPhotoFallbackHandlers(container);
     }
 
     /**
@@ -543,10 +544,6 @@ class Renderer {
     _renderTeamContent(teamData) {
         const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
 
-        // Use the class-level escape methods (avoid duplicating logic)
-        const escapeAttr = (value) => this.escapeAttr(value);
-        const escapeHtml = (value) => this.escapeHtml(value);
-
         /**
          * Generate initials from a name.
          * @param {string} name - Person's name.
@@ -580,10 +577,8 @@ class Renderer {
             const safeRole = this.escapeHtml(role);
             const safeInitials = this.escapeHtml(initials);
 
-            const driveFallbackOnError = "if(!this.dataset.fallbackTried){this.dataset.fallbackTried='1';if(this.src.includes('export=view')){this.src=this.src.replace('export=view','export=download');return;}if(this.src.includes('export=download')){const m=this.src.match(/[?&]id=([^&]+)/);if(m&&m[1]){this.src='https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';return;}}}this.style.display='none';this.nextElementSibling.style.display='flex';";
-
             const avatarContent = photoUrl
-              ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" onerror="${driveFallbackOnError}">
+              ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}">
              <span class="team-card__initials" style="display:none;">${safeInitials}</span>`
                : `<span class="team-card__initials">${safeInitials}</span>`;
 
@@ -653,6 +648,43 @@ class Renderer {
     `;
     }
 
+      /**
+       * Attach CSP-safe image fallback handlers for team photos.
+       * @param {HTMLElement} scope - Container to scan.
+       */
+      attachTeamPhotoFallbackHandlers(scope) {
+        if (!scope) return;
+
+        const photos = scope.querySelectorAll('.team-card__photo');
+        photos.forEach((img) => {
+          if (img.dataset.errorBound === '1') return;
+          img.dataset.errorBound = '1';
+
+          img.addEventListener('error', () => {
+            if (img.dataset.fallbackTried !== '1') {
+              img.dataset.fallbackTried = '1';
+
+              if (img.src.includes('export=view')) {
+                img.src = img.src.replace('export=view', 'export=download');
+                return;
+              }
+
+              const idMatch = img.src.match(/[?&]id=([^&]+)/);
+              if (idMatch && idMatch[1]) {
+                img.src = `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+                return;
+              }
+            }
+
+            img.style.display = 'none';
+            const initials = img.nextElementSibling;
+            if (initials && initials.classList.contains('team-card__initials')) {
+              initials.style.display = 'flex';
+            }
+          });
+        });
+      }
+
     /**
      * Attach click listeners to session picker tabs.
      * Handles session switching by re-fetching and re-rendering only the team content.
@@ -690,6 +722,7 @@ class Renderer {
                 const teamData = await this.fetchTeamData(session);
                 if (teamContent) {
                     teamContent.innerHTML = this._renderTeamContent(teamData);
+                this.attachTeamPhotoFallbackHandlers(teamContent);
                 }
             } catch (error) {
                 console.error('Failed to switch session:', error);
@@ -1010,7 +1043,7 @@ class Renderer {
         </div>
         <p class="empty-state-title">${this.escapeHtml(title)}</p>
         <p class="meta-text">${this.escapeHtml(message)}</p>
-        <button onclick="app.handleRefresh()" class="btn-secondary">
+        <button class="btn-secondary" data-action="refresh-content" type="button">
           <i class="fas fa-rotate-right"></i> Refresh Content
         </button>
       </div>
@@ -1030,7 +1063,7 @@ class Renderer {
         </div>
         <p class="empty-state-title">Something went wrong</p>
         <p class="meta-text">${this.escapeHtml(message || 'An error occurred')}</p>
-        <button onclick="app.handleRefresh()" class="btn-secondary">
+          <button class="btn-secondary" data-action="refresh-content" type="button">
           <i class="fas fa-rotate-right"></i> Try Again
         </button>
       </div>
@@ -1049,7 +1082,7 @@ class Renderer {
         </div>
         <p class="empty-state-title">Page Not Found</p>
         <p class="meta-text">The page you're looking for doesn't exist.</p>
-        <button onclick="appNavigator.goHome()" class="btn-secondary">
+          <button class="btn-secondary" data-action="go-home" type="button">
           <i class="fas fa-house"></i> Go Home
         </button>
       </div>

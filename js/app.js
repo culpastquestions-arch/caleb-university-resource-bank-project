@@ -153,6 +153,16 @@ class App {
       if (e.target.closest('.announcement-close')) {
         this.dismissAnnouncement();
       }
+
+      const actionButton = e.target.closest('[data-action]');
+      if (!actionButton) return;
+
+      const action = actionButton.getAttribute('data-action');
+      if (action === 'refresh-content') {
+        this.handleRefresh();
+      } else if (action === 'go-home') {
+        appNavigator.goHome();
+      }
     });
 
     // Dark mode toggle
