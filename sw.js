@@ -1,6 +1,10 @@
 // Service Worker for CURB
 // Versioned cache name; bump only when cache schema/behavior changes.
-const CACHE_NAME = 'curb-v1.5.0';
+const SW_VERSION = '1.5.1';
+const CACHE_PREFIX = 'curb-';
+const APP_SHELL_CACHE = `${CACHE_PREFIX}app-shell-v${SW_VERSION}`;
+const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-v${SW_VERSION}`;
+const API_CACHE = `${CACHE_PREFIX}api-v${SW_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',
@@ -22,22 +26,25 @@ const urlsToCache = [
 /**
  * Try network first, fallback to cache/offline.
  * @param {Request} request - Fetch request.
+ * @param {string} cacheName - Cache bucket name.
  * @param {string} [fallbackUrl] - Optional cache fallback URL.
  * @returns {Promise<Response>} Response.
  */
-async function networkFirst(request, fallbackUrl) {
+async function networkFirst(request, cacheName, fallbackUrl) {
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(CACHE_NAME);
+      const cache = await caches.open(cacheName);
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
   } catch (error) {
-    const cached = await caches.match(request);
+    const cache = await caches.open(cacheName);
+    const cached = await cache.match(request);
     if (cached) return cached;
     if (fallbackUrl) {
-      const fallback = await caches.match(fallbackUrl);
+      const shellCache = await caches.open(APP_SHELL_CACHE);
+      const fallback = await shellCache.match(fallbackUrl);
       if (fallback) return fallback;
     }
     throw error;
@@ -47,10 +54,11 @@ async function networkFirst(request, fallbackUrl) {
 /**
  * Return cached response immediately and revalidate in background.
  * @param {Request} request - Fetch request.
+ * @param {string} cacheName - Cache bucket name.
  * @returns {Promise<Response>} Response.
  */
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
   const networkPromise = fetch(request)
@@ -71,7 +79,8 @@ async function staleWhileRevalidate(request) {
   const networkResponse = await networkPromise;
   if (networkResponse) return networkResponse;
 
-  const fallback = await caches.match('/offline.html');
+  const shellCache = await caches.open(APP_SHELL_CACHE);
+  const fallback = await shellCache.match('/offline.html');
   if (fallback) return fallback;
   return new Response('Offline', { status: 503, statusText: 'Offline' });
 }
@@ -79,7 +88,7 @@ async function staleWhileRevalidate(request) {
 // Install event - cache resources
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(APP_SHELL_CACHE)
       .then(cache => {
         return cache.addAll(urlsToCache);
       })
@@ -93,13 +102,16 @@ self.addEventListener('install', event => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
+  const expectedCaches = new Set([APP_SHELL_CACHE, RUNTIME_CACHE, API_CACHE]);
+
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
+          if (cacheName.startsWith(CACHE_PREFIX) && !expectedCaches.has(cacheName)) {
             return caches.delete(cacheName);
           }
+          return null;
         })
       );
     })
@@ -124,7 +136,7 @@ self.addEventListener('fetch', event => {
 
   // API calls - Network First (fresh data preferred, offline fallback preserved)
   if (url.pathname.includes('/api/')) {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(networkFirst(event.request, API_CACHE));
     return;
   }
 
@@ -132,18 +144,18 @@ self.addEventListener('fetch', event => {
   if (url.pathname.includes('/css/') ||
     url.pathname.includes('/js/') ||
     url.pathname.includes('/assets/')) {
-    event.respondWith(staleWhileRevalidate(event.request));
+    event.respondWith(staleWhileRevalidate(event.request, RUNTIME_CACHE));
     return;
   }
 
   // HTML shell - Network First so navigation picks latest deploys quickly
   if (url.pathname.endsWith('.html') || url.pathname === '/') {
-    event.respondWith(networkFirst(event.request, '/offline.html'));
+    event.respondWith(networkFirst(event.request, RUNTIME_CACHE, '/offline.html'));
     return;
   }
 
   // Default strategy for other requests
-  event.respondWith(networkFirst(event.request));
+  event.respondWith(networkFirst(event.request, RUNTIME_CACHE));
 });
 
 // Handle messages from the main thread

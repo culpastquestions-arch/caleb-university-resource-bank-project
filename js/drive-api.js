@@ -85,7 +85,7 @@ class DriveAPI {
     }
 
     // Create fetch promise
-    const fetchPromise = this.doFetch(path, type);
+    const fetchPromise = this.doFetch(path, type, forceRefresh);
     this.loading.set(cacheKey, fetchPromise);
 
     try {
@@ -102,15 +102,30 @@ class DriveAPI {
    * @param {string} type - 'folders' or 'files'
    * @returns {Promise<Array>} Data array
    */
-  async doFetch(path, type) {
-    const url = `${this.browseEndpoint}?path=${encodeURIComponent(path)}&type=${type}`;
+  async doFetch(path, type, forceRefresh = false) {
+    const queryParts = [
+      `path=${encodeURIComponent(path)}`,
+      `type=${encodeURIComponent(type)}`
+    ];
+
+    if (forceRefresh) {
+      queryParts.push('refresh=1');
+    }
+
+    const url = `${this.browseEndpoint}?${queryParts.join('&')}`;
     
-    const response = await fetch(url, {
+    const requestOptions = {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
       }
-    });
+    };
+
+    if (forceRefresh) {
+      requestOptions.cache = 'no-store';
+    }
+
+    const response = await fetch(url, requestOptions);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));

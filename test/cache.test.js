@@ -139,6 +139,25 @@ describe('PathCacheManager', () => {
         });
     });
 
+    describe('getAllCachedPaths', () => {
+        test('uses path-aware staleness for root path entries', () => {
+            const rootKey = cache.getKey('/', 'folders');
+            const ninetyMinutesAgo = Date.now() - (90 * 60 * 1000);
+
+            localStorage.setItem(rootKey, JSON.stringify({
+                data: ['dept'],
+                timestamp: ninetyMinutesAgo,
+                path: '/',
+                type: 'folders'
+            }));
+
+            const paths = cache.getAllCachedPaths();
+            expect(paths).toHaveLength(1);
+            expect(paths[0].path).toBe('/');
+            expect(paths[0].isStale).toBe(false);
+        });
+    });
+
     describe('isAvailable', () => {
         test('returns true when localStorage works', () => {
             expect(cache.isAvailable()).toBe(true);

@@ -258,6 +258,9 @@ class Navigator {
     // Home is always valid
     if (route.view === 'home') return true;
 
+    // Special routes are also valid
+    if (route.view === 'about' || route.view === 'track') return true;
+
     // If we have a department name, the route is structurally valid
     // The actual department existence will be validated by the API call
     // (If folder doesn't exist in Drive, the fetch will return empty/error)
@@ -305,6 +308,10 @@ class Navigator {
 
     if (route.view === 'about') {
       return `About Us - ${baseTitle}`;
+    }
+
+    if (route.view === 'track') {
+      return `Coverage Tracker - ${baseTitle}`;
     }
 
     const parts = [baseTitle];

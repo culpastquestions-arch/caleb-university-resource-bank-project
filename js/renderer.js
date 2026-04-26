@@ -91,10 +91,11 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      * @returns {Promise<Array>} Fetched departments for route validation.
      */
-    async renderHome(container) {
+    async renderHome(container, options = {}) {
+      const { forceRefresh = false } = options;
         container.innerHTML = this.renderSkeleton('departments', 'Loading departments...');
 
-        const departments = await driveAPI.fetchDepartments();
+      const departments = await driveAPI.fetchDepartments(forceRefresh);
 
         if (!departments || departments.length === 0) {
             container.innerHTML = this.renderEmptyState('No departments available', 'Please check back later');
@@ -141,11 +142,12 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      * @param {Object} route - Current route object.
      */
-    async renderLevels(container, route) {
+    async renderLevels(container, route, options = {}) {
+      const { forceRefresh = false } = options;
         const loadingText = route.department === 'Jupeb' ? 'subjects' : 'levels';
         container.innerHTML = this.renderSkeleton('levels', `Loading ${displayName(route.department)} ${loadingText}...`);
 
-        const levels = await driveAPI.fetchLevels(route.department);
+      const levels = await driveAPI.fetchLevels(route.department, forceRefresh);
 
         if (!levels || levels.length === 0) {
             container.innerHTML = this.renderEmptyState(`No ${loadingText} available`, 'Check back later for updates');
@@ -188,10 +190,11 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      * @param {Object} route - Current route object.
      */
-    async renderSemesters(container, route) {
+    async renderSemesters(container, route, options = {}) {
+      const { forceRefresh = false } = options;
         container.innerHTML = this.renderSkeleton('semesters', `Loading ${displayName(route.level)} semesters...`);
 
-        const semesters = await driveAPI.fetchSemesters(route.department, route.level);
+      const semesters = await driveAPI.fetchSemesters(route.department, route.level, forceRefresh);
 
         if (!semesters || semesters.length === 0) {
             container.innerHTML = this.renderEmptyState('No semesters available', 'Check back later for updates');
@@ -217,7 +220,8 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      * @param {Object} route - Current route object.
      */
-    async renderSessions(container, route) {
+    async renderSessions(container, route, options = {}) {
+      const { forceRefresh = false } = options;
         const isJupeb = route.department === 'Jupeb';
         const loadingMsg = isJupeb
             ? `Loading ${displayName(route.level)} sessions...`
@@ -228,9 +232,9 @@ class Renderer {
         let sessions;
 
         if (isJupeb) {
-            sessions = await driveAPI.fetchSemesters(route.department, route.level);
+          sessions = await driveAPI.fetchSemesters(route.department, route.level, forceRefresh);
         } else {
-            sessions = await driveAPI.fetchSessions(route.department, route.level, route.semester);
+          sessions = await driveAPI.fetchSessions(route.department, route.level, route.semester, forceRefresh);
         }
 
         if (!sessions || sessions.length === 0) {
@@ -270,7 +274,8 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      * @param {Object} route - Current route object.
      */
-    async renderFiles(container, route) {
+    async renderFiles(container, route, options = {}) {
+      const { forceRefresh = false } = options;
         container.innerHTML = this.renderSkeleton('files', 'Loading files...');
 
         const isJupeb = route.department === 'Jupeb';
@@ -282,7 +287,7 @@ class Renderer {
             path = `/${route.department}/${route.level}/${route.semester}/${route.session}`;
         }
 
-        const files = await driveAPI.fetchFiles(path);
+        const files = await driveAPI.fetchFiles(path, forceRefresh);
 
         if (!files || files.length === 0) {
             const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024~25 Session';
@@ -411,8 +416,8 @@ class Renderer {
             ? fallbackRepsRaw.filter(member => member.session === activeFallbackSession)
             : fallbackRepsRaw;
 
-          const cleanFallbackExecutives = fallbackExecutives.map(({ session: memberSession, ...rest }) => rest);
-          const cleanFallbackReps = fallbackReps.map(({ session: memberSession, ...rest }) => rest);
+          const cleanFallbackExecutives = fallbackExecutives.map(({ session: _memberSession, ...rest }) => rest);
+          const cleanFallbackReps = fallbackReps.map(({ session: _memberSession, ...rest }) => rest);
 
             return {
             executives: cleanFallbackExecutives,
@@ -428,12 +433,13 @@ class Renderer {
      * Render the About Us page with session picker.
      * @param {HTMLElement} container - Main content container.
      */
-    async renderAboutPage(container) {
+    async renderAboutPage(container, options = {}) {
+      const { forceRefresh = false } = options;
         const about = CONFIG.about;
 
         container.innerHTML = this.renderAboutSkeleton();
 
-        const teamData = await this.fetchTeamData();
+      const teamData = await this.fetchTeamData(undefined, { forceRefresh });
 
         // Store reference for session switching
         this._aboutContainer = container;
@@ -772,7 +778,8 @@ class Renderer {
      * Render the Coverage Dashboard (track route).
      * @param {HTMLElement} container - Main content container
      */
-    async renderCoverage(container) {
+    async renderCoverage(container, options = {}) {
+      const { forceRefresh = false } = options;
         container.innerHTML = `
           <div class="about-page">
             <h1 class="page-title" style="margin-bottom: var(--space-2);">
@@ -797,8 +804,8 @@ class Renderer {
         `;
 
         try {
-          const teamData = await this.fetchTeamData();
-            const departments = await driveAPI.fetchDepartments();
+          const teamData = await this.fetchTeamData(undefined, { forceRefresh });
+            const departments = await driveAPI.fetchDepartments(forceRefresh);
             const deptContainer = document.getElementById('coverage-departments');
           const sessionSelect = document.getElementById('target-session-select');
             if (!deptContainer) return;
@@ -878,7 +885,17 @@ class Renderer {
                         if (body.dataset.loaded !== "true") {
                             body.innerHTML = '<div class="loading" style="padding: 2rem 0;"><div class="spinner"></div><p>Scanning Drive...</p></div>';
                             try {
-                                const response = await fetch(`${CONFIG.apiBase}/coverage?department=${encodeURIComponent(dept)}&session=${encodeURIComponent(currentSession)}`);
+                                const queryParts = [
+                                  `department=${encodeURIComponent(dept)}`,
+                                  `session=${encodeURIComponent(currentSession)}`
+                                ];
+
+                                if (forceRefresh) {
+                                  queryParts.push('refresh=1');
+                                }
+
+                                const coverageUrl = `${CONFIG.apiBase}/coverage?${queryParts.join('&')}`;
+                                const response = await fetch(coverageUrl, forceRefresh ? { cache: 'no-store' } : undefined);
                                 if (!response.ok) {
                                    const errData = await response.json().catch(() => ({}));
                                    throw new Error(errData.error || 'Failed to fetch');
@@ -985,7 +1002,7 @@ class Renderer {
             grouped[item.level].push(item);
         });
 
-        for (const [levelName, items] of Object.entries(grouped)) {
+        for (const [_levelName, items] of Object.entries(grouped)) {
             items.forEach((item, idx) => {
               let statusHtml = '<span class="status-no"><i class="fas fa-circle-question"></i> Unknown</span>';
 

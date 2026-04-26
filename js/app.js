@@ -92,7 +92,8 @@ class App {
   /**
    * Handle route changes — dispatch to appropriate renderer.
    */
-  async handleRouteChange() {
+  async handleRouteChange(options = {}) {
+    const { forceRefresh = false } = options;
     const route = appNavigator.getCurrentRoute();
     const mainContent = document.getElementById('main-content');
 
@@ -105,26 +106,26 @@ class App {
     try {
       switch (route.view) {
         case 'home':
-          this.departments = await renderer.renderHome(mainContent);
+          this.departments = await renderer.renderHome(mainContent, { forceRefresh });
           this.attachSearchListener();
           break;
         case 'about':
-          await renderer.renderAboutPage(mainContent);
+          await renderer.renderAboutPage(mainContent, { forceRefresh });
           break;
         case 'track':
-          await renderer.renderCoverage(mainContent);
+          await renderer.renderCoverage(mainContent, { forceRefresh });
           break;
         case 'levels':
-          await renderer.renderLevels(mainContent, route);
+          await renderer.renderLevels(mainContent, route, { forceRefresh });
           break;
         case 'semesters':
-          await renderer.renderSemesters(mainContent, route);
+          await renderer.renderSemesters(mainContent, route, { forceRefresh });
           break;
         case 'sessions':
-          await renderer.renderSessions(mainContent, route);
+          await renderer.renderSessions(mainContent, route, { forceRefresh });
           break;
         case 'files':
-          await renderer.renderFiles(mainContent, route);
+          await renderer.renderFiles(mainContent, route, { forceRefresh });
           break;
         default:
           mainContent.innerHTML = renderer.renderNotFound();
@@ -272,11 +273,13 @@ class App {
       }
     }
 
-    if (currentPath && pathCache) {
-      pathCache.invalidatePath(currentPath);
+    if (pathCache) {
+      // On Home/About/Track routes there is no department path; invalidate root cache.
+      const refreshPath = currentPath || '/';
+      pathCache.invalidatePath(refreshPath);
     }
 
-    await this.handleRouteChange();
+    await this.handleRouteChange({ forceRefresh: true });
     this.showToast('Content refreshed successfully!', 'success');
   }
 

@@ -133,6 +133,7 @@ module.exports = async (req, res) => {
     const rawType = typeof req.query.type === 'string' ? req.query.type : 'folders';
     const path = rawPath.trim() || '/';
     const type = rawType.trim().toLowerCase(); // 'folders' or 'files'
+    const forceRefresh = req.query.refresh === '1' || req.query.force === '1';
 
     if (!ALLOWED_TYPES.has(type)) {
       res.status(400).json({
@@ -156,7 +157,7 @@ module.exports = async (req, res) => {
 
     // Check cache first
     const cacheKey = `${path}:${type}`;
-    const cached = getCached(cacheKey);
+    const cached = forceRefresh ? null : getCached(cacheKey);
 
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
@@ -255,14 +256,20 @@ module.exports = async (req, res) => {
     setCache(cacheKey, data);
 
     // Return response
-    res.setHeader('X-Cache', 'MISS');
-    // Item #4: CDN-level caching for scalability
-    res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
+    res.setHeader('X-Cache', forceRefresh ? 'BYPASS' : 'MISS');
+    // Force refresh requests bypass cache layers for this response.
+    if (forceRefresh) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else {
+      // Item #4: CDN-level caching for scalability
+      res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
+    }
     res.status(200).json({
       path,
       type,
       data,
       cached: false,
+      forceRefresh,
       timestamp: Date.now()
     });
 

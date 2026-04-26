@@ -1,5 +1,5 @@
 // Path-Based Cache Management System
-// Supports lazy-loading with 6-hour TTL and background refresh
+// Supports lazy-loading with path-aware stale thresholds and hard expiry
 
 class PathCacheManager {
   constructor() {
@@ -106,7 +106,7 @@ class PathCacheManager {
    */
   isStale(timestamp, path = '') {
     const age = Date.now() - timestamp;
-    // Root path (departments) has 24-hour TTL, others have 6-hour TTL
+    // Root path (departments) has 2-hour stale threshold; others are 30 minutes.
     const ttl = (path === '/' || path === '') ? this.departmentTTL : this.defaultTTL;
     return age > ttl;
   }
@@ -120,7 +120,7 @@ class PathCacheManager {
    */
   isExpired(timestamp, path = '') {
     const age = Date.now() - timestamp;
-    // Root path (departments) has 7-day hard expiry, others have 24-hour
+    // Root path (departments) has 24-hour hard expiry; others have 6 hours.
     const hardExpiry = (path === '/' || path === '') ? this.departmentHardExpiry : this.defaultHardExpiry;
     return age > hardExpiry;
   }
@@ -244,7 +244,7 @@ class PathCacheManager {
               path: parsed.path,
               type: parsed.type,
               timestamp: parsed.timestamp,
-              isStale: this.isStale(parsed.timestamp),
+              isStale: this.isStale(parsed.timestamp, parsed.path),
               age: Date.now() - parsed.timestamp
             });
           }

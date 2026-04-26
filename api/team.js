@@ -586,8 +586,8 @@ module.exports = async function handler(req, res) {
       : allReps;
 
     // Strip session field from response (frontend doesn't need it per-member)
-    const cleanExecutives = executives.map(({ session, ...rest }) => rest);
-    const cleanReps = departmentReps.map(({ session, ...rest }) => rest);
+    const cleanExecutives = executives.map(({ session: _session, ...rest }) => rest);
+    const cleanReps = departmentReps.map(({ session: _session, ...rest }) => rest);
 
     // Return combined data with session metadata
     if (forceRefresh) {

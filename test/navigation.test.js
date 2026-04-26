@@ -113,6 +113,13 @@ describe('Navigator.parseRoute', () => {
         expect(route.view).toBe('about');
     });
 
+    test('track route is recognized (case-insensitive)', () => {
+        window.location.hash = '#/TRACK';
+        const route = nav.parseRoute();
+        expect(route.view).toBe('track');
+        expect(route.department).toBeNull();
+    });
+
     test('backward compatibility: fixes old session URLs with /', () => {
         window.location.hash = '#/Computer Science/100 Level/1st Semester/2024/25 Session';
         const route = nav.parseRoute();
@@ -134,6 +141,12 @@ describe('Navigator.getPageTitle', () => {
         expect(nav.getPageTitle()).toBe('About Us - Caleb University Resource Bank');
     });
 
+    test('track returns coverage tracker title', () => {
+        window.location.hash = '#/track';
+        nav.currentRoute = nav.parseRoute();
+        expect(nav.getPageTitle()).toBe('Coverage Tracker - Caleb University Resource Bank');
+    });
+
     test('department adds department name to title', () => {
         window.location.hash = '#/Computer Science';
         nav.currentRoute = nav.parseRoute();
@@ -150,6 +163,12 @@ describe('Navigator.isValidRoute', () => {
 
     test('any department name is structurally valid', () => {
         window.location.hash = '#/Anything';
+        nav.currentRoute = nav.parseRoute();
+        expect(nav.isValidRoute()).toBe(true);
+    });
+
+    test('track route is valid', () => {
+        window.location.hash = '#/track';
         nav.currentRoute = nav.parseRoute();
         expect(nav.isValidRoute()).toBe(true);
     });

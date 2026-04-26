@@ -8,8 +8,7 @@ const {
   makeAPIRequest,
   listFolders,
   setupCors,
-  handlePreflightAndMethodGuard,
-  normalizeSessionLabel
+  handlePreflightAndMethodGuard
 } = require('./_utils');
 
 const coverageCache = new Map();
@@ -170,6 +169,7 @@ module.exports = async (req, res) => {
   const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
   const departmentQuery = typeof req.query.department === 'string' ? req.query.department.trim() : '';
   let targetSessionQuery = typeof req.query.session === 'string' ? req.query.session.trim() : '';
+  const forceRefresh = req.query.refresh === '1' || req.query.force === '1';
 
   if (!apiKey || !rootFolderId) {
     return res.status(500).json({ error: 'Server configuration error' });
@@ -195,9 +195,10 @@ module.exports = async (req, res) => {
   const deptNameTarget = normalizeFolderName(departmentQuery.replace(/~/g, '/'));
   const cacheKey = `${deptNameTarget}_${targetSessionQuery}`;
 
-  const cached = coverageCache.get(cacheKey);
+  const cached = forceRefresh ? null : coverageCache.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
     res.setHeader('X-Cache', 'HIT');
+    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({ department: deptNameTarget, session: targetSessionQuery, data: cached.data, cached: true });
   }
 
@@ -268,13 +269,18 @@ module.exports = async (req, res) => {
 
     coverageCache.set(cacheKey, { data: coverageData, timestamp: Date.now() });
 
-    res.setHeader('X-Cache', 'MISS');
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    res.setHeader('X-Cache', forceRefresh ? 'BYPASS' : 'MISS');
+    if (forceRefresh) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600');
+    }
     return res.status(200).json({
       department: deptNameTarget,
       session: targetSessionQuery,
       data: coverageData,
-      cached: false
+      cached: false,
+      forceRefresh
     });
 
   } catch (error) {

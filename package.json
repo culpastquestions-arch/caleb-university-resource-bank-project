@@ -3,13 +3,20 @@
   "version": "1.5.0",
   "description": "Caleb University Resource Bank - Past questions and study materials",
   "scripts": {
-    "test": "jest --verbose"
+    "test": "jest --verbose",
+    "lint": "eslint \"api/**/*.js\" \"js/**/*.js\" \"test/**/*.js\" \"sw.js\"",
+    "format:check": "prettier --check \"package.json\" \".eslintrc.json\" \".prettierrc.json\" \"docs/**/*.md\"",
+    "quality": "npm run test -- --runInBand && npm run lint && npm run format:check"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "eslint": "^8.57.1",
+    "jest": "^29.7.0",
+    "prettier": "^3.3.3"
   },
   "jest": {
     "testEnvironment": "node",
-    "testMatch": ["**/test/**/*.test.js"]
+    "testMatch": [
+      "**/test/**/*.test.js"
+    ]
   }
 }
