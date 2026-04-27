@@ -74,11 +74,15 @@
         "encodeSegment": "readonly",
         "formatLevel": "readonly",
         "getDepartmentColor": "readonly",
+        "CoverageRenderer": "readonly",
         "lucide": "readonly",
         "module": "readonly",
+        "notificationHelper": "readonly",
         "pathCache": "readonly",
         "pwaManager": "readonly",
         "renderer": "readonly",
+        "contactModalHelper": "readonly",
+        "TeamRenderer": "readonly",
         "self": "readonly"
       },
       "rules": {

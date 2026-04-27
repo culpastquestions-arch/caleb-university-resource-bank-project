@@ -7,6 +7,11 @@
  * and replaces the container content with the final view.
  */
 class Renderer {
+  constructor() {
+    this.teamRenderer = new TeamRenderer(this);
+    this.coverageRenderer = new CoverageRenderer(this);
+  }
+
   /**
    * Escape text for safe HTML rendering.
    * @param {string} value - Raw text.
@@ -434,19 +439,7 @@ class Renderer {
      * @param {HTMLElement} container - Main content container.
      */
     async renderAboutPage(container, options = {}) {
-      const { forceRefresh = false } = options;
-        const about = CONFIG.about;
-
-        container.innerHTML = this.renderAboutSkeleton();
-
-      const teamData = await this.fetchTeamData(undefined, { forceRefresh });
-
-        // Store reference for session switching
-        this._aboutContainer = container;
-        this._aboutMission = about.mission;
-
-        this._renderAboutFull(container, about, teamData);
-        this.attachTeamPhotoFallbackHandlers(container);
+      return this.teamRenderer.renderAboutPage(container, options);
     }
 
     /**
@@ -456,59 +449,7 @@ class Renderer {
      * @param {Object} teamData - Fetched team data with session info.
      */
     _renderAboutFull(container, about, teamData) {
-        container.innerHTML = `
-      <div class="about-page">
-        <div class="about-back">
-          <a href="#/" class="about-back__link">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Home</span>
-          </a>
-        </div>
-
-        <section class="about-section about-section--team">
-          <h2 class="about-section__title">
-            <i class="fas fa-users"></i>
-            Meet the Team
-          </h2>
-          ${this._renderSessionPicker(teamData.sessions, teamData.session)}
-          <div id="team-content">
-            ${this._renderTeamContent(teamData)}
-          </div>
-        </section>
-
-        <section class="about-section about-section--mission">
-          <div class="about-mission">
-            <div class="about-mission__item about-mission__item--full">
-              <div class="about-mission__icon">
-                <i class="fas fa-bullseye"></i>
-              </div>
-              <h2 class="about-mission__title">Our Mission</h2>
-              <p class="about-mission__text">${this.escapeHtml(about.mission)}</p>
-            </div>
-          </div>
-        </section>
-
-        <section class="about-section about-section--cta">
-          <div class="about-cta">
-            <div class="about-cta__icon">
-              <i class="fas fa-hand-holding-heart"></i>
-            </div>
-            <h2 class="about-cta__title">Join the Team</h2>
-            <p class="about-cta__text">
-              Interested in contributing to CURB and helping students access quality academic resources?
-              We're always looking for passionate individuals to join our growing team.
-            </p>
-            <p class="about-cta__contact">
-              <i class="fas fa-envelope"></i>
-              Contact us if you'd like to get involved!
-            </p>
-          </div>
-        </section>
-      </div>
-    `;
-
-        // Attach session picker listeners
-        this._attachSessionListeners();
+      return this.teamRenderer._renderAboutFull(container, about, teamData);
     }
 
     /**
@@ -519,26 +460,7 @@ class Renderer {
      * @returns {string} HTML string.
      */
     _renderSessionPicker(sessions, activeSession) {
-        if (!sessions || sessions.length <= 1) {
-            // Single session — show it as a subtle label, no picker needed
-            const label = activeSession || sessions[0] || '';
-            return label
-              ? `<p class="about-section__subtitle"><i class="fas fa-calendar-alt"></i> ${this.escapeHtml(label)} Session Team</p>`
-                : '';
-        }
-
-        return `
-      <div class="session-picker" id="session-picker">
-        ${sessions.map(s => `
-          <button class="session-picker__tab${s === activeSession ? ' session-picker__tab--active' : ''}"
-                  data-session="${this.escapeAttr(s)}"
-                  aria-label="View ${this.escapeAttr(s)} team"
-                  type="button">
-            ${this.escapeHtml(s)}
-          </button>
-        `).join('')}
-      </div>
-    `;
+      return this.teamRenderer._renderSessionPicker(sessions, activeSession);
     }
 
     /**
@@ -548,110 +470,7 @@ class Renderer {
      * @returns {string} HTML string.
      */
     _renderTeamContent(teamData) {
-        const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
-
-        /**
-         * Generate initials from a name.
-         * @param {string} name - Person's name.
-         * @returns {string} Initials.
-         */
-        const getInitials = (name) => {
-            if (!name || name === 'TBD' || name === 'Coming Soon') return '?';
-            const parts = name.trim().split(/\s+/);
-            if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-        };
-
-        /**
-         * Render a single team member card.
-         * @param {Object} member - Team member object.
-         * @param {string} type - 'executive' or 'rep'.
-         * @param {number} index - Card index for animation delay.
-         * @returns {string} HTML string.
-         */
-        const renderTeamCard = (member, type = 'rep', index = 0) => {
-            const name = member.name || 'TBD';
-            const initials = getInitials(name);
-            const isPlaceholder = name === 'TBD' || name === 'Coming Soon';
-
-            const role = member.role || `${member.department} Rep`;
-            const color = member.color || roleColors[type];
-            const photoUrl = member.photoUrl || member.photourl || '';
-            const safePhotoUrl = this.escapeAttr(this.safeUrl(photoUrl, ''));
-            const safeAlt = this.escapeAttr(name);
-            const safeName = this.escapeHtml(name);
-            const safeRole = this.escapeHtml(role);
-            const safeInitials = this.escapeHtml(initials);
-
-            const avatarContent = photoUrl
-              ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}">
-             <span class="team-card__initials" style="display:none;">${safeInitials}</span>`
-               : `<span class="team-card__initials">${safeInitials}</span>`;
-
-            const delay = Math.min(index * 0.04, 0.4);
-
-            return `
-        <div class="team-card team-card--${type}${isPlaceholder ? ' team-card--placeholder' : ''}" style="animation-delay: ${delay}s">
-          <div class="team-card__avatar" style="background-color: ${color}">
-            ${avatarContent}
-          </div>
-          <div class="team-card__info">
-            <h3 class="team-card__name">${isPlaceholder ? 'Coming Soon' : safeName}</h3>
-            <p class="team-card__role">${safeRole}</p>
-          </div>
-        </div>
-      `;
-        };
-
-        const hasExecutives = teamData.executives && teamData.executives.length > 0;
-        const hasReps = teamData.departmentReps && teamData.departmentReps.length > 0;
-        const executiveMembers = hasExecutives ? teamData.executives : [];
-        const topExecutives = executiveMembers.slice(0, 2);
-        const remainingExecutives = executiveMembers.slice(2);
-        const bottomExecutiveColumns = Math.min(Math.max(remainingExecutives.length, 1), 5);
-
-        if (!hasExecutives && !hasReps) {
-            return `
-        <div class="empty-state" style="min-height: 200px;">
-          <div class="empty-state-icon-wrap">
-            <i class="far fa-users"></i>
-          </div>
-          <p class="empty-state-title">No team data for this session</p>
-          <p class="meta-text">Team information hasn't been added yet</p>
-        </div>
-      `;
-        }
-
-        return `
-      ${hasExecutives ? `
-        <div class="team-content__section">
-          <h3 class="team-content__heading">
-            <i class="fas fa-users-cog"></i>
-            Executive Team
-          </h3>
-          <div class="about-team-grid about-team-grid--executives about-team-grid--executives-top">
-            ${topExecutives.map((exec, i) => renderTeamCard(exec, 'executive', i)).join('')}
-          </div>
-          ${remainingExecutives.length ? `
-            <div class="about-team-grid about-team-grid--executives about-team-grid--executives-bottom" style="--exec-bottom-columns: ${bottomExecutiveColumns};">
-              ${remainingExecutives.map((exec, i) => renderTeamCard(exec, 'executive', i + topExecutives.length)).join('')}
-            </div>
-          ` : ''}
-        </div>
-      ` : ''}
-
-      ${hasReps ? `
-        <div class="team-content__section">
-          <h3 class="team-content__heading">
-            <i class="fas fa-user-friends"></i>
-            Department Representatives
-          </h3>
-          <div class="about-team-grid about-team-grid--reps">
-            ${teamData.departmentReps.map((rep, i) => renderTeamCard(rep, 'rep', i)).join('')}
-          </div>
-        </div>
-      ` : ''}
-    `;
+      return this.teamRenderer._renderTeamContent(teamData);
     }
 
       /**
@@ -659,36 +478,7 @@ class Renderer {
        * @param {HTMLElement} scope - Container to scan.
        */
       attachTeamPhotoFallbackHandlers(scope) {
-        if (!scope) return;
-
-        const photos = scope.querySelectorAll('.team-card__photo');
-        photos.forEach((img) => {
-          if (img.dataset.errorBound === '1') return;
-          img.dataset.errorBound = '1';
-
-          img.addEventListener('error', () => {
-            if (img.dataset.fallbackTried !== '1') {
-              img.dataset.fallbackTried = '1';
-
-              if (img.src.includes('export=view')) {
-                img.src = img.src.replace('export=view', 'export=download');
-                return;
-              }
-
-              const idMatch = img.src.match(/[?&]id=([^&]+)/);
-              if (idMatch && idMatch[1]) {
-                img.src = `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
-                return;
-              }
-            }
-
-            img.style.display = 'none';
-            const initials = img.nextElementSibling;
-            if (initials && initials.classList.contains('team-card__initials')) {
-              initials.style.display = 'flex';
-            }
-          });
-        });
+        return this.teamRenderer.attachTeamPhotoFallbackHandlers(scope);
       }
 
     /**
@@ -696,52 +486,7 @@ class Renderer {
      * Handles session switching by re-fetching and re-rendering only the team content.
      */
     _attachSessionListeners() {
-        const picker = document.getElementById('session-picker');
-        if (!picker) return;
-
-        picker.addEventListener('click', async (e) => {
-            const tab = e.target.closest('.session-picker__tab');
-            if (!tab || tab.classList.contains('session-picker__tab--active')) return;
-
-            const session = tab.dataset.session;
-            if (!session) return;
-
-            // Update active tab immediately
-            picker.querySelectorAll('.session-picker__tab').forEach(t =>
-                t.classList.remove('session-picker__tab--active')
-            );
-            tab.classList.add('session-picker__tab--active');
-
-            // Show loading in the team content area
-            const teamContent = document.getElementById('team-content');
-            if (teamContent) {
-                teamContent.innerHTML = `
-          <div class="loading" style="padding: var(--space-8) 0;">
-            <div class="spinner"></div>
-            <p>Loading team...</p>
-          </div>
-        `;
-            }
-
-            // Fetch new session data
-            try {
-                const teamData = await this.fetchTeamData(session);
-                if (teamContent) {
-                    teamContent.innerHTML = this._renderTeamContent(teamData);
-                this.attachTeamPhotoFallbackHandlers(teamContent);
-                }
-            } catch (error) {
-                console.error('Failed to switch session:', error);
-                if (teamContent) {
-                    teamContent.innerHTML = `
-            <div class="empty-state" style="min-height: 200px;">
-              <p class="empty-state-title">Failed to load team data</p>
-              <p class="meta-text">Please try again</p>
-            </div>
-          `;
-                }
-            }
-        });
+      return this.teamRenderer._attachSessionListeners();
     }
 
     /**
@@ -749,29 +494,7 @@ class Renderer {
      * @returns {string} HTML string.
      */
     renderAboutSkeleton() {
-        return `
-      <div class="about-page">
-        <section class="about-section about-section--mission">
-          <div class="about-mission">
-            <div class="about-mission__item skeleton-loading">
-              <div class="skeleton-content" style="width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 1rem;"></div>
-              <div class="skeleton-content" style="width: 150px; height: 24px; margin: 0 auto 0.5rem;"></div>
-              <div class="skeleton-content" style="width: 100%; height: 60px;"></div>
-            </div>
-          </div>
-        </section>
-        <section class="about-section">
-          <div class="skeleton-content" style="width: 120px; height: 28px; margin-bottom: 1.5rem;"></div>
-          <div class="skeleton-loading" style="width: 200px; height: 180px; border-radius: 12px; margin: 0 auto;"></div>
-        </section>
-        <section class="about-section">
-          <div class="skeleton-content" style="width: 180px; height: 28px; margin-bottom: 1.5rem;"></div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;">
-            ${Array(5).fill('<div class="skeleton-loading" style="height: 140px; border-radius: 12px;"></div>').join('')}
-          </div>
-        </section>
-      </div>
-    `;
+      return this.teamRenderer.renderAboutSkeleton();
     }
 
     /**
@@ -779,142 +502,7 @@ class Renderer {
      * @param {HTMLElement} container - Main content container
      */
     async renderCoverage(container, options = {}) {
-      const { forceRefresh = false } = options;
-        container.innerHTML = `
-          <div class="about-page">
-            <h1 class="page-title" style="margin-bottom: var(--space-2);">
-              <i class="fas fa-chart-line" style="color: var(--color-brand); margin-right: 8px;"></i>
-              Content Coverage Tracker
-            </h1>
-            <p class="meta-text" style="margin-bottom: var(--space-6);">
-              Select a target session and click a department to perform a live scan of its Drive structure.
-            </p>
-            
-            <div style="margin-bottom: var(--space-6); max-width: 300px;">
-                <label style="display:block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--color-text-secondary);">Target Session</label>
-                <select id="target-session-select" class="search-input" style="width: 100%; border: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text-primary);" aria-label="Select target session">
-                  <option value="">Loading sessions...</option>
-                </select>
-            </div>
-
-            <div id="coverage-departments" class="coverage-accordion-group">
-              <div class="loading"><div class="spinner"></div><p>Loading departments...</p></div>
-            </div>
-          </div>
-        `;
-
-        try {
-          const teamData = await this.fetchTeamData(undefined, { forceRefresh });
-            const departments = await driveAPI.fetchDepartments(forceRefresh);
-            const deptContainer = document.getElementById('coverage-departments');
-          const sessionSelect = document.getElementById('target-session-select');
-            if (!deptContainer) return;
-
-          const sessions = (teamData && Array.isArray(teamData.sessions)) ? teamData.sessions : [];
-          const selectedSession = (teamData && teamData.session) ? teamData.session : (sessions[0] || '');
-
-          if (sessionSelect) {
-            if (sessions.length > 0) {
-              sessionSelect.innerHTML = sessions.map(session => {
-                const selected = session === selectedSession ? ' selected' : '';
-                return `<option value="${this.escapeAttr(session)}"${selected}>${this.escapeHtml(session)}</option>`;
-              }).join('');
-            } else {
-              const fallbackSession = (CONFIG.about && CONFIG.about.session) ? CONFIG.about.session : '';
-              if (fallbackSession) {
-                sessionSelect.innerHTML = `<option value="${this.escapeAttr(fallbackSession)}">${this.escapeHtml(fallbackSession)}</option>`;
-              } else {
-                sessionSelect.innerHTML = '<option value="">No sessions available</option>';
-              }
-            }
-          }
-
-            if (!departments || departments.length === 0) {
-                deptContainer.innerHTML = this.renderEmptyState('No departments found', 'Cannot generate coverage report.');
-                return;
-            }
-
-            deptContainer.innerHTML = departments.map(dept => `
-              <div class="coverage-accordion" data-dept="${this.escapeAttr(dept)}">
-                <button class="coverage-accordion__header">
-                  <span><i data-lucide="${this.getDepartmentLucideIcon(dept)}"></i> ${this.escapeHtml(dept)}</span>
-                  <i class="fas fa-chevron-down coverage-accordion__icon"></i>
-                </button>
-                <div class="coverage-accordion__body" style="display: none;">
-                   <!-- Coverage table will load here -->
-                </div>
-              </div>
-            `).join('');
-
-            if (typeof lucide !== 'undefined') {
-                setTimeout(() => lucide.createIcons(), 0);
-            }
-
-            // Attach listeners to accordions
-            deptContainer.querySelectorAll('.coverage-accordion__header').forEach(header => {
-                header.addEventListener('click', async (e) => {
-                    const accordion = e.currentTarget.closest('.coverage-accordion');
-                    const body = accordion.querySelector('.coverage-accordion__body');
-                    const dept = accordion.dataset.dept;
-                    const icon = e.currentTarget.querySelector('.coverage-accordion__icon');
-                    
-                    // Force refresh if they changed the session input
-                    const currentSession = sessionSelect && sessionSelect.value
-                      ? sessionSelect.value.trim()
-                      : '';
-                    if (!currentSession) {
-                      app.showToast('Please select a target session', 'error');
-                        return;
-                    }
-
-                    if (body.dataset.scannedSession !== currentSession) {
-                        body.dataset.loaded = "false";
-                    }
-
-                    const isOpen = body.style.display === 'block';
-
-                    // Close all others
-                    deptContainer.querySelectorAll('.coverage-accordion__body').forEach(b => b.style.display = 'none');
-                    deptContainer.querySelectorAll('.coverage-accordion__icon').forEach(i => i.style.transform = 'rotate(0deg)');
-
-                    if (!isOpen) {
-                        body.style.display = 'block';
-                        icon.style.transform = 'rotate(180deg)';
-                        
-                        // If not loaded yet (or session changed), fetch it
-                        if (body.dataset.loaded !== "true") {
-                            body.innerHTML = '<div class="loading" style="padding: 2rem 0;"><div class="spinner"></div><p>Scanning Drive...</p></div>';
-                            try {
-                                const queryParts = [
-                                  `department=${encodeURIComponent(dept)}`,
-                                  `session=${encodeURIComponent(currentSession)}`
-                                ];
-
-                                if (forceRefresh) {
-                                  queryParts.push('refresh=1');
-                                }
-
-                                const coverageUrl = `${CONFIG.apiBase}/coverage?${queryParts.join('&')}`;
-                                const response = await fetch(coverageUrl, forceRefresh ? { cache: 'no-store' } : undefined);
-                                if (!response.ok) {
-                                   const errData = await response.json().catch(() => ({}));
-                                   throw new Error(errData.error || 'Failed to fetch');
-                                }
-                                const data = await response.json();
-                                body.innerHTML = this._renderCoverageTable(data.data);
-                                body.dataset.loaded = "true";
-                                body.dataset.scannedSession = currentSession;
-                            } catch (err) {
-                              body.innerHTML = `<div class="empty-state"><p class="empty-state-title">Scan Failed</p><p class="meta-text">${this.escapeHtml(err.message)}</p></div>`;
-                            }
-                        }
-                    }
-                });
-            });
-
-        } catch (error) {
-            container.innerHTML = this.renderErrorState(error.message);
-        }
+      return this.coverageRenderer.renderCoverage(container, options);
     }
 
     /**
@@ -922,108 +510,7 @@ class Renderer {
      * @param {Array} coverageData - Coverage tree data returned from new API.
      */
     _renderCoverageTable(coverageData) {
-        if (!coverageData || coverageData.length === 0) {
-            return `<div class="empty-state" style="min-height: 150px; padding: 2rem;"><p class="meta-text">No data found in this department.</p></div>`;
-        }
-
-      const createSummary = () => ({
-        uploaded: 0,
-        emptyFolder: 0,
-        missingFolder: 0,
-        other: 0
-      });
-
-      const buildSummaryHtml = (title, summary) => `
-        <div class="coverage-summary-card">
-          <p class="coverage-summary-title">${this.escapeHtml(title)}</p>
-          <div class="coverage-summary">
-            <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
-            <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
-            <span class="status-missing"><i class="fas fa-folder-times"></i> Missing: ${summary.missingFolder}</span>
-            ${summary.other > 0 ? `<span class="status-no"><i class="fas fa-circle-question"></i> Other: ${summary.other}</span>` : ''}
-          </div>
-        </div>
-      `;
-
-      const summaryBySemester = {
-        '1st Semester': createSummary(),
-        '2nd Semester': createSummary()
-      };
-
-      coverageData.forEach(item => {
-        const semesterLabel = (item.semester || '').trim();
-        if (!summaryBySemester[semesterLabel]) {
-          summaryBySemester[semesterLabel] = createSummary();
-        }
-
-        const summary = summaryBySemester[semesterLabel];
-
-        if (item.status === 'uploaded') {
-          summary.uploaded += 1;
-        } else if (item.status === 'empty-folder') {
-          summary.emptyFolder += 1;
-        } else if (item.status === 'missing-folder') {
-          summary.missingFolder += 1;
-        } else {
-          summary.other += 1;
-        }
-      });
-
-      const hasFirstOrSecondSemester = coverageData.some(item => {
-        const semesterLabel = (item.semester || '').trim();
-        return semesterLabel === '1st Semester' || semesterLabel === '2nd Semester';
-      });
-
-      const summaryCardsHtml = hasFirstOrSecondSemester
-        ? `
-          <div class="coverage-summary-grid">
-            ${buildSummaryHtml('1st Semester Summary', summaryBySemester['1st Semester'])}
-            ${buildSummaryHtml('2nd Semester Summary', summaryBySemester['2nd Semester'])}
-          </div>
-        `
-        : `
-          <div class="coverage-summary-grid coverage-summary-grid--single">
-            ${buildSummaryHtml('Coverage Summary', summaryBySemester['Full Year'] || createSummary())}
-          </div>
-        `;
-
-        let html = '<div class="coverage-table-container"><table class="coverage-table">';
-      html = `
-        ${summaryCardsHtml}
-        <div class="coverage-table-container"><table class="coverage-table">
-      `;
-        html += '<thead><tr><th style="width: 30%">Level</th><th style="width: 40%">Semester</th><th>Status</th></tr></thead>';
-        html += '<tbody>';
-
-        // Group the data by Level
-        const grouped = {};
-        coverageData.forEach(item => {
-            if (!grouped[item.level]) grouped[item.level] = [];
-            grouped[item.level].push(item);
-        });
-
-        for (const [_levelName, items] of Object.entries(grouped)) {
-            items.forEach((item, idx) => {
-              let statusHtml = '<span class="status-no"><i class="fas fa-circle-question"></i> Unknown</span>';
-
-              if (item.status === 'uploaded') {
-                statusHtml = '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>';
-              } else if (item.status === 'empty-folder') {
-                statusHtml = '<span class="status-empty"><i class="fas fa-folder-open"></i> Session Found, No PDFs</span>';
-              } else if (item.status === 'missing-folder') {
-                statusHtml = '<span class="status-missing"><i class="fas fa-folder-times"></i> Session Folder Missing</span>';
-              }
-
-                html += `<tr>
-                  ${idx === 0 ? `<td rowspan="${items.length}" style="vertical-align: middle; border-right: 1px solid var(--color-border); font-weight: 600; color: var(--color-brand);">${this.escapeHtml(item.level)}</td>` : ''}
-                  <td>${this.escapeHtml(item.semester)}</td>
-                    <td>${statusHtml}</td>
-                </tr>`;
-            });
-        }
-
-        html += '</tbody></table></div>';
-        return html;
+      return this.coverageRenderer._renderCoverageTable(coverageData);
     }
 
     /**

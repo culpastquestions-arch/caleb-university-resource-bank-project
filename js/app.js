@@ -193,25 +193,14 @@ class App {
       });
     }
 
-    if (contactBtn && contactModal) {
-      contactBtn.addEventListener('click', () => this.openContactModal());
-      contactModal.querySelector('.modal-close')?.addEventListener('click', () => this.closeContactModal());
-      contactModal.addEventListener('click', (e) => {
-        if (e.target === contactModal) this.closeContactModal();
-      });
-    }
-    if (contactLink && contactModal) {
-      contactLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.openContactModal();
-      });
-    }
-    if (contactLinkFooter && contactModal) {
-      contactLinkFooter.addEventListener('click', (e) => {
-        e.preventDefault();
-        this.openContactModal();
-      });
-    }
+    contactModalHelper.wire({
+      contactBtn,
+      contactLink,
+      contactLinkFooter,
+      contactModal,
+      onOpen: () => this.openContactModal(),
+      onClose: () => this.closeContactModal()
+    });
   }
 
   /**
@@ -375,9 +364,7 @@ class App {
    */
   openContactModal() {
     const modal = document.getElementById('contact-modal');
-    if (modal) {
-      modal.classList.add('open');
-    }
+    contactModalHelper.open(modal);
   }
 
   /**
@@ -385,9 +372,7 @@ class App {
    */
   closeContactModal() {
     const modal = document.getElementById('contact-modal');
-    if (modal) {
-      modal.classList.remove('open');
-    }
+    contactModalHelper.close(modal);
   }
 
   /**
@@ -396,7 +381,7 @@ class App {
    * @param {string} type - 'info', 'success', 'warning', or 'error'.
    */
   showToast(message, type = 'info') {
-    this.showNotification(message, type);
+    notificationHelper.showToast(message, type);
   }
 
   /**
@@ -405,24 +390,7 @@ class App {
    * @param {string} type - 'info', 'success', 'warning', or 'error'.
    */
   showNotification(message, type = 'info') {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-
-    const content = document.createElement('div');
-    content.className = 'notification-content';
-    const text = document.createElement('span');
-    text.className = 'notification-message';
-    text.textContent = message;
-    content.appendChild(text);
-    notification.appendChild(content);
-
-    document.body.appendChild(notification);
-
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 3000);
+    notificationHelper.showNotification(message, type);
   }
 
   /**
@@ -483,4 +451,9 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => app.init());
 } else {
   app.init();
+}
+
+// Export for use in tests/Node environments
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { App, app };
 }

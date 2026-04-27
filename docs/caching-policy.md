@@ -159,3 +159,26 @@ When changing caching behavior, verify:
 - Wired route refresh to propagate force mode through renderers and data fetches.
 - Split service worker cache buckets into app shell, runtime, and API.
 - Fixed path-aware staleness reporting for root path entries in cache diagnostics.
+
+## Security Assumptions
+
+1. CSP host allowlist is intentionally minimal and tied to current runtime dependencies only:
+
+- Scripts: self and unpkg (Lucide UMD bundle in index.html)
+- Styles/Fonts: cdnjs (Font Awesome) and Google Fonts domains
+- Frames: docs.google.com (embedded contact form)
+
+2. Frontend network calls are same-origin only (`/api/*`).
+
+- Browser code does not call Google APIs directly.
+- Serverless functions are the only component that calls external Google endpoints.
+
+3. Team photos and Drive links are treated as untrusted input.
+
+- Server sanitizes and normalizes photo URLs.
+- Frontend applies URL and HTML escaping before rendering into attributes/content.
+
+4. Any newly introduced third-party origin must be justified and updated in:
+
+- vercel.json CSP policy
+- related tests/docs where behavior depends on that origin
