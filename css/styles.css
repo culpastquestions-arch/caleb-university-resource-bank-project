@@ -1379,17 +1379,13 @@ body {
 }
 
 .team-card--rep .team-card__avatar {
-  width: 78px;
-  height: 78px;
-  font-size: 1.25rem;
+  width: 86px;
+  height: 86px;
+  font-size: 1.5rem;
 }
 
 .team-card--rep .team-card__name {
-  font-size: 1rem;
-}
-
-.team-card--rep .team-card__role {
-  font-size: 0.85rem;
+  font-size: 1.05rem;
 }
 
 .team-card__avatar {
@@ -1421,6 +1417,10 @@ body {
   justify-content: center;
   width: 100%;
   height: 100%;
+}
+
+.team-card__initials--hidden {
+  display: none;
 }
 
 .team-card__info {
@@ -1924,23 +1924,6 @@ body {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   }
 
-  .team-card--rep {
-    padding: var(--space-4) var(--space-3);
-  }
-
-  .team-card--rep .team-card__avatar {
-    width: 62px;
-    height: 62px;
-    font-size: 1rem;
-  }
-
-  .team-card--rep .team-card__name {
-    font-size: 0.875rem;
-  }
-
-  .team-card--rep .team-card__role {
-    font-size: 0.75rem;
-  }
 }
 
 /* About Page Responsive */

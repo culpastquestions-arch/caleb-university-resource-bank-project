@@ -158,10 +158,10 @@ class TeamRenderer {
       const safeRole = renderer.escapeHtml(role);
       const safeInitials = renderer.escapeHtml(initials);
 
-      const avatarContent = photoUrl
-        ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}">
-             <span class="team-card__initials" style="display:none;">${safeInitials}</span>`
-        : `<span class="team-card__initials">${safeInitials}</span>`;
+       const avatarContent = photoUrl
+         ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}" loading="lazy" decoding="async">
+           <span class="team-card__initials">${safeInitials}</span>`
+         : `<span class="team-card__initials">${safeInitials}</span>`;
 
       const delay = Math.min(index * 0.04, 0.4);
 
@@ -183,7 +183,10 @@ class TeamRenderer {
     const executiveMembers = hasExecutives ? teamData.executives : [];
     const topExecutives = executiveMembers.slice(0, 2);
     const remainingExecutives = executiveMembers.slice(2);
-    const bottomExecutiveColumns = Math.min(Math.max(remainingExecutives.length, 1), 5);
+    let bottomExecutiveColumns = Math.min(Math.max(remainingExecutives.length, 1), 5);
+    if (remainingExecutives.length === 6) {
+      bottomExecutiveColumns = 3;
+    }
 
     if (!hasExecutives && !hasReps) {
       return `
@@ -253,18 +256,35 @@ class TeamRenderer {
       if (img.dataset.errorBound === '1') return;
       img.dataset.errorBound = '1';
 
+      const initialSrc = img.dataset.photoSrc || img.src || '';
+      const idMatch = initialSrc.match(/[?&]id=([^&]+)/) || initialSrc.match(/\/d\/([^/]+)/);
+      if (idMatch && idMatch[1]) {
+        img.dataset.driveId = idMatch[1];
+      }
+
+      img.addEventListener('load', () => {
+        const initials = img.nextElementSibling;
+        if (initials && initials.classList.contains('team-card__initials')) {
+          initials.classList.add('team-card__initials--hidden');
+        }
+      });
+
       img.addEventListener('error', () => {
-        if (img.dataset.fallbackTried !== '1') {
-          img.dataset.fallbackTried = '1';
+        const driveId = img.dataset.driveId || '';
+        const fallbackUrls = driveId
+          ? [
+            `https://drive.google.com/uc?export=view&id=${driveId}`,
+            `https://drive.google.com/uc?export=download&id=${driveId}`,
+            `https://drive.google.com/thumbnail?id=${driveId}&sz=w1000`
+          ]
+          : [];
 
-          if (img.src.includes('export=view')) {
-            img.src = img.src.replace('export=view', 'export=download');
-            return;
-          }
-
-          const idMatch = img.src.match(/[?&]id=([^&]+)/);
-          if (idMatch && idMatch[1]) {
-            img.src = `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w1000`;
+        const stage = Number.parseInt(img.dataset.fallbackStage || '0', 10);
+        if (fallbackUrls.length > 0 && stage < fallbackUrls.length) {
+          const nextUrl = fallbackUrls[stage];
+          img.dataset.fallbackStage = String(stage + 1);
+          if (nextUrl && img.src !== nextUrl) {
+            img.src = nextUrl;
             return;
           }
         }
@@ -272,7 +292,7 @@ class TeamRenderer {
         img.style.display = 'none';
         const initials = img.nextElementSibling;
         if (initials && initials.classList.contains('team-card__initials')) {
-          initials.style.display = 'flex';
+          initials.classList.remove('team-card__initials--hidden');
         }
       });
     });
