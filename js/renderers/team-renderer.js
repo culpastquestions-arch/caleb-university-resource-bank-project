@@ -72,22 +72,6 @@ class TeamRenderer {
           </div>
         </section>
 
-        <section class="about-section about-section--cta">
-          <div class="about-cta">
-            <div class="about-cta__icon">
-              <i class="fas fa-hand-holding-heart"></i>
-            </div>
-            <h2 class="about-cta__title">Join the Team</h2>
-            <p class="about-cta__text">
-              Interested in contributing to CURB and helping students access quality academic resources?
-              We're always looking for passionate individuals to join our growing team.
-            </p>
-            <p class="about-cta__contact">
-              <i class="fas fa-envelope"></i>
-              Contact us if you'd like to get involved!
-            </p>
-          </div>
-        </section>
       </div>
     `;
 
@@ -136,20 +120,27 @@ class TeamRenderer {
   _renderTeamContent(teamData) {
     const renderer = this.renderer;
     const roleColors = { executive: '#1E88E5', rep: '#26A69A' };
+    const invalidNames = new Set(['tbd', 'coming soon', 'tba', 'n/a', '-']);
+
+    const isValidName = (value) => {
+      if (!value || typeof value !== 'string') return false;
+      const trimmed = value.trim();
+      if (!trimmed) return false;
+      return !invalidNames.has(trimmed.toLowerCase());
+    };
 
     const getInitials = (name) => {
-      if (!name || name === 'TBD' || name === 'Coming Soon') return '?';
+      if (!isValidName(name)) return '';
       const parts = name.trim().split(/\s+/);
       if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
       return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
     };
 
     const renderTeamCard = (member, type = 'rep', index = 0) => {
-      const name = member.name || 'TBD';
+      const name = member.name ? String(member.name).trim() : '';
       const initials = getInitials(name);
-      const isPlaceholder = name === 'TBD' || name === 'Coming Soon';
 
-      const role = member.role || `${member.department} Rep`;
+      const role = member.role || (member.department ? `${member.department} Rep` : 'Team Member');
       const color = member.color || roleColors[type];
       const photoUrl = member.photoUrl || member.photourl || '';
       const safePhotoUrl = renderer.escapeAttr(renderer.safeUrl(photoUrl, ''));
@@ -166,21 +157,26 @@ class TeamRenderer {
       const delay = Math.min(index * 0.04, 0.4);
 
       return `
-        <div class="team-card team-card--${type}${isPlaceholder ? ' team-card--placeholder' : ''}" style="animation-delay: ${delay}s">
+        <div class="team-card team-card--${type}" style="animation-delay: ${delay}s">
           <div class="team-card__avatar" style="background-color: ${color}">
             ${avatarContent}
           </div>
           <div class="team-card__info">
-            <h3 class="team-card__name">${isPlaceholder ? 'Coming Soon' : safeName}</h3>
+            <h3 class="team-card__name">${safeName}</h3>
             <p class="team-card__role">${safeRole}</p>
           </div>
         </div>
       `;
     };
 
-    const hasExecutives = teamData.executives && teamData.executives.length > 0;
-    const hasReps = teamData.departmentReps && teamData.departmentReps.length > 0;
-    const executiveMembers = hasExecutives ? teamData.executives : [];
+    const executiveMembers = Array.isArray(teamData.executives)
+      ? teamData.executives.filter(member => isValidName(member?.name))
+      : [];
+    const repMembers = Array.isArray(teamData.departmentReps)
+      ? teamData.departmentReps.filter(member => isValidName(member?.name))
+      : [];
+    const hasExecutives = executiveMembers.length > 0;
+    const hasReps = repMembers.length > 0;
     const topExecutives = executiveMembers.slice(0, 2);
     const remainingExecutives = executiveMembers.slice(2);
     let bottomExecutiveColumns = Math.min(Math.max(remainingExecutives.length, 1), 5);
@@ -235,7 +231,7 @@ class TeamRenderer {
             Department Representatives
           </h3>
           <div class="about-team-grid about-team-grid--reps">
-            ${teamData.departmentReps.map((rep, i) => renderTeamCard(rep, 'rep', i)).join('')}
+            ${repMembers.map((rep, i) => renderTeamCard(rep, 'rep', i)).join('')}
           </div>
         </div>
       `
