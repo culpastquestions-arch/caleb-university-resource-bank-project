@@ -1,6 +1,6 @@
 // Service Worker for CURB
 // Versioned cache name; bump only when cache schema/behavior changes.
-const SW_VERSION = '1.5.1';
+const SW_VERSION = '1.5.2';
 const CACHE_PREFIX = 'curb-';
 const APP_SHELL_CACHE = `${CACHE_PREFIX}app-shell-v${SW_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-v${SW_VERSION}`;
@@ -129,14 +129,12 @@ self.addEventListener('fetch', event => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') return;
 
-  // Skip Google APIs and external CDNs
-  if (event.request.url.includes('googleapis.com') ||
-    event.request.url.includes('fontawesome.com') ||
-    event.request.url.includes('cdnjs.cloudflare.com')) {
+  const url = new URL(event.request.url);
+
+  // Skip any non-http(s) or cross-origin requests (let the browser handle them).
+  if ((url.protocol !== 'http:' && url.protocol !== 'https:') || url.origin !== self.location.origin) {
     return;
   }
-
-  const url = new URL(event.request.url);
 
   // API calls - Network First (fresh data preferred, offline fallback preserved)
   if (url.pathname.includes('/api/')) {
