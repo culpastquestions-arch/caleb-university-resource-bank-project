@@ -65,19 +65,45 @@ if ('serviceWorker' in navigator) {
 
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
+        const showUpdateToast = () => {
+          try {
+            if (window.notificationHelper && typeof window.notificationHelper.showToast === 'function') {
+              window.notificationHelper.showToast('Updating CURB to the latest version...', 'info');
+            }
+          } catch (e) {
+            // Ignore toast failures
+          }
+        };
+
         const triggerUpdate = (worker) => {
           if (!worker) return;
           worker.addEventListener('statechange', () => {
             if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateToast();
               worker.postMessage({ type: 'SKIP_WAITING' });
             }
           });
         };
 
-        triggerUpdate(registration.waiting);
+        const checkForUpdate = () => {
+          try {
+            registration.update();
+            triggerUpdate(registration.waiting);
+          } catch (e) {
+            // Ignore update failures
+          }
+        };
+
+        checkForUpdate();
 
         registration.addEventListener('updatefound', () => {
           triggerUpdate(registration.installing);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            checkForUpdate();
+          }
         });
       })
       .catch(error => {
