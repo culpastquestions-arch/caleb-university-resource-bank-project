@@ -174,9 +174,15 @@ class Navigator {
    */
   goBack() {
     const route = this.currentRoute;
+    const isJupeb = route.department === 'Jupeb';
 
     if (route.session) {
-      this.navigateTo(`/${route.department}/${route.level}/${route.semester}`);
+      if (isJupeb) {
+        // Jupeb has no semester layer: Subject → Session → Files
+        this.navigateTo(`/${route.department}/${route.level}`);
+      } else {
+        this.navigateTo(`/${route.department}/${route.level}/${route.semester}`);
+      }
     } else if (route.semester) {
       this.navigateTo(`/${route.department}/${route.level}`);
     } else if (route.level) {
