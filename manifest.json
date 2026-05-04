@@ -13,19 +13,19 @@
   "id": "caleb-university-resource-bank",
   "icons": [
     {
-      "src": "assets/caleb-university-logo-transparent.png",
+      "src": "assets/logo.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/caleb-university-logo-transparent.png",
+      "src": "assets/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "assets/caleb-university-logo-transparent.png",
+      "src": "assets/logo.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any"
@@ -34,7 +34,7 @@
   "categories": ["education", "productivity"],
   "screenshots": [
     {
-      "src": "assets/caleb-university-logo-transparent.png",
+      "src": "assets/logo.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide"

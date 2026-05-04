@@ -22,7 +22,7 @@ const urlsToCache = [
   '/js/renderers/coverage-renderer.js',
   '/js/renderer.js',
   '/js/app.js',
-  '/assets/caleb-university-logo-transparent.png',
+  '/assets/logo.png',
   '/manifest.json',
   '/offline.html'
 ];
