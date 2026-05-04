@@ -1,6 +1,6 @@
 // Service Worker for CURB
 // Versioned cache name; bump only when cache schema/behavior changes.
-const SW_VERSION = '1.5.2';
+const SW_VERSION = '1.5.3';
 const CACHE_PREFIX = 'curb-';
 const APP_SHELL_CACHE = `${CACHE_PREFIX}app-shell-v${SW_VERSION}`;
 const RUNTIME_CACHE = `${CACHE_PREFIX}runtime-v${SW_VERSION}`;
