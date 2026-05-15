@@ -143,14 +143,24 @@ class TeamRenderer {
       const role = member.role || (member.department ? `${member.department} Rep` : 'Team Member');
       const color = member.color || roleColors[type];
       const photoUrl = member.photoUrl || member.photourl || '';
-      const safePhotoUrl = renderer.escapeAttr(renderer.safeUrl(photoUrl, ''));
+      const driveIdMatch = photoUrl.match(/[?&]id=([^&]+)/) || photoUrl.match(/\/d\/([^/]+)/);
+      const driveId = driveIdMatch && driveIdMatch[1] ? driveIdMatch[1] : '';
+      // Use smaller Drive thumbnails for faster loads; provide 2x for high-DPI screens.
+      const thumbSmall = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w300` : '';
+      const thumbLarge = driveId ? `https://drive.google.com/thumbnail?id=${driveId}&sz=w600` : '';
+      const photoSrc = driveId ? thumbSmall : photoUrl;
+      const safePhotoUrl = renderer.escapeAttr(renderer.safeUrl(photoSrc, ''));
+      const safeSrcSet = driveId
+        ? renderer.escapeAttr(`${thumbSmall} 1x, ${thumbLarge} 2x`)
+        : '';
+      const safeDriveId = renderer.escapeAttr(driveId);
       const safeAlt = renderer.escapeAttr(name);
       const safeName = renderer.escapeHtml(name);
       const safeRole = renderer.escapeHtml(role);
       const safeInitials = renderer.escapeHtml(initials);
 
        const avatarContent = photoUrl
-         ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}" loading="lazy" decoding="async">
+         ? `<img src="${safePhotoUrl}" alt="${safeAlt}" class="team-card__photo" data-photo-src="${safePhotoUrl}"${safeSrcSet ? ` srcset="${safeSrcSet}"` : ''}${safeDriveId ? ` data-drive-id="${safeDriveId}"` : ''} loading="lazy" decoding="async">
            <span class="team-card__initials">${safeInitials}</span>`
          : `<span class="team-card__initials">${safeInitials}</span>`;
 
