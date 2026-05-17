@@ -139,25 +139,6 @@ describe('route-level integration smoke tests', () => {
     expect(app.showToast).toHaveBeenCalledWith('Content refreshed successfully!', 'success');
   });
 
-  test('offline banner appears and clears when connection returns', () => {
-    const app = new App();
-    app.showToast = jest.fn();
-
-    Object.defineProperty(window.navigator, 'onLine', {
-      configurable: true,
-      value: false
-    });
-
-    app.setupOfflineDetection();
-
-    const banner = document.getElementById('offline-banner');
-    expect(banner).not.toBeNull();
-
-    window.dispatchEvent(new Event('online'));
-
-    expect(document.getElementById('offline-banner')).toBeNull();
-    expect(app.showToast).toHaveBeenCalledWith('Back online!', 'success');
-  });
 });
 
 describe('track page coverage scan integration smoke', () => {

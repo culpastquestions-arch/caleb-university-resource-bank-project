@@ -172,9 +172,6 @@ class App {
       darkModeBtn.addEventListener('click', () => this.toggleDarkMode());
     }
 
-    // Item #14: Offline detection and recovery
-    this.setupOfflineDetection();
-
     // Contact modal
     const installButton = document.getElementById('install-button');
     const installLinkFooter = document.getElementById('install-link-footer');
@@ -400,47 +397,6 @@ class App {
     pwaManager.installApp();
   }
 
-  /**
-   * Item #14: Setup offline/online detection.
-   * Shows a non-intrusive banner when the network drops
-   * and auto-recovers when connectivity returns.
-   */
-  setupOfflineDetection() {
-    const showOfflineBanner = () => {
-      if (document.getElementById('offline-banner')) return;
-
-      const banner = document.createElement('div');
-      banner.id = 'offline-banner';
-      banner.className = 'notification notification-warning';
-      banner.setAttribute('role', 'alert');
-      banner.innerHTML = `
-        <div class="notification-content">
-          <span class="notification-message">
-            <i class="fas fa-wifi" style="margin-right: 6px;"></i>
-            You're offline. Cached content is still available.
-          </span>
-        </div>
-      `;
-      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;border-radius:0;';
-      document.body.prepend(banner);
-    };
-
-    const hideOfflineBanner = () => {
-      const banner = document.getElementById('offline-banner');
-      if (banner) {
-        banner.remove();
-        this.showToast('Back online!', 'success');
-      }
-    };
-
-    window.addEventListener('offline', showOfflineBanner);
-    window.addEventListener('online', hideOfflineBanner);
-
-    // Check on init
-    if (!navigator.onLine) {
-      showOfflineBanner();
-    }
-  }
 }
 
 // Create global app instance
