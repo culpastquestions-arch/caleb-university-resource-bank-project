@@ -3,6 +3,7 @@
   "version": "1.5.0",
   "description": "Caleb University Resource Bank - Past questions and study materials",
   "scripts": {
+    "build": "node scripts/stamp-version.js",
     "test": "jest --verbose",
     "lint": "eslint \"api/**/*.js\" \"js/**/*.js\" \"test/**/*.js\" \"sw.js\"",
     "format:check": "prettier --check \"package.json\" \".eslintrc.json\" \".prettierrc.json\" \"docs/**/*.md\"",

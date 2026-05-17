@@ -13,7 +13,7 @@ This guide is a simple handover for hosting and long-term upkeep.
 
 1. Upload the full project to the hosting platform.
 2. Set the required environment variables (see next section).
-3. Build/start the app according to the host instructions (if required).
+3. Build the app by running `npm run build` (or configure your hosting platform's build command to `npm run build`). On Vercel this is usually auto-detected. On other platforms, set it in their dashboard or config.
 4. Set the domain name to point to the hosting platform.
 5. Open the site and confirm:
    - Home page loads.
