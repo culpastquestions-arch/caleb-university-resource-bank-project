@@ -66,6 +66,12 @@ function stampFile(filePath, pattern, replacement, label) {
 // ──────────────────────────────────────────────────────────────────────
 
 const buildId = getBuildId();
+
+if (!process.env.CI && !process.env.VERCEL) {
+  console.log(`\nSkipping version stamp: not in a CI environment (VERCEL or CI not set).\n`);
+  process.exit(0);
+}
+
 console.log(`\nStamping build version: ${buildId}\n`);
 
 try {
