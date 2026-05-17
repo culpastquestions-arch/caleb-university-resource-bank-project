@@ -28,6 +28,7 @@ These are mandatory and must be set in the hosting platform:
 - GOOGLE_DRIVE_ROOT_FOLDER_ID
 - TEAM_SHEET_EXECUTIVES_URL
 - TEAM_SHEET_REPS_URL
+- ALLOWED_ORIGIN (e.g. https://your-domain.com - protects API from cross-origin abuse)
 
 Tip: the values should be kept in a secure admin-only note.
 
@@ -85,6 +86,7 @@ Steps:
 If the school changes hosting providers:
 
 1. Copy the full project to the new host.
-2. Set the same environment variables.
-3. Point the domain to the new host.
-4. Test the site.
+2. Set the same environment variables (including ALLOWED_ORIGIN if the domain changes).
+3. Configure the new host to run `npm run build` on deployment.
+4. Point the domain to the new host.
+5. Test the site.
