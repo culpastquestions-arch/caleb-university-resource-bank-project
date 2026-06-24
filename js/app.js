@@ -24,6 +24,11 @@ class App {
       // Setup PWA features
       pwaManager.setup();
 
+      // Enforce email verification gate before accessing Drive API or routing
+      if (typeof emailGate !== 'undefined' && !emailGate.isVerified()) {
+        await emailGate.show();
+      }
+
       // Initialize Drive API
       await driveAPI.init();
 

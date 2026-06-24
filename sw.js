@@ -11,6 +11,7 @@ const urlsToCache = [
   '/css/variables.css',
   '/css/styles.css',
   '/js/bootstrap.js',
+  '/js/email-gate.js',
   '/js/config.js',
   '/js/cache.js',
   '/js/drive-api.js',

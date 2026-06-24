@@ -43,6 +43,11 @@ describe('route-level integration smoke tests', () => {
       installApp: jest.fn()
     };
 
+    global.emailGate = {
+      isVerified: jest.fn(() => true),
+      show: jest.fn().mockResolvedValue()
+    };
+
     global.driveAPI = {
       init: jest.fn().mockResolvedValue(true),
       fetchDepartments: jest.fn().mockResolvedValue(['Computer Science'])
