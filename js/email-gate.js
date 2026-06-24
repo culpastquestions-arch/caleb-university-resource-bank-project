@@ -93,7 +93,7 @@ class EmailGate {
           <img src="assets/logo.png" alt="Caleb University Logo" class="email-gate-logo">
           <h2 class="email-gate-title">Login</h2>
           <p class="email-gate-subtitle">
-            Please enter your school email to gain access to CURB.
+            Please enter your school email to gain access to Resource Bank.
           </p>
           <form class="email-gate-form" novalidate>
             <div class="email-gate-field">
@@ -113,8 +113,7 @@ class EmailGate {
               </div>
             </div>
             <button type="submit" class="email-gate-btn" id="gate-submit-btn">
-              <span>Proceed</span>
-              <i class="fas fa-arrow-right"></i>
+              <span>Enter</span>
             </button>
           </form>
         </div>
