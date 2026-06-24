@@ -131,19 +131,11 @@ Files are loaded in this order by `index.html`:
 | `api/team.js` | `/api/team` | Fetches team member data from Google Sheets. |
 | `api/_utils.js` | — | Shared utilities: CORS, HTTP helpers, folder normalization. |
 
-**PHP handlers (used by cPanel — identical logic):**
+> **PHP fallback:** A complete PHP implementation (for cPanel hosting) is preserved on
+> the `php-archive` branch. If you ever need to migrate away from Vercel, check out
+> that branch for the equivalent PHP handlers (`browse.php`, `coverage.php`, `team.php`,
+> `_config.php`, `_utils.php`) and the `.htaccess` routing rules.
 
-| File | Endpoint | Purpose |
-|---|---|---|
-| `api/browse.php` | `/api/browse` | Same as browse.js, written in PHP. |
-| `api/coverage.php` | `/api/coverage` | Same as coverage.js, written in PHP. |
-| `api/team.php` | `/api/team` | Same as team.js, written in PHP. |
-| `api/_config.php` | — | PHP configuration: env loading, constants. |
-| `api/_utils.php` | — | PHP shared utilities. |
-| `api/_cache/` | — | Directory where PHP file-based caches are stored. |
-
-> **Important:** Both JS and PHP backends exist so you can switch hosting platforms.
-> Vercel uses the `.js` files. cPanel uses the `.php` files. They do the same thing.
 
 ### Other Folders
 
@@ -413,7 +405,7 @@ If Vercel is no longer viable, the project can run on any cheap PHP hosting (cPa
 
 | Task | What to Change |
 |---|---|
-| **Add a new special department like Jupeb** | Update `LEVEL_EXCEPTIONS` in `api/_utils.js` AND `api/_config.php`. |
+| **Add a new special department like Jupeb** | Update `LEVEL_EXCEPTIONS` in `api/_utils.js`. |
 | **Change the contact email/WhatsApp** | Edit `index.html` (around line 152-154). |
 | **Change the Google Form for contact** | Edit the iframe `src` in `index.html` (around line 139). |
 | **Update the fallback team data** | Edit `js/config.js` (the `about.executives` and `about.departmentReps` arrays). |
@@ -502,21 +494,14 @@ When deploying changes, update the version in these three files to force cache r
 ### Editing Backend (API) Code
 
 1. Make changes to the `.js` file in `api/`.
-2. **Also update the corresponding `.php` file** to keep them in sync.
-3. Test locally.
-4. Commit and push.
-
-> **Critical:** Always keep the JS and PHP handlers in sync. If you change
-> `browse.js`, make the same change in `browse.php`. This ensures you can
-> switch hosting platforms without rewriting the backend.
+2. Test locally using `npx vercel dev` or `node server.js`.
+3. Commit and push.
 
 ### Adding a New API Endpoint
 
 1. Create `api/newname.js` following the pattern of existing handlers.
-2. Create `api/newname.php` with the same logic.
-3. Add a rewrite rule in `.htaccess`: `RewriteRule ^api/newname$ api/newname.php [L,QSA]`
-4. Add the handler mapping in `server.js` (for local dev).
-5. If it has caching, document it in `docs/caching-policy.md`.
+2. Add the handler mapping in `server.js` (for local dev).
+3. If it has caching, document it in `docs/caching-policy.md`.
 
 ---
 
