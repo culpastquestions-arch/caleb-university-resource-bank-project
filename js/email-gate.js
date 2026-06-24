@@ -93,17 +93,16 @@ class EmailGate {
           <img src="assets/logo.png" alt="Caleb University Logo" class="email-gate-logo">
           <h2 class="email-gate-title">Login</h2>
           <p class="email-gate-subtitle">
-            Please enter your student email to gain access to CURB.
+            Please enter your school email to gain access to CURB.
           </p>
           <form class="email-gate-form" novalidate>
             <div class="email-gate-field">
-              <label for="gate-email-input" class="email-gate-label">Student Email</label>
+              <label for="gate-email-input" class="email-gate-label">School Email</label>
               <div class="email-gate-input-wrapper">
                 <input 
                   type="email" 
                   id="gate-email-input" 
                   class="email-gate-input" 
-                  placeholder="yourname@calebuniversity.edu.ng"
                   autocomplete="email"
                   required
                 />
