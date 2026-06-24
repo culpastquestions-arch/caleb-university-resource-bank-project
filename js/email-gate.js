@@ -91,9 +91,9 @@ class EmailGate {
       overlay.innerHTML = `
         <div class="email-gate-card">
           <img src="assets/logo.png" alt="Caleb University Logo" class="email-gate-logo">
-          <h2 class="email-gate-title">Verification Required</h2>
+          <h2 class="email-gate-title">Login</h2>
           <p class="email-gate-subtitle">
-            CURB is an exclusive academic resource bank for Caleb University. Please enter your student email to gain access.
+            Please enter your student email to gain access to CURB.
           </p>
           <form class="email-gate-form" novalidate>
             <div class="email-gate-field">
@@ -110,19 +110,14 @@ class EmailGate {
               </div>
               <div class="email-gate-error" id="gate-error-message">
                 <i class="fas fa-exclamation-circle"></i>
-                <span id="gate-error-text">Please enter a valid Caleb University email address.</span>
+                <span id="gate-error-text">Invalid email</span>
               </div>
             </div>
             <button type="submit" class="email-gate-btn" id="gate-submit-btn">
-              <span>Verify & Enter</span>
+              <span>Proceed</span>
               <i class="fas fa-arrow-right"></i>
             </button>
           </form>
-          <div class="email-gate-footer">
-            Need help? Contact support via 
-            <a href="mailto:cul.pastquestions@gmail.com">Email</a> or 
-            <a href="https://wa.me/2348029239273" target="_blank" rel="noopener noreferrer">WhatsApp</a>
-          </div>
         </div>
       `;
 
@@ -133,9 +128,12 @@ class EmailGate {
       const card = overlay.querySelector('.email-gate-card');
       const errorMsg = overlay.querySelector('#gate-error-message');
       const errorText = overlay.querySelector('#gate-error-text');
+      const submitBtn = overlay.querySelector('#gate-submit-btn');
 
       form.addEventListener('submit', (e) => {
         e.preventDefault();
+        
+        if (submitBtn.disabled) return;
         
         const emailVal = input.value;
         
@@ -151,19 +149,24 @@ class EmailGate {
             resolve();
           }, 300);
         } else {
-          // Validation failed: Show error & shake card
+          // Validation failed: Show error, shake card, and temporarily disable button
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = '0.7';
+          submitBtn.style.cursor = 'not-allowed';
+
           setTimeout(() => {
             card.classList.add('shake');
           }, 10);
           
-          if (!emailVal || emailVal.trim() === '') {
-            errorText.textContent = 'Email address cannot be empty.';
-          } else if (!emailVal.includes('@')) {
-            errorText.textContent = 'Please enter a valid email containing "@".';
-          } else {
-            errorText.textContent = 'Invalid domain. Must end with "calebuniversity.edu.ng".';
-          }
+          errorText.textContent = 'Invalid email';
           errorMsg.style.display = 'flex';
+
+          // Re-enable button after 1 second (1000ms)
+          setTimeout(() => {
+            submitBtn.disabled = false;
+            submitBtn.style.opacity = '';
+            submitBtn.style.cursor = '';
+          }, 1000);
         }
       });
     });
