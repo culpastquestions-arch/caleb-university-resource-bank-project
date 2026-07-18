@@ -140,6 +140,11 @@ class EmailGate {
         errorMsg.style.display = 'none';
 
         if (this.verify(emailVal)) {
+          // Track successful login in Google Analytics
+          if (typeof trackLogin === 'function') {
+            trackLogin(emailVal);
+          }
+
           // Success: Fade out and resolve
           overlay.classList.add('fade-out');
           setTimeout(() => {
