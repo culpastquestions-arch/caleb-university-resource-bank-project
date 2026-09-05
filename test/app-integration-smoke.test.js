@@ -69,6 +69,7 @@ describe('route-level integration smoke tests', () => {
       renderLevels: jest.fn().mockResolvedValue(undefined),
       renderSemesters: jest.fn().mockResolvedValue(undefined),
       renderSessions: jest.fn().mockResolvedValue(undefined),
+      renderSessionContent: jest.fn().mockResolvedValue(undefined),
       renderFiles: jest.fn().mockResolvedValue(undefined),
       renderNotFound: jest.fn(() => '<div>Not Found</div>'),
       renderErrorState: jest.fn((msg) => `<div>${msg}</div>`)
@@ -111,6 +112,31 @@ describe('route-level integration smoke tests', () => {
         view: 'files',
         department: 'Computer Science',
         level: '100 Level',
+        semester: '1st Semester',
+        session: '2025~26 Session'
+      }),
+      { forceRefresh: false }
+    );
+  });
+
+  test('session navigation route renders adaptive session content', async () => {
+    global.appNavigator.getCurrentRoute.mockReturnValue({
+      view: 'session',
+      department: 'Cybersecurity',
+      level: '300 Level',
+      semester: '1st Semester',
+      session: '2025~26 Session'
+    });
+
+    const app = new App();
+    await app.handleRouteChange();
+
+    expect(global.renderer.renderSessionContent).toHaveBeenCalledWith(
+      document.getElementById('main-content'),
+      expect.objectContaining({
+        view: 'session',
+        department: 'Cybersecurity',
+        level: '300 Level',
         semester: '1st Semester',
         session: '2025~26 Session'
       }),

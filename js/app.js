@@ -129,6 +129,9 @@ class App {
         case 'sessions':
           await renderer.renderSessions(mainContent, route, { forceRefresh });
           break;
+        case 'session':
+          await renderer.renderSessionContent(mainContent, route, { forceRefresh });
+          break;
         case 'files':
           await renderer.renderFiles(mainContent, route, { forceRefresh });
           break;
@@ -259,6 +262,9 @@ class App {
           currentPath += `/${route.semester}`;
           if (route.session) {
             currentPath += `/${route.session}`;
+            if (route.category) {
+              currentPath += `/${route.category}`;
+            }
           }
         }
       }

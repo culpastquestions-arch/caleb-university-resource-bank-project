@@ -97,14 +97,26 @@ describe('Navigator.parseRoute', () => {
         expect(route.semester).toBeNull();
     });
 
-    test('four segments returns files view for standard', () => {
+    test('four segments returns session view for standard', () => {
         window.location.hash = '#/Computer Science/100 Level/1st Semester/2024~25 Session';
         const route = nav.parseRoute();
-        expect(route.view).toBe('files');
+        expect(route.view).toBe('session');
         expect(route.department).toBe('Computer Science');
         expect(route.level).toBe('100 Level');
         expect(route.semester).toBe('1st Semester');
         expect(route.session).toBe('2024~25 Session');
+        expect(route.category).toBeNull();
+    });
+
+    test('five segments returns files view with category for standard', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
+        const route = nav.parseRoute();
+        expect(route.view).toBe('files');
+        expect(route.department).toBe('Cybersecurity');
+        expect(route.level).toBe('300 Level');
+        expect(route.semester).toBe('1st Semester');
+        expect(route.session).toBe('2024~25 Session');
+        expect(route.category).toBe('Course Material');
     });
 
     test('about route is recognized', () => {
@@ -123,7 +135,7 @@ describe('Navigator.parseRoute', () => {
     test('backward compatibility: fixes old session URLs with /', () => {
         window.location.hash = '#/Computer Science/100 Level/1st Semester/2024/25 Session';
         const route = nav.parseRoute();
-        expect(route.view).toBe('files');
+        expect(route.view).toBe('session');
         expect(route.session).toBe('2024~25 Session');
     });
 });
@@ -171,5 +183,43 @@ describe('Navigator.isValidRoute', () => {
         window.location.hash = '#/track';
         nav.currentRoute = nav.parseRoute();
         expect(nav.isValidRoute()).toBe(true);
+    });
+});
+
+describe('Navigator.getBreadcrumbs and goBack with Category', () => {
+    test('breadcrumbs include category when present', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
+        nav.currentRoute = nav.parseRoute();
+        const crumbs = nav.getBreadcrumbs();
+
+        expect(crumbs.length).toBe(6);
+        expect(crumbs[0].label).toBe('Home');
+        expect(crumbs[1].label).toBe('Cybersecurity');
+        expect(crumbs[2].label).toBe('300 Level');
+        expect(crumbs[3].label).toBe('1st Semester');
+        expect(crumbs[4].label).toBe('2024/25 Session');
+        expect(crumbs[4].active).toBe(false);
+        expect(crumbs[5].label).toBe('Course Material');
+        expect(crumbs[5].active).toBe(true);
+    });
+
+    test('goBack from category returns to session route', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Past Question';
+        nav.currentRoute = nav.parseRoute();
+
+        nav.goBack();
+        expect(window.location.hash).toBe('/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session');
+        expect(decodeURIComponent(window.location.hash)).toBe('/Cybersecurity/300 Level/1st Semester/2024~25 Session');
+        expect(nav.getCurrentRoute().view).toBe('session');
+    });
+
+    test('goBack from session returns to semester route', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session';
+        nav.currentRoute = nav.parseRoute();
+
+        nav.goBack();
+        expect(window.location.hash).toBe('/Cybersecurity/300%20Level/1st%20Semester');
+        expect(decodeURIComponent(window.location.hash)).toBe('/Cybersecurity/300 Level/1st Semester');
+        expect(nav.getCurrentRoute().view).toBe('sessions');
     });
 });

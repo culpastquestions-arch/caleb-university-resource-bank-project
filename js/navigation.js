@@ -89,7 +89,8 @@ class Navigator {
       department: null,
       level: null,
       semester: null,
-      session: null
+      session: null,
+      category: null
     };
 
     // Special route for About page
@@ -148,10 +149,20 @@ class Navigator {
         route.session = decodeSegment(parts[2]);
         route.semester = null;
       } else {
-        // Standard: 4 parts means Level/Semester/Session → Files
+        // Standard: 4 parts means Level/Semester/Session → Adaptive Session View
+        route.view = 'session';
+        route.semester = decodeSegment(parts[2]);
+        route.session = decodeSegment(parts[3]);
+      }
+    }
+
+    if (parts.length >= 5) {
+      if (route.department !== 'Jupeb') {
+        // Standard: 5 parts means Level/Semester/Session/Category → Files View
         route.view = 'files';
         route.semester = decodeSegment(parts[2]);
         route.session = decodeSegment(parts[3]);
+        route.category = decodeSegment(parts[4]);
       }
     }
 
@@ -176,17 +187,19 @@ class Navigator {
     const route = this.currentRoute;
     const isJupeb = route.department === 'Jupeb';
 
-    if (route.session) {
+    if (route.category) {
+      this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}`);
+    } else if (route.session) {
       if (isJupeb) {
         // Jupeb has no semester layer: Subject → Session → Files
-        this.navigateTo(`/${route.department}/${route.level}`);
+        this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}`);
       } else {
-        this.navigateTo(`/${route.department}/${route.level}/${route.semester}`);
+        this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}`);
       }
     } else if (route.semester) {
-      this.navigateTo(`/${route.department}/${route.level}`);
+      this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}`);
     } else if (route.level) {
-      this.navigateTo(`/${route.department}`);
+      this.navigateTo(`/${encodeSegment(route.department)}`);
     } else if (route.department) {
       this.navigateTo('/');
     }
@@ -245,6 +258,14 @@ class Navigator {
       breadcrumbs.push({
         label: displayName(route.session),
         path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}`,
+        active: route.view === 'session' || (route.view === 'files' && !route.category)
+      });
+    }
+
+    if (route.category) {
+      breadcrumbs.push({
+        label: displayName(route.category),
+        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}/${encodeSegment(route.category)}`,
         active: route.view === 'files'
       });
     }
@@ -326,6 +347,7 @@ class Navigator {
     if (route.level) parts.push(route.level);
     if (route.semester) parts.push(route.semester);
     if (route.session) parts.push(route.session);
+    if (route.category) parts.push(route.category);
 
     return parts.join(' - ');
   }

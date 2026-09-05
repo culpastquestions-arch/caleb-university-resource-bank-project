@@ -20,14 +20,14 @@ const MAX_SEGMENT_LENGTH = 120;
 const ALLOWED_TYPES = new Set(['folders', 'files']);
 
 /**
- * List PDF files in a Google Drive folder
+ * List files in a Google Drive folder (supports PDFs, Word, PowerPoint, ZIP, and other course materials)
  * @param {string} folderId - The Drive folder ID
  * @param {string} apiKey - Google API key
  * @returns {Promise<Array>} Array of file objects
  */
 async function listFiles(folderId, apiKey) {
-  const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/pdf' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size,webViewLink,webContentLink)&orderBy=name&key=${apiKey}`;
+  const query = encodeURIComponent(`'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`);
+  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size,webViewLink,webContentLink,mimeType)&orderBy=name&key=${apiKey}`;
 
   const response = await makeAPIRequest(url);
   return response.files || [];

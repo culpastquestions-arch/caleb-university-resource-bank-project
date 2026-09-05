@@ -95,13 +95,13 @@ async function findTargetSessionFolder(parentId, targetSessionName, apiKey) {
 }
 
 /**
- * Check whether a folder contains at least one PDF.
+ * Check whether a folder contains at least one course material file.
  * @param {string} folderId - Drive folder ID.
  * @param {string} apiKey - Google API key.
- * @returns {Promise<boolean>} True if any PDF exists.
+ * @returns {Promise<boolean>} True if any file exists.
  */
 async function hasFiles(folderId, apiKey) {
-  const query = encodeURIComponent(`'${folderId}' in parents and mimeType='application/pdf' and trashed=false`);
+  const query = encodeURIComponent(`'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`);
   const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id)&pageSize=1&key=${apiKey}`;
   const response = await makeAPIRequest(url);
   return response.files && response.files.length > 0;

@@ -64,16 +64,89 @@ class Renderer {
   }
 
     /**
+     * Get display metadata and icons for a file based on name and mimeType.
+     * @param {string} fileName - Name of the file.
+     * @param {string} [mimeType] - MIME type of the file.
+     * @returns {Object} Metadata object { iconClass, badgeClass, label, colorClass }.
+     */
+    getFileMeta(fileName = '', mimeType = '') {
+        const lowerName = (fileName || '').toLowerCase();
+        const ext = lowerName.includes('.') ? lowerName.split('.').pop() : '';
+
+        if (ext === 'pdf' || mimeType === 'application/pdf') {
+            return {
+                iconHtml: '<i class="far fa-file-pdf"></i>',
+                badgeClass: 'file-badge--pdf',
+                colorClass: 'file-icon--pdf',
+                label: 'PDF'
+            };
+        }
+
+        if (['docx', 'doc', 'rtf'].includes(ext) || mimeType.includes('word') || mimeType.includes('officedocument.wordprocessingml')) {
+            return {
+                iconHtml: '<i class="far fa-file-word"></i>',
+                badgeClass: 'file-badge--word',
+                colorClass: 'file-icon--word',
+                label: 'DOC'
+            };
+        }
+
+        if (['pptx', 'ppt'].includes(ext) || mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
+            return {
+                iconHtml: '<i class="far fa-file-powerpoint"></i>',
+                badgeClass: 'file-badge--ppt',
+                colorClass: 'file-icon--ppt',
+                label: 'PPT'
+            };
+        }
+
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) || mimeType.includes('zip') || mimeType.includes('compressed')) {
+            return {
+                iconHtml: '<i class="far fa-file-zipper"></i>',
+                badgeClass: 'file-badge--zip',
+                colorClass: 'file-icon--zip',
+                label: 'ZIP'
+            };
+        }
+
+        if (['xlsx', 'xls', 'csv'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+            return {
+                iconHtml: '<i class="far fa-file-excel"></i>',
+                badgeClass: 'file-badge--excel',
+                colorClass: 'file-icon--excel',
+                label: 'XLS'
+            };
+        }
+
+        if (['txt', 'md'].includes(ext) || mimeType.startsWith('text/')) {
+            return {
+                iconHtml: '<i class="far fa-file-lines"></i>',
+                badgeClass: 'file-badge--txt',
+                colorClass: 'file-icon--txt',
+                label: 'TXT'
+            };
+        }
+
+        return {
+            iconHtml: '<i class="far fa-file"></i>',
+            badgeClass: 'file-badge--default',
+            colorClass: 'file-icon--default',
+            label: (ext ? ext.toUpperCase() : 'FILE')
+        };
+    }
+
+    /**
      * Render skeleton loading UI.
-     * @param {string} type - 'departments', 'levels', 'semesters', 'sessions', or 'files'.
+     * @param {string} type - 'departments', 'levels', 'semesters', 'sessions', 'categories', or 'files'.
      * @param {string} message - Loading message.
      * @returns {string} HTML string.
      */
     renderSkeleton(type, message = 'Loading...') {
-        const skeletonCount = type === 'files' ? 5 : (type === 'departments' ? 8 : 4);
+        const skeletonCount = type === 'files' ? 5 : (type === 'departments' ? 8 : (type === 'categories' ? 2 : 4));
         const gridClass = type === 'files' ? 'file-list' :
             (type === 'departments' ? 'departments-grid' :
-                (type === 'levels' ? 'level-grid' : 'semester-grid'));
+                (type === 'categories' ? 'category-grid' :
+                    (type === 'levels' ? 'level-grid' : 'semester-grid')));
         const itemClass = type === 'files' ? 'skeleton-file' :
             (type === 'departments' ? 'skeleton-department' : 'skeleton-card');
 
@@ -275,9 +348,125 @@ class Renderer {
     }
 
     /**
+     * Helper to classify a category folder and return display metadata.
+     * @param {string} folderName - Category folder name in Drive.
+     * @returns {Object} Category metadata { title, subtitle, iconHtml, cardModifier }.
+     */
+    getCategoryMeta(folderName = '') {
+        const lower = folderName.trim().toLowerCase();
+
+        if (lower.includes('past question') || lower === 'pq' || lower === 'pqs') {
+            return {
+                title: 'Past Questions',
+                subtitle: 'Exam & test question papers',
+                iconHtml: '<i class="fas fa-file-signature"></i>',
+                cardModifier: 'category-card--pq'
+            };
+        }
+
+        if (lower.includes('course material') || lower.includes('material') || lower.includes('note') || lower.includes('slide') || lower.includes('lecture')) {
+            return {
+                title: 'Course Materials',
+                subtitle: 'Lecture slides, notes & handouts',
+                iconHtml: '<i class="fas fa-book-open"></i>',
+                cardModifier: 'category-card--materials'
+            };
+        }
+
+        return {
+            title: folderName,
+            subtitle: 'Course study resources',
+            iconHtml: '<i class="fas fa-folder-open"></i>',
+            cardModifier: 'category-card--general'
+        };
+    }
+
+    /**
+     * Render adaptive session view (dual-state).
+     * If category folders exist, displays category cards.
+     * If no category folders exist, falls back gracefully to direct file display.
+     * @param {HTMLElement} container - Main content container.
+     * @param {Object} route - Current route object.
+     * @param {Object} [options] - Options including forceRefresh.
+     */
+    async renderSessionContent(container, route, options = {}) {
+        const { forceRefresh = false } = options;
+        const sessionDisplay = displayName(route.session);
+        container.innerHTML = this.renderSkeleton('categories', `Loading ${sessionDisplay}...`);
+
+        const path = `/${route.department}/${route.level}/${route.semester}/${route.session}`;
+
+        try {
+            const subfolders = await driveAPI.fetchFolders(path, forceRefresh);
+
+            // If subfolders exist, render the Category Selection view
+            if (subfolders && subfolders.length > 0) {
+                // Sort categories: Past Questions first, Course Materials second, then alphabetical
+                const sortedFolders = [...subfolders].sort((a, b) => {
+                    const aLower = a.name.toLowerCase();
+                    const bLower = b.name.toLowerCase();
+                    const aIsPq = aLower.includes('past question') || aLower === 'pq';
+                    const bIsPq = bLower.includes('past question') || bLower === 'pq';
+                    const aIsCm = aLower.includes('material') || aLower.includes('course');
+                    const bIsCm = bLower.includes('material') || bLower.includes('course');
+
+                    if (aIsPq && !bIsPq) return -1;
+                    if (!aIsPq && bIsPq) return 1;
+                    if (aIsCm && !bIsCm) return -1;
+                    if (!aIsCm && bIsCm) return 1;
+                    return a.name.localeCompare(b.name);
+                });
+
+                container.innerHTML = `
+                    <div class="category-section">
+                        <div class="category-header">
+                            <h2 class="category-heading">Select Resource Category</h2>
+                            <p class="category-subheading">Choose whether to view past questions or course materials for ${this.escapeHtml(sessionDisplay)}</p>
+                        </div>
+                        <div class="category-grid">
+                            ${sortedFolders.map(folder => {
+                                const meta = this.getCategoryMeta(folder.name);
+                                const categoryUrl = `#/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}/${encodeSegment(folder.name)}`;
+                                return `
+                                    <a href="${categoryUrl}" class="category-card ${meta.cardModifier}">
+                                        <div class="category-card__icon">
+                                            ${meta.iconHtml}
+                                        </div>
+                                        <div class="category-card__content">
+                                            <h3 class="category-card__title">${this.escapeHtml(meta.title)}</h3>
+                                            <p class="category-card__subtitle">${this.escapeHtml(meta.subtitle)}</p>
+                                        </div>
+                                        <div class="category-card__arrow">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </div>
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+
+                this.ensureFontAwesomeIcons();
+                return;
+            }
+
+            // Fallback for unmigrated sessions: no category folders -> render files directly
+            await this.renderFiles(container, route, options);
+        } catch (error) {
+            console.error('Failed to load session content:', error);
+            try {
+                await this.renderFiles(container, route, options);
+            } catch (fileError) {
+                container.innerHTML = this.renderErrorState(fileError.message || 'Failed to load content');
+            }
+        }
+    }
+
+    /**
      * Render files view.
      * @param {HTMLElement} container - Main content container.
      * @param {Object} route - Current route object.
+     * @param {Object} [options] - Render options.
      */
     async renderFiles(container, route, options = {}) {
       const { forceRefresh = false } = options;
@@ -288,6 +477,8 @@ class Renderer {
 
         if (isJupeb) {
             path = `/${route.department}/${route.level}/${route.session}`;
+        } else if (route.category) {
+            path = `/${route.department}/${route.level}/${route.semester}/${route.session}/${route.category}`;
         } else {
             path = `/${route.department}/${route.level}/${route.semester}/${route.session}`;
         }
@@ -297,10 +488,16 @@ class Renderer {
         if (!files || files.length === 0) {
             const isFirstSemester2024_2025 = route.semester === '1st Semester' && route.session === '2024~25 Session';
 
-            if (isFirstSemester2024_2025) {
+            if (isFirstSemester2024_2025 && !route.category) {
                 container.innerHTML = this.renderEmptyState(
                     'No files available for 1st Semester 2024/2025',
                     'Files are available from 2nd semester 2024/2025 onwards.'
+                );
+            } else if (route.category) {
+                const categoryTitle = displayName(route.category);
+                container.innerHTML = this.renderEmptyState(
+                    `No ${categoryTitle} available yet`,
+                    'Files will be added soon. Check back later or contact us if you have materials to share.'
                 );
             } else {
                 container.innerHTML = this.renderEmptyState(
@@ -313,14 +510,17 @@ class Renderer {
 
         container.innerHTML = `
       <div class="file-list">
-        ${files.map(file => `
+        ${files.map(file => {
+          const fileMeta = this.getFileMeta(file.name, file.mimeType);
+          return `
           <div class="file-card">
-            <div class="file-icon"><i class="far fa-file-pdf"></i></div>
+            <div class="file-icon ${fileMeta.colorClass}">${fileMeta.iconHtml}</div>
             <div class="file-info">
               <div class="file-name">${this.escapeHtml(file.name)}</div>
               <div class="file-meta">
-                ${this.escapeHtml(file.size ? driveAPI.formatFileSize(file.size) : '')} •
-                ${this.escapeHtml(file.modifiedTime ? driveAPI.formatDate(file.modifiedTime) : '')}
+                <span class="file-badge ${fileMeta.badgeClass}">${fileMeta.label}</span>
+                ${file.size ? ` • ${this.escapeHtml(driveAPI.formatFileSize(file.size))}` : ''}
+                ${file.modifiedTime ? ` • ${this.escapeHtml(driveAPI.formatDate(file.modifiedTime))}` : ''}
               </div>
               <div class="file-actions">
                 <a href="${this.escapeAttr(this.safeUrl(driveAPI.getViewLink(file)))}" target="_blank" rel="noopener noreferrer" class="btn-secondary">View</a>
@@ -328,7 +528,8 @@ class Renderer {
               </div>
             </div>
           </div>
-        `).join('')}
+        `;
+        }).join('')}
       </div>
     `;
 

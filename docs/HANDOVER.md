@@ -187,14 +187,16 @@ Root Folder (ID stored in GOOGLE_DRIVE_ROOT_FOLDER_ID)
 
 ### Rules for the Drive Folder Structure
 
-1. **Hierarchy:** Department → Level → Semester → Session → PDF files.
-2. **Exception — Jupeb:** Department → Subject → Session → PDF files (no semester).
+1. **Hierarchy (Dual-State Supported):**
+   - **New / Migrated Sessions:** Department → Level → Semester → Session → Category (`Past Question`, `Course Material`) → Files.
+   - **Legacy / Unmigrated Sessions:** Department → Level → Semester → Session → Files (curb automatically detects this and displays files directly).
+2. **Exception — Jupeb:** Department → Subject → Session → Files (no semester layer, stays as-is).
 3. **Session folder names** must include "Session" (e.g., "2024/25 Session" or "2024~25 Session").
 4. **Slashes in folder names:** Google Drive allows `/` in names. In the URL, `/` is
    replaced with `~` (e.g., "2024/25 Session" becomes "2024~25 Session" in the URL).
 5. **Sharing:** The root folder AND all subfolders must be shared as
    **"Anyone with the link" → Viewer**. Otherwise the API can't read them.
-6. **Only PDFs are shown.** The app filters for `mimeType='application/pdf'`.
+6. **Supported File Formats:** PDFs, Word documents (`.docx`, `.doc`), PowerPoint slides (`.pptx`, `.ppt`), and ZIP bundles (`.zip`). The app automatically provides distinct icons and type badges for each format.
 
 ### How to Add a New Department
 
@@ -202,9 +204,10 @@ Root Folder (ID stored in GOOGLE_DRIVE_ROOT_FOLDER_ID)
 2. Inside it, create level folders (e.g., "100 Level", "200 Level", etc.).
 3. Inside each level, create semester folders ("1st Semester", "2nd Semester").
 4. Inside each semester, create session folders ("2025/26 Session").
-5. Upload PDFs into the session folders.
-6. Make sure sharing permissions are set correctly.
-7. The department will appear on the website automatically. No code changes needed.
+5. Inside each session folder, create category folders: "Past Question" and "Course Material" (or place files directly if unmigrated).
+6. Upload materials (PDFs, PPTX, DOCX, ZIP) into the appropriate folder.
+7. Make sure sharing permissions are set correctly.
+8. The department will appear on the website automatically. No code changes needed.
 
 ---
 
