@@ -51,6 +51,7 @@ describe('Category and Multi-Format Document Logic', () => {
       expect(zipMeta.label).toBe('ZIP');
       expect(zipMeta.badgeClass).toBe('file-badge--zip');
       expect(zipMeta.iconHtml).toContain('fa-file-zipper');
+      expect(zipMeta.iconHtml).toContain('fas');
 
       const rarMeta = rendererInstance.getFileMeta('Project_Assets.rar');
       expect(rarMeta.label).toBe('ZIP');

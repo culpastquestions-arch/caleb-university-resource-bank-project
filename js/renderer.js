@@ -71,9 +71,10 @@ class Renderer {
      */
     getFileMeta(fileName = '', mimeType = '') {
         const lowerName = (fileName || '').toLowerCase();
+        const lowerMime = (mimeType || '').toLowerCase();
         const ext = lowerName.includes('.') ? lowerName.split('.').pop() : '';
 
-        if (ext === 'pdf' || mimeType === 'application/pdf') {
+        if (ext === 'pdf' || lowerMime === 'application/pdf') {
             return {
                 iconHtml: '<i class="far fa-file-pdf"></i>',
                 badgeClass: 'file-badge--pdf',
@@ -82,7 +83,7 @@ class Renderer {
             };
         }
 
-        if (['docx', 'doc', 'rtf'].includes(ext) || mimeType.includes('word') || mimeType.includes('officedocument.wordprocessingml')) {
+        if (['docx', 'doc', 'rtf'].includes(ext) || lowerMime.includes('word') || lowerMime.includes('officedocument.wordprocessingml')) {
             return {
                 iconHtml: '<i class="far fa-file-word"></i>',
                 badgeClass: 'file-badge--word',
@@ -91,7 +92,7 @@ class Renderer {
             };
         }
 
-        if (['pptx', 'ppt'].includes(ext) || mimeType.includes('presentation') || mimeType.includes('powerpoint')) {
+        if (['pptx', 'ppt'].includes(ext) || lowerMime.includes('presentation') || lowerMime.includes('powerpoint')) {
             return {
                 iconHtml: '<i class="far fa-file-powerpoint"></i>',
                 badgeClass: 'file-badge--ppt',
@@ -100,16 +101,16 @@ class Renderer {
             };
         }
 
-        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) || mimeType.includes('zip') || mimeType.includes('compressed')) {
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext) || lowerMime.includes('zip') || lowerMime.includes('compressed')) {
             return {
-                iconHtml: '<i class="far fa-file-zipper"></i>',
+                iconHtml: '<i class="fas fa-file-zipper"></i>',
                 badgeClass: 'file-badge--zip',
                 colorClass: 'file-icon--zip',
                 label: 'ZIP'
             };
         }
 
-        if (['xlsx', 'xls', 'csv'].includes(ext) || mimeType.includes('spreadsheet') || mimeType.includes('excel')) {
+        if (['xlsx', 'xls', 'csv'].includes(ext) || lowerMime.includes('spreadsheet') || lowerMime.includes('excel')) {
             return {
                 iconHtml: '<i class="far fa-file-excel"></i>',
                 badgeClass: 'file-badge--excel',
@@ -118,7 +119,7 @@ class Renderer {
             };
         }
 
-        if (['txt', 'md'].includes(ext) || mimeType.startsWith('text/')) {
+        if (['txt', 'md'].includes(ext) || lowerMime.startsWith('text/')) {
             return {
                 iconHtml: '<i class="far fa-file-lines"></i>',
                 badgeClass: 'file-badge--txt',
