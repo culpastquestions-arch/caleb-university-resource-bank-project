@@ -308,6 +308,57 @@ function isTrustedCsvHost(string $hostname): bool
 // ──────────────────────────────────────────────────────────────────────
 
 /**
+ * Drive returns at most one page per request (100 items by default).
+ * Ask for the largest page and follow nextPageToken so big folders are not truncated.
+ */
+const DRIVE_PAGE_SIZE = 1000;
+const MAX_DRIVE_PAGES = 10;
+
+/**
+ * Run a Drive files.list query and return every matching item, following pagination.
+ *
+ * @param string $query  Drive search query (unencoded).
+ * @param string $fields Drive API fields selector, e.g. 'files(id,name)'.
+ * @param string $apiKey Google API key.
+ * @return array All matching file/folder objects, ordered by name.
+ * @throws RuntimeException On API error.
+ */
+function listDriveItems(string $query, string $fields, string $apiKey): array
+{
+    $baseUrl = 'https://www.googleapis.com/drive/v3/files'
+        . '?q=' . urlencode($query)
+        . '&fields=' . urlencode("nextPageToken,{$fields}")
+        . '&orderBy=name'
+        . '&pageSize=' . DRIVE_PAGE_SIZE
+        . "&key={$apiKey}";
+
+    $items     = [];
+    $pageToken = '';
+
+    for ($page = 0; $page < MAX_DRIVE_PAGES; $page++) {
+        $url = $pageToken !== ''
+            ? $baseUrl . '&pageToken=' . urlencode($pageToken)
+            : $baseUrl;
+
+        $response = makeApiRequest($url);
+
+        foreach (($response['files'] ?? []) as $item) {
+            $items[] = $item;
+        }
+
+        $pageToken = isset($response['nextPageToken']) && is_string($response['nextPageToken'])
+            ? $response['nextPageToken']
+            : '';
+
+        if ($pageToken === '') {
+            break;
+        }
+    }
+
+    return $items;
+}
+
+/**
  * List folders in a Google Drive directory.
  *
  * @param string $folderId Drive folder ID.
@@ -318,12 +369,11 @@ function isTrustedCsvHost(string $hostname): bool
  */
 function listFolders(string $folderId, string $apiKey, string $fields = 'files(id,name)'): array
 {
-    $query = urlencode("'{$folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false");
-    $encodedFields = urlencode($fields);
-    $url = "https://www.googleapis.com/drive/v3/files?q={$query}&fields={$encodedFields}&orderBy=name&key={$apiKey}";
-
-    $response = makeApiRequest($url);
-    return $response['files'] ?? [];
+    return listDriveItems(
+        "'{$folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+        $fields,
+        $apiKey
+    );
 }
 
 /**
@@ -336,11 +386,11 @@ function listFolders(string $folderId, string $apiKey, string $fields = 'files(i
  */
 function listFiles(string $folderId, string $apiKey): array
 {
-    $query = urlencode("'{$folderId}' in parents and mimeType='application/pdf' and trashed=false");
-    $url = "https://www.googleapis.com/drive/v3/files?q={$query}&fields=files(id,name,modifiedTime,size,webViewLink,webContentLink)&orderBy=name&key={$apiKey}";
-
-    $response = makeApiRequest($url);
-    return $response['files'] ?? [];
+    return listDriveItems(
+        "'{$folderId}' in parents and mimeType='application/pdf' and trashed=false",
+        'files(id,name,modifiedTime,size,webViewLink,webContentLink)',
+        $apiKey
+    );
 }
 
 /**
@@ -523,21 +573,6 @@ function pickRowValue(array $row, array $keys): string
         }
     }
     return '';
-}
-
-// ──────────────────────────────────────────────────────────────────────
-// Sanitization (XSS prevention — port of team.js)
-// ──────────────────────────────────────────────────────────────────────
-
-/**
- * HTML-encode special characters to prevent XSS.
- *
- * @param string $text Input text.
- * @return string Sanitized text.
- */
-function sanitizeText(string $text): string
-{
-    return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
 // ──────────────────────────────────────────────────────────────────────

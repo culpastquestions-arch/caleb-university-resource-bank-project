@@ -39,6 +39,14 @@ const PHOTO_URL_KEYS = [
 ];
 
 /**
+ * Cache keys for the parsed sheets.
+ * Text fields are cached and returned raw; the frontend escapes them when rendering.
+ * The "v2" suffix keeps entries cached by the older, HTML-escaping version from being served.
+ */
+const TEAM_EXECUTIVES_CACHE_KEY = 'team:executives:v2';
+const TEAM_REPS_CACHE_KEY       = 'team:reps:v2';
+
+/**
  * Build a numeric sort key for an academic session label.
  * Higher values represent newer sessions.
  *
@@ -116,7 +124,7 @@ function extractSessions(array $rows): array
  */
 function fetchAllExecutives(string $sheetUrl, bool $bypassCache = false): array
 {
-    $cacheKey = 'team:executives';
+    $cacheKey = TEAM_EXECUTIVES_CACHE_KEY;
 
     if (!$bypassCache) {
         $cached = cacheGet($cacheKey, TEAM_CACHE_TTL);
@@ -131,8 +139,8 @@ function fetchAllExecutives(string $sheetUrl, bool $bypassCache = false): array
 
         $executives = array_map(function (array $row): array {
             return [
-                'name'     => sanitizeText($row['name'] ?? 'TBD'),
-                'role'     => sanitizeText($row['role'] ?? 'Team Member'),
+                'name'     => $row['name'] ?? 'TBD',
+                'role'     => $row['role'] ?? 'Team Member',
                 'photoUrl' => formatPhotoUrl(pickRowValue($row, PHOTO_URL_KEYS)),
                 'order'    => isset($row['order']) ? ((int) $row['order'] ?: 999) : 999,
                 'session'  => normalizeSessionLabel($row['session'] ?? ''),
@@ -170,7 +178,7 @@ function fetchAllExecutives(string $sheetUrl, bool $bypassCache = false): array
  */
 function fetchAllDepartmentReps(string $sheetUrl, bool $bypassCache = false): array
 {
-    $cacheKey = 'team:reps';
+    $cacheKey = TEAM_REPS_CACHE_KEY;
 
     if (!$bypassCache) {
         $cached = cacheGet($cacheKey, TEAM_CACHE_TTL);
@@ -185,8 +193,8 @@ function fetchAllDepartmentReps(string $sheetUrl, bool $bypassCache = false): ar
 
         $reps = array_map(function (array $row): array {
             return [
-                'department' => sanitizeText($row['department'] ?? 'Unknown'),
-                'name'       => sanitizeText($row['name'] ?? 'TBD'),
+                'department' => $row['department'] ?? 'Unknown',
+                'name'       => $row['name'] ?? 'TBD',
                 'photoUrl'   => formatPhotoUrl(pickRowValue($row, PHOTO_URL_KEYS)),
                 'session'    => normalizeSessionLabel($row['session'] ?? ''),
             ];
@@ -321,8 +329,8 @@ try {
     }, $departmentReps);
 
     // Compute cache status
-    $execCached = cacheGet('team:executives', TEAM_CACHE_TTL) !== null;
-    $repsCached = cacheGet('team:reps', TEAM_CACHE_TTL) !== null;
+    $execCached = cacheGet(TEAM_EXECUTIVES_CACHE_KEY, TEAM_CACHE_TTL) !== null;
+    $repsCached = cacheGet(TEAM_REPS_CACHE_KEY, TEAM_CACHE_TTL) !== null;
 
     // Send response
     if ($forceRefresh) {
