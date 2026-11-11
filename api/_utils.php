@@ -377,7 +377,9 @@ function listFolders(string $folderId, string $apiKey, string $fields = 'files(i
 }
 
 /**
- * List PDF files in a Google Drive folder.
+ * List files in a Google Drive folder (PDFs, Word, PowerPoint, ZIP and other
+ * course materials). Everything that is not a folder is returned, with its
+ * mimeType so the frontend can pick the right icon and badge.
  *
  * @param string $folderId Drive folder ID.
  * @param string $apiKey   Google API key.
@@ -387,8 +389,8 @@ function listFolders(string $folderId, string $apiKey, string $fields = 'files(i
 function listFiles(string $folderId, string $apiKey): array
 {
     return listDriveItems(
-        "'{$folderId}' in parents and mimeType='application/pdf' and trashed=false",
-        'files(id,name,modifiedTime,size,webViewLink,webContentLink)',
+        "'{$folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false",
+        'files(id,name,modifiedTime,size,webViewLink,webContentLink,mimeType)',
         $apiKey
     );
 }

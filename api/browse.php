@@ -127,7 +127,7 @@ try {
     $data = [];
 
     if ($type === 'files') {
-        // Get PDF files in this folder
+        // Get files in this folder (all types)
         $data = listFiles($currentFolderId, $apiKey);
     } else {
         // Get subfolders

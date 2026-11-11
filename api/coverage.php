@@ -121,16 +121,16 @@ function findTargetSessionFolder(string $parentId, string $targetSessionName, st
 }
 
 /**
- * Check whether a folder contains at least one PDF.
+ * Check whether a folder contains at least one course material file (any type).
  *
  * @param string $folderId Drive folder ID.
  * @param string $apiKey   Google API key.
- * @return bool True if any PDF exists.
+ * @return bool True if any file exists.
  * @throws RuntimeException On API error.
  */
 function hasFiles(string $folderId, string $apiKey): bool
 {
-    $query = urlencode("'{$folderId}' in parents and mimeType='application/pdf' and trashed=false");
+    $query = urlencode("'{$folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false");
     $url   = "https://www.googleapis.com/drive/v3/files?q={$query}&fields=files(id)&pageSize=1&key={$apiKey}";
 
     $response = makeApiRequest($url);
@@ -138,12 +138,12 @@ function hasFiles(string $folderId, string $apiKey): bool
 }
 
 /**
- * Check whether a folder tree contains at least one PDF (BFS).
- * Handles structures where PDFs are placed in nested course folders.
+ * Check whether a folder tree contains at least one file (BFS).
+ * Handles structures where files are placed in nested course folders.
  *
  * @param string $rootFolderId Session folder ID.
  * @param string $apiKey       Google API key.
- * @return bool True if any PDF exists in the subtree.
+ * @return bool True if any file exists in the subtree.
  * @throws RuntimeException On API error.
  */
 function hasFilesDeep(string $rootFolderId, string $apiKey): bool
