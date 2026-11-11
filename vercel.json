@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "php-archive": false
+    }
+  },
   "rewrites": [
     {
       "source": "/((?!api).*)",
