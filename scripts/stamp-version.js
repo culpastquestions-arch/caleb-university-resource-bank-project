@@ -8,10 +8,12 @@
  * service worker updates and cache invalidation automatically — no manual
  * version bumping required.
  *
- * Run via:  npm run build
+ * Runs automatically after `npm install` (the "postinstall" script in package.json),
+ * but only stamps when the CI or VERCEL environment variable is set, so local
+ * installs never modify tracked files.
  *
  * Hosting-agnostic: works on Vercel, Netlify, Cloudflare Pages, bare VPS,
- * GitHub Actions, or any platform that runs `npm run build`.
+ * GitHub Actions, or any platform that runs `npm install` with CI=1.
  *
  * @module scripts/stamp-version
  */

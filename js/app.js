@@ -7,7 +7,8 @@
  */
 class App {
   constructor() {
-    this.departments = null;
+    /** @type {HTMLElement|null} The view element of the most recent navigation. */
+    this.activeView = null;
   }
 
   /**
@@ -15,14 +16,16 @@ class App {
    */
   async init() {
     try {
-      // Check for environment variables
-      this.loadConfig();
-
-      // Check version and clear cache if needed
+      // Check version and clear cached data if needed
       this.checkVersionAndClearCache();
 
       // Setup PWA features
       pwaManager.setup();
+
+      // Enforce email verification gate before accessing Drive API or routing
+      if (typeof emailGate !== 'undefined' && !emailGate.isVerified()) {
+        await emailGate.show();
+      }
 
       // Initialize Drive API
       await driveAPI.init();
@@ -30,8 +33,8 @@ class App {
       // Setup event listeners
       this.setupEventListeners();
 
-      // Initialize navigator (no data needed upfront)
-      appNavigator.init(null);
+      // Initialize navigator
+      appNavigator.init();
       appNavigator.addListener(() => this.handleRouteChange());
 
       // Render initial view
@@ -44,46 +47,31 @@ class App {
   }
 
   /**
-   * Load configuration from environment or defaults.
-   */
-  loadConfig() {
-    CONFIG.api.endpoint = window.ENV?.API_ENDPOINT || '/api/browse';
-  }
-
-  /**
-   * Check app version and clear cache if version changed.
+   * Check app version and clear cached Drive listings if the version changed.
    */
   checkVersionAndClearCache() {
     const storedVersion = localStorage.getItem('app_version');
     const currentVersion = CONFIG.version;
 
     if (storedVersion !== currentVersion) {
-      this.clearAllCaches();
+      this.clearLocalCaches();
       localStorage.setItem('app_version', currentVersion);
     }
   }
 
   /**
-   * Clear all caches (service worker + localStorage).
+   * Clear the localStorage data caches.
+   * Cache Storage (app shell, assets, API responses) is owned by the service worker,
+   * which removes its own outdated caches when a new version activates.
    */
-  async clearAllCaches() {
+  clearLocalCaches() {
     try {
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(
-          cacheNames.map(cacheName => caches.delete(cacheName))
-        );
-      }
-
       pathCache.clearAll();
 
-      // Clear any remaining legacy cache keys
-      try {
-        localStorage.removeItem('curb_data');
-        localStorage.removeItem('curb_meta');
-      } catch (e) {
-        // Non-critical, ignore
-      }
+      // Keys written by older versions of the app
+      localStorage.removeItem('curb_data');
+      localStorage.removeItem('curb_meta');
+      localStorage.removeItem('curb_cache_meta');
     } catch (error) {
       console.error('Error clearing caches:', error);
     }
@@ -91,13 +79,24 @@ class App {
 
   /**
    * Handle route changes — dispatch to appropriate renderer.
+   * @param {{forceRefresh?: boolean}} [options] - Render options.
+   * @returns {Promise<boolean>} False when the view failed to render.
    */
   async handleRouteChange(options = {}) {
     const { forceRefresh = false } = options;
     const route = appNavigator.getCurrentRoute();
     const mainContent = document.getElementById('main-content');
 
-    if (!mainContent) return;
+    if (!mainContent) return false;
+
+    // Each navigation renders into its own element. If the user navigates again
+    // before a slow request finishes, the older render lands in an element that is
+    // no longer on the page instead of overwriting the newer view.
+    const view = document.createElement('div');
+    view.className = 'route-view';
+    mainContent.innerHTML = '';
+    mainContent.appendChild(view);
+    this.activeView = view;
 
     // Update breadcrumbs and title immediately
     renderer.renderBreadcrumbs();
@@ -106,33 +105,40 @@ class App {
     try {
       switch (route.view) {
         case 'home':
-          this.departments = await renderer.renderHome(mainContent, { forceRefresh });
-          this.attachSearchListener();
+          await renderer.renderHome(view, { forceRefresh });
+          if (this.activeView === view) {
+            this.attachSearchListener();
+          }
           break;
         case 'about':
-          await renderer.renderAboutPage(mainContent, { forceRefresh });
+          await renderer.renderAboutPage(view, { forceRefresh });
           break;
         case 'track':
-          await renderer.renderCoverage(mainContent, { forceRefresh });
+          await renderer.renderCoverage(view, { forceRefresh });
           break;
         case 'levels':
-          await renderer.renderLevels(mainContent, route, { forceRefresh });
+          await renderer.renderLevels(view, route, { forceRefresh });
           break;
         case 'semesters':
-          await renderer.renderSemesters(mainContent, route, { forceRefresh });
+          await renderer.renderSemesters(view, route, { forceRefresh });
           break;
         case 'sessions':
-          await renderer.renderSessions(mainContent, route, { forceRefresh });
+          await renderer.renderSessions(view, route, { forceRefresh });
+          break;
+        case 'session':
+          await renderer.renderSessionContent(view, route, { forceRefresh });
           break;
         case 'files':
-          await renderer.renderFiles(mainContent, route, { forceRefresh });
+          await renderer.renderFiles(view, route, { forceRefresh });
           break;
         default:
-          mainContent.innerHTML = renderer.renderNotFound();
+          view.innerHTML = renderer.renderNotFound();
       }
+      return true;
     } catch (error) {
       console.error('Error rendering view:', error);
-      mainContent.innerHTML = renderer.renderErrorState(error.message);
+      view.innerHTML = renderer.renderErrorState(error.message);
+      return false;
     }
   }
 
@@ -149,7 +155,7 @@ class App {
     // Scroll detection for header styling
     this.setupScrollListener();
 
-    // Announcement close
+    // Delegated clicks: announcement close + data-action buttons in rendered views
     document.addEventListener('click', (e) => {
       if (e.target.closest('.announcement-close')) {
         this.dismissAnnouncement();
@@ -166,38 +172,25 @@ class App {
       }
     });
 
-    // Dark mode toggle
-    const darkModeBtn = document.getElementById('dark-mode-toggle');
-    if (darkModeBtn) {
-      darkModeBtn.addEventListener('click', () => this.toggleDarkMode());
-    }
-
-    // Contact modal
+    // Install app
     const installButton = document.getElementById('install-button');
     const installLinkFooter = document.getElementById('install-link-footer');
-    const contactBtn = document.getElementById('contact-btn');
-    const contactLink = document.getElementById('contact-link');
-    const contactLinkFooter = document.getElementById('contact-link-footer');
-    const contactModal = document.getElementById('contact-modal');
 
     if (installButton) {
-      installButton.addEventListener('click', () => this.installApp());
+      installButton.addEventListener('click', () => pwaManager.installApp());
     }
     if (installLinkFooter) {
       installLinkFooter.addEventListener('click', (e) => {
         e.preventDefault();
-        this.installApp();
+        pwaManager.installApp();
       });
     }
 
-    contactModalHelper.wire({
-      contactBtn,
-      contactLink,
-      contactLinkFooter,
-      contactModal,
-      onOpen: () => this.openContactModal(),
-      onClose: () => this.closeContactModal()
-    });
+    // Contact modal
+    contactModalHelper.wire(document.getElementById('contact-modal'), [
+      document.getElementById('contact-btn'),
+      document.getElementById('contact-link-footer')
+    ]);
   }
 
   /**
@@ -209,11 +202,7 @@ class App {
     const updateHeader = () => {
       const header = document.querySelector('.app-header');
       if (header) {
-        if (window.scrollY > 50) {
-          header.classList.add('scrolled');
-        } else {
-          header.classList.remove('scrolled');
-        }
+        header.classList.toggle('scrolled', window.scrollY > 50);
       }
       ticking = false;
     };
@@ -245,28 +234,18 @@ class App {
   async handleRefresh() {
     const route = appNavigator.getCurrentRoute();
 
-    let currentPath = '';
-    if (route.department) {
-      currentPath = `/${route.department}`;
-      if (route.level) {
-        currentPath += `/${route.level}`;
-        if (route.semester) {
-          currentPath += `/${route.semester}`;
-          if (route.session) {
-            currentPath += `/${route.session}`;
-          }
-        }
-      }
-    }
+    // Home/About/Track routes have no department path; those invalidate the root cache.
+    const segments = [route.department, route.level, route.semester, route.session, route.category]
+      .filter(Boolean);
+    pathCache.invalidatePath(`/${segments.join('/')}`);
 
-    if (pathCache) {
-      // On Home/About/Track routes there is no department path; invalidate root cache.
-      const refreshPath = currentPath || '/';
-      pathCache.invalidatePath(refreshPath);
-    }
+    const rendered = await this.handleRouteChange({ forceRefresh: true });
 
-    await this.handleRouteChange({ forceRefresh: true });
-    this.showToast('Content refreshed successfully!', 'success');
+    if (rendered === false) {
+      this.showToast('Could not refresh content. Please try again.', 'error');
+    } else {
+      this.showToast('Content refreshed successfully!', 'success');
+    }
   }
 
   /**
@@ -327,10 +306,8 @@ class App {
         document.getElementById('department-grid').parentNode.appendChild(noResultsMsg);
       }
       noResultsMsg.style.display = 'block';
-    } else {
-      if (noResultsMsg) {
-        noResultsMsg.style.display = 'none';
-      }
+    } else if (noResultsMsg) {
+      noResultsMsg.style.display = 'none';
     }
   }
 
@@ -346,33 +323,6 @@ class App {
   }
 
   /**
-   * Toggle dark mode.
-   */
-  toggleDarkMode() {
-    const html = document.documentElement;
-    const currentTheme = html.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    html.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-  }
-
-  /**
-   * Open the contact modal.
-   */
-  openContactModal() {
-    const modal = document.getElementById('contact-modal');
-    contactModalHelper.open(modal);
-  }
-
-  /**
-   * Close the contact modal.
-   */
-  closeContactModal() {
-    const modal = document.getElementById('contact-modal');
-    contactModalHelper.close(modal);
-  }
-
-  /**
    * Show a toast notification.
    * @param {string} message - Message text.
    * @param {string} type - 'info', 'success', 'warning', or 'error'.
@@ -380,23 +330,6 @@ class App {
   showToast(message, type = 'info') {
     notificationHelper.showToast(message, type);
   }
-
-  /**
-   * Show a notification banner.
-   * @param {string} message - Message text.
-   * @param {string} type - 'info', 'success', 'warning', or 'error'.
-   */
-  showNotification(message, type = 'info') {
-    notificationHelper.showNotification(message, type);
-  }
-
-  /**
-   * Handle PWA install (delegates to PWAManager).
-   */
-  installApp() {
-    pwaManager.installApp();
-  }
-
 }
 
 // Create global app instance

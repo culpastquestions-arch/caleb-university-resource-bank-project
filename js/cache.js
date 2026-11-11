@@ -4,7 +4,6 @@
 class PathCacheManager {
   constructor() {
     this.storagePrefix = 'curb_path_';
-    this.metaKey = 'curb_cache_meta';
     this.defaultTTL = 30 * 60 * 1000; // 30 minutes
     this.departmentTTL = 2 * 60 * 60 * 1000; // 2 hours for departments (root path)
     this.defaultHardExpiry = 6 * 60 * 60 * 1000; // 6 hours hard expiry
@@ -31,39 +30,32 @@ class PathCacheManager {
    * @returns {boolean} Success status
    */
   set(path, type, data) {
+    const key = this.getKey(path, type);
+    const value = JSON.stringify({
+      data: data,
+      timestamp: Date.now(),
+      path: path,
+      type: type
+    });
+
     try {
-      const key = this.getKey(path, type);
-      const cacheEntry = {
-        data: data,
-        timestamp: Date.now(),
-        path: path,
-        type: type
-      };
-      
-      localStorage.setItem(key, JSON.stringify(cacheEntry));
-      this.updateMeta({ lastUpdated: Date.now() });
+      localStorage.setItem(key, value);
       return true;
     } catch (error) {
       console.error('Failed to set path cache:', error);
-      
-      // Handle quota exceeded - clear old entries
-      if (error.name === 'QuotaExceededError') {
-        this.clearOldestEntries(5);
-        // Retry once
-        try {
-          const key = this.getKey(path, type);
-          const cacheEntry = {
-            data: data,
-            timestamp: Date.now(),
-            path: path,
-            type: type
-          };
-          localStorage.setItem(key, JSON.stringify(cacheEntry));
-          return true;
-        } catch (retryError) {
-          console.error('Retry failed:', retryError);
-        }
+
+      if (error.name !== 'QuotaExceededError') {
+        return false;
       }
+    }
+
+    // Storage is full - drop the oldest entries and retry once
+    this.clearOldestEntries(5);
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (retryError) {
+      console.error('Retry failed:', retryError);
       return false;
     }
   }
@@ -78,11 +70,11 @@ class PathCacheManager {
     try {
       const key = this.getKey(path, type);
       const cached = localStorage.getItem(key);
-      
+
       if (!cached) return null;
-      
+
       const cacheEntry = JSON.parse(cached);
-      
+
       // Return entry with staleness info (path-aware TTL)
       return {
         data: cacheEntry.data,
@@ -126,28 +118,6 @@ class PathCacheManager {
   }
 
   /**
-   * Check if path has fresh (non-stale) cached data
-   * @param {string} path - The folder path
-   * @param {string} type - Content type
-   * @returns {boolean} True if fresh cache exists
-   */
-  hasFresh(path, type = 'folders') {
-    const cached = this.get(path, type);
-    return cached !== null && !cached.isStale;
-  }
-
-  /**
-   * Check if path has any cached data (even stale)
-   * @param {string} path - The folder path
-   * @param {string} type - Content type
-   * @returns {boolean} True if any cache exists
-   */
-  has(path, type = 'folders') {
-    const cached = this.get(path, type);
-    return cached !== null && !cached.isExpired;
-  }
-
-  /**
    * Remove cached data for a specific path
    * @param {string} path - The folder path
    * @param {string} type - Content type
@@ -177,17 +147,16 @@ class PathCacheManager {
   clearAll() {
     try {
       const keysToRemove = [];
-      
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(this.storagePrefix)) {
           keysToRemove.push(key);
         }
       }
-      
+
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      this.updateMeta({ lastCleared: Date.now() });
-      
+
       return true;
     } catch (error) {
       console.error('Failed to clear path caches:', error);
@@ -202,7 +171,7 @@ class PathCacheManager {
   clearOldestEntries(count = 5) {
     try {
       const entries = [];
-      
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key && key.startsWith(this.storagePrefix)) {
@@ -213,130 +182,16 @@ class PathCacheManager {
           }
         }
       }
-      
+
       // Sort by timestamp (oldest first)
       entries.sort((a, b) => a.timestamp - b.timestamp);
-      
+
       // Remove oldest entries
       const toRemove = entries.slice(0, count);
       toRemove.forEach(entry => localStorage.removeItem(entry.key));
-      
+
     } catch (error) {
       console.error('Failed to clear oldest entries:', error);
-    }
-  }
-
-  /**
-   * Get all cached paths info
-   * @returns {Array} Array of cache info objects
-   */
-  getAllCachedPaths() {
-    const paths = [];
-    
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(this.storagePrefix)) {
-          const cached = localStorage.getItem(key);
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            paths.push({
-              path: parsed.path,
-              type: parsed.type,
-              timestamp: parsed.timestamp,
-              isStale: this.isStale(parsed.timestamp, parsed.path),
-              age: Date.now() - parsed.timestamp
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to get cached paths:', error);
-    }
-    
-    return paths;
-  }
-
-  /**
-   * Get cache metadata
-   * @returns {Object} Cache metadata
-   */
-  getMeta() {
-    try {
-      const meta = localStorage.getItem(this.metaKey);
-      return meta ? JSON.parse(meta) : {};
-    } catch (error) {
-      return {};
-    }
-  }
-
-  /**
-   * Update cache metadata
-   * @param {Object} updates - Metadata updates
-   */
-  updateMeta(updates) {
-    try {
-      const currentMeta = this.getMeta();
-      const newMeta = { ...currentMeta, ...updates };
-      localStorage.setItem(this.metaKey, JSON.stringify(newMeta));
-    } catch (error) {
-      console.error('Failed to update meta:', error);
-    }
-  }
-
-  /**
-   * Get total cache size in KB
-   * @returns {number} Size in KB
-   */
-  getTotalSize() {
-    let totalSize = 0;
-    
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(this.storagePrefix)) {
-          const value = localStorage.getItem(key);
-          if (value) {
-            totalSize += new Blob([value]).size;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to calculate cache size:', error);
-    }
-    
-    return (totalSize / 1024).toFixed(2);
-  }
-
-  /**
-   * Get cache status for UI display
-   * @returns {Object} Status info
-   */
-  getStatus() {
-    const paths = this.getAllCachedPaths();
-    const freshCount = paths.filter(p => !p.isStale).length;
-    const staleCount = paths.filter(p => p.isStale).length;
-    
-    return {
-      totalPaths: paths.length,
-      freshPaths: freshCount,
-      stalePaths: staleCount,
-      sizeKB: this.getTotalSize()
-    };
-  }
-
-  /**
-   * Check if localStorage is available
-   * @returns {boolean} True if available
-   */
-  isAvailable() {
-    try {
-      const testKey = '__storage_test__';
-      localStorage.setItem(testKey, testKey);
-      localStorage.removeItem(testKey);
-      return true;
-    } catch (error) {
-      return false;
     }
   }
 }

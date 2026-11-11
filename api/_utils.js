@@ -22,6 +22,13 @@ const LEVEL_EXCEPTIONS = {
   "Jupeb": ["Art", "Business", "Science"],
 };
 
+const REQUEST_TIMEOUT_MS = 15000;
+
+// Drive returns at most one page per request (100 items by default).
+// Ask for the largest page and follow nextPageToken so big folders are not truncated.
+const DRIVE_PAGE_SIZE = 1000;
+const MAX_DRIVE_PAGES = 10;
+
 // ──────────────────────────────────────────────────────────────────────
 // Folder / String Normalization
 // ──────────────────────────────────────────────────────────────────────
@@ -48,7 +55,7 @@ function normalizeFolderName(name) {
  */
 function makeAPIRequest(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const request = https.get(url, (res) => {
       let data = '';
 
       res.on('data', (chunk) => {
@@ -66,8 +73,14 @@ function makeAPIRequest(url) {
           reject(new Error(`API request failed with status ${res.statusCode}: ${data}`));
         }
       });
-    }).on('error', (err) => {
+    });
+
+    request.on('error', (err) => {
       reject(err);
+    });
+
+    request.setTimeout(REQUEST_TIMEOUT_MS, () => {
+      request.destroy(new Error('Google Drive request timed out'));
     });
   });
 }
@@ -77,6 +90,31 @@ function makeAPIRequest(url) {
 // ──────────────────────────────────────────────────────────────────────
 
 /**
+ * Run a Drive files.list query and return every matching item, following pagination.
+ * @param {string} query - Drive search query (unencoded).
+ * @param {string} fields - Drive API fields selector, e.g. 'files(id,name)'.
+ * @param {string} apiKey - Google API key.
+ * @returns {Promise<Array>} All matching file/folder objects, ordered by name.
+ */
+async function listDriveItems(query, fields, apiKey) {
+  const baseUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}&fields=${encodeURIComponent(`nextPageToken,${fields}`)}&orderBy=name&pageSize=${DRIVE_PAGE_SIZE}&key=${apiKey}`;
+
+  const items = [];
+  let pageToken = '';
+
+  for (let page = 0; page < MAX_DRIVE_PAGES; page++) {
+    const url = pageToken ? `${baseUrl}&pageToken=${encodeURIComponent(pageToken)}` : baseUrl;
+    const response = await makeAPIRequest(url);
+    items.push(...(response.files || []));
+
+    pageToken = response.nextPageToken || '';
+    if (!pageToken) break;
+  }
+
+  return items;
+}
+
+/**
  * List folders in a Google Drive directory.
  * @param {string} folderId - The Drive folder ID.
  * @param {string} apiKey - Google API key.
@@ -84,13 +122,11 @@ function makeAPIRequest(url) {
  * @returns {Promise<Array>} Array of folder objects.
  */
 async function listFolders(folderId, apiKey, fields = 'files(id,name)') {
-  const query = encodeURIComponent(
-    `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`
+  return listDriveItems(
+    `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+    fields,
+    apiKey
   );
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=${encodeURIComponent(fields)}&orderBy=name&key=${apiKey}`;
-
-  const response = await makeAPIRequest(url);
-  return response.files || [];
 }
 
 // ──────────────────────────────────────────────────────────────────────
@@ -179,6 +215,7 @@ module.exports = {
   LEVEL_EXCEPTIONS,
   normalizeFolderName,
   makeAPIRequest,
+  listDriveItems,
   listFolders,
   setupCors,
   handlePreflightAndMethodGuard,

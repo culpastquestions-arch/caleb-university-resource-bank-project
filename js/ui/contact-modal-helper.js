@@ -25,50 +25,30 @@ const contactModalHelper = {
 
   /**
    * Attach contact modal events.
-   * @param {Object} options - Wiring options.
-   * @param {HTMLElement|null} options.contactBtn - Header contact button.
-   * @param {HTMLElement|null} options.contactLink - Navigation contact link.
-   * @param {HTMLElement|null} options.contactLinkFooter - Footer contact link.
-   * @param {HTMLElement|null} options.contactModal - Contact modal.
-   * @param {Function} options.onOpen - Open callback.
-   * @param {Function} options.onClose - Close callback.
+   * @param {HTMLElement|null} contactModal - Contact modal.
+   * @param {Array<HTMLElement|null>} triggers - Links/buttons that open the modal.
    */
-  wire(options = {}) {
-    const {
-      contactBtn,
-      contactLink,
-      contactLinkFooter,
-      contactModal,
-      onOpen,
-      onClose
-    } = options;
+  wire(contactModal, triggers = []) {
+    if (!contactModal) return;
 
-    const open = typeof onOpen === 'function' ? onOpen : () => this.open(contactModal);
-    const close = typeof onClose === 'function' ? onClose : () => this.close(contactModal);
-
-    if (contactBtn && contactModal) {
-      contactBtn.addEventListener('click', open);
-      contactModal.querySelector('.modal-close')?.addEventListener('click', close);
-      contactModal.addEventListener('click', (e) => {
-        if (e.target === contactModal) {
-          close();
-        }
-      });
-    }
-
-    if (contactLink && contactModal) {
-      contactLink.addEventListener('click', (e) => {
+    triggers.filter(Boolean).forEach((trigger) => {
+      trigger.addEventListener('click', (e) => {
+        // Triggers are "#" links; don't let them change the route.
         e.preventDefault();
-        open();
+        this.open(contactModal);
       });
-    }
+    });
 
-    if (contactLinkFooter && contactModal) {
-      contactLinkFooter.addEventListener('click', (e) => {
-        e.preventDefault();
-        open();
-      });
-    }
+    contactModal.querySelector('.modal-close')?.addEventListener('click', () => {
+      this.close(contactModal);
+    });
+
+    // Clicking the backdrop (outside the modal content) closes the modal.
+    contactModal.addEventListener('click', (e) => {
+      if (e.target === contactModal) {
+        this.close(contactModal);
+      }
+    });
   }
 };
 

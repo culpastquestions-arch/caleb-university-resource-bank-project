@@ -8,6 +8,8 @@ class TeamRenderer {
    */
   constructor(renderer) {
     this.renderer = renderer;
+    // Incremented on every session switch so a slow, older response is ignored.
+    this.sessionRequestId = 0;
   }
 
   /**
@@ -22,10 +24,6 @@ class TeamRenderer {
     container.innerHTML = this.renderAboutSkeleton();
 
     const teamData = await this.renderer.fetchTeamData(undefined, { forceRefresh });
-
-    // Store reference for session switching.
-    this.renderer._aboutContainer = container;
-    this.renderer._aboutMission = about.mission;
 
     this._renderAboutFull(container, about, teamData);
     this.attachTeamPhotoFallbackHandlers(container);
@@ -75,7 +73,7 @@ class TeamRenderer {
       </div>
     `;
 
-    this._attachSessionListeners();
+    this._attachSessionListeners(container);
   }
 
   /**
@@ -198,7 +196,7 @@ class TeamRenderer {
       return `
         <div class="empty-state" style="min-height: 200px;">
           <div class="empty-state-icon-wrap">
-            <i class="far fa-users"></i>
+            <i class="fas fa-users"></i>
           </div>
           <p class="empty-state-title">No team data for this session</p>
           <p class="meta-text">Team information hasn't been added yet</p>
@@ -307,9 +305,10 @@ class TeamRenderer {
   /**
    * Attach click listeners to session picker tabs.
    * Handles session switching by re-fetching and re-rendering only the team content.
+   * @param {HTMLElement} container - The about page container.
    */
-  _attachSessionListeners() {
-    const picker = document.getElementById('session-picker');
+  _attachSessionListeners(container) {
+    const picker = container.querySelector('#session-picker');
     if (!picker) return;
 
     picker.addEventListener('click', async (e) => {
@@ -324,7 +323,8 @@ class TeamRenderer {
         .forEach((t) => t.classList.remove('session-picker__tab--active'));
       tab.classList.add('session-picker__tab--active');
 
-      const teamContent = document.getElementById('team-content');
+      const requestId = ++this.sessionRequestId;
+      const teamContent = container.querySelector('#team-content');
       if (teamContent) {
         teamContent.innerHTML = `
           <div class="loading" style="padding: var(--space-8) 0;">
@@ -336,12 +336,14 @@ class TeamRenderer {
 
       try {
         const teamData = await this.renderer.fetchTeamData(session);
+        if (requestId !== this.sessionRequestId) return;
         if (teamContent) {
           teamContent.innerHTML = this._renderTeamContent(teamData);
           this.attachTeamPhotoFallbackHandlers(teamContent);
         }
       } catch (error) {
         console.error('Failed to switch session:', error);
+        if (requestId !== this.sessionRequestId) return;
         if (teamContent) {
           teamContent.innerHTML = `
             <div class="empty-state" style="min-height: 200px;">

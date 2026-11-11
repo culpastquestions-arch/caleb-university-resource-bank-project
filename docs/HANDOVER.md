@@ -31,12 +31,12 @@ organized by department, level, semester, and academic session.
 
 It has four pages:
 
-| Page | URL | Purpose |
-|---|---|---|
-| Home | `#/` | Search and browse departments |
-| Browse | `#/Computer Science/100 Level/...` | Navigate through folders to find PDFs |
-| About | `#/about` | Shows the executive team and department reps |
-| Track | `#/track` | Shows which departments have uploaded materials |
+| Page   | URL                                | Purpose                                         |
+| ------ | ---------------------------------- | ----------------------------------------------- |
+| Home   | `#/`                               | Search and browse departments                   |
+| Browse | `#/Computer Science/100 Level/...` | Navigate through folders to find PDFs           |
+| About  | `#/about`                          | Shows the executive team and department reps    |
+| Track  | `#/track`                          | Shows which departments have uploaded materials |
 
 The PDFs themselves are NOT stored on the website. They live in Google Drive. The website
 is just a nice way to browse the Drive folder structure and link students to the files.
@@ -88,72 +88,63 @@ is just a nice way to browse the Drive folder structure and link students to the
 
 ### Root Files
 
-| File | Purpose |
-|---|---|
-| `index.html` | The one and only HTML page. Everything renders inside `<div id="main-content">`. |
-| `sw.js` | Service worker for offline support and caching. |
-| `manifest.json` | PWA manifest — lets students "install" CURB on their phone's home screen. |
-| `offline.html` | Shown when the student has no internet and no cached version. |
-| `vercel.json` | Tells Vercel how to handle routing and security headers. |
-| `.htaccess` | Same thing as vercel.json, but for Apache/cPanel hosting. |
-| `server.js` | Local development server. Not used in production. |
-| `.env` | Secret environment variables. **Never commit this to git.** |
-| `env.example` | Template showing which env vars are needed. |
-| `package.json` | Only contains dev tools (jest, eslint, prettier). No production dependencies. |
+| File            | Purpose                                                                          |
+| --------------- | -------------------------------------------------------------------------------- |
+| `index.html`    | The one and only HTML page. Everything renders inside `<div id="main-content">`. |
+| `sw.js`         | Service worker for offline support and caching.                                  |
+| `manifest.json` | PWA manifest — lets students "install" CURB on their phone's home screen.        |
+| `offline.html`  | Shown when the student has no internet and no cached version.                    |
+| `vercel.json`   | Tells Vercel how to handle routing and security headers.                         |
+| `.htaccess`     | Same thing as vercel.json, but for Apache/cPanel hosting.                        |
+| `server.js`     | Local development server. Not used in production.                                |
+| `.env`          | Secret environment variables. **Never commit this to git.**                      |
+| `env.example`   | Template showing which env vars are needed.                                      |
+| `package.json`  | Only contains dev tools (jest, eslint, prettier). No production dependencies.    |
 
 ### Frontend — `js/` folder
 
 Files are loaded in this order by `index.html`:
 
-| File | What It Does |
-|---|---|
-| `js/bootstrap.js` | Runs first. Sets up the API endpoint, loads Font Awesome fallback, registers the service worker. |
-| `js/config.js` | App configuration: department colors, team data fallbacks, version number. |
-| `js/cache.js` | `PathCacheManager` — caches API responses in localStorage so pages load faster. |
-| `js/drive-api.js` | `DriveAPI` class — makes requests to `/api/browse` and handles client-side caching. |
-| `js/navigation.js` | `Navigator` class — hash-based SPA router (`#/department/level/semester/session`). |
-| `js/pwa.js` | `PWAManager` — handles the "Install App" button and install flow. |
-| `js/ui/notification-helper.js` | Toast notifications (success/error messages). |
-| `js/ui/contact-modal-helper.js` | Opens/closes the contact form modal. |
-| `js/renderers/team-renderer.js` | Renders the About page (executives + department reps). |
-| `js/renderers/coverage-renderer.js` | Renders the Track page (coverage grid). |
-| `js/renderer.js` | Main renderer — renders home, levels, semesters, sessions, and files views. |
-| `js/app.js` | `App` class — orchestrates everything. Initialization, routing, event listeners. |
+| File                                | What It Does                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------- |
+| `js/bootstrap.js`                   | Runs first. Registers the service worker and picks up updates.                      |
+| `js/config.js`                      | App configuration: department colors, team data fallbacks, version number.          |
+| `js/cache.js`                       | `PathCacheManager` — caches API responses in localStorage so pages load faster.     |
+| `js/drive-api.js`                   | `DriveAPI` class — makes requests to `/api/browse` and handles client-side caching. |
+| `js/navigation.js`                  | `Navigator` class — hash-based SPA router (`#/department/level/semester/session`).  |
+| `js/pwa.js`                         | `PWAManager` — handles the "Install App" button and install flow.                   |
+| `js/ui/notification-helper.js`      | Toast notifications (success/error messages).                                       |
+| `js/ui/contact-modal-helper.js`     | Opens/closes the contact form modal.                                                |
+| `js/renderers/team-renderer.js`     | Renders the About page (executives + department reps).                              |
+| `js/renderers/coverage-renderer.js` | Renders the Track page (coverage grid).                                             |
+| `js/renderer.js`                    | Main renderer — renders home, levels, semesters, sessions, and files views.         |
+| `js/app.js`                         | `App` class — orchestrates everything. Initialization, routing, event listeners.    |
 
 ### Backend — `api/` folder
 
 **Node.js handlers (used by Vercel):**
 
-| File | Endpoint | Purpose |
-|---|---|---|
-| `api/browse.js` | `/api/browse` | Browses Google Drive folders and files. The main API. |
-| `api/coverage.js` | `/api/coverage` | Checks which level/semester combos have PDFs uploaded. |
-| `api/team.js` | `/api/team` | Fetches team member data from Google Sheets. |
-| `api/_utils.js` | — | Shared utilities: CORS, HTTP helpers, folder normalization. |
+| File              | Endpoint        | Purpose                                                     |
+| ----------------- | --------------- | ----------------------------------------------------------- |
+| `api/browse.js`   | `/api/browse`   | Browses Google Drive folders and files. The main API.       |
+| `api/coverage.js` | `/api/coverage` | Checks which level/semester combos have PDFs uploaded.      |
+| `api/team.js`     | `/api/team`     | Fetches team member data from Google Sheets.                |
+| `api/_utils.js`   | —               | Shared utilities: CORS, HTTP helpers, folder normalization. |
 
-**PHP handlers (used by cPanel — identical logic):**
-
-| File | Endpoint | Purpose |
-|---|---|---|
-| `api/browse.php` | `/api/browse` | Same as browse.js, written in PHP. |
-| `api/coverage.php` | `/api/coverage` | Same as coverage.js, written in PHP. |
-| `api/team.php` | `/api/team` | Same as team.js, written in PHP. |
-| `api/_config.php` | — | PHP configuration: env loading, constants. |
-| `api/_utils.php` | — | PHP shared utilities. |
-| `api/_cache/` | — | Directory where PHP file-based caches are stored. |
-
-> **Important:** Both JS and PHP backends exist so you can switch hosting platforms.
-> Vercel uses the `.js` files. cPanel uses the `.php` files. They do the same thing.
+> **PHP fallback:** A complete PHP implementation (for cPanel hosting) is preserved on
+> the `php-archive` branch. If you ever need to migrate away from Vercel, check out
+> that branch for the equivalent PHP handlers (`browse.php`, `coverage.php`, `team.php`,
+> `_config.php`, `_utils.php`) and the `.htaccess` routing rules.
 
 ### Other Folders
 
-| Folder | Purpose |
-|---|---|
-| `css/` | `variables.css` (design tokens) + `styles.css` (all styles). |
-| `assets/` | Just `logo.png`. |
-| `docs/` | This guide + `caching-policy.md`. |
+| Folder     | Purpose                                                                          |
+| ---------- | -------------------------------------------------------------------------------- |
+| `css/`     | `variables.css` (design tokens) + `styles.css` (all styles).                     |
+| `assets/`  | Just `logo.png`.                                                                 |
+| `docs/`    | This guide + `caching-policy.md`.                                                |
 | `scripts/` | `stamp-version.js` — auto-stamps git commit hash into version strings on deploy. |
-| `test/` | Jest unit tests. Run with `npm test`. |
+| `test/`    | Jest unit tests. Run with `npm test`.                                            |
 
 ---
 
@@ -195,14 +186,16 @@ Root Folder (ID stored in GOOGLE_DRIVE_ROOT_FOLDER_ID)
 
 ### Rules for the Drive Folder Structure
 
-1. **Hierarchy:** Department → Level → Semester → Session → PDF files.
-2. **Exception — Jupeb:** Department → Subject → Session → PDF files (no semester).
+1. **Hierarchy (Dual-State Supported):**
+   - **New / Migrated Sessions:** Department → Level → Semester → Session → Category (`Past Question`, `Course Material`) → Files.
+   - **Legacy / Unmigrated Sessions:** Department → Level → Semester → Session → Files (curb automatically detects this and displays files directly).
+2. **Exception — Jupeb:** Department → Subject → Session → Files (no semester layer, stays as-is).
 3. **Session folder names** must include "Session" (e.g., "2024/25 Session" or "2024~25 Session").
 4. **Slashes in folder names:** Google Drive allows `/` in names. In the URL, `/` is
    replaced with `~` (e.g., "2024/25 Session" becomes "2024~25 Session" in the URL).
 5. **Sharing:** The root folder AND all subfolders must be shared as
    **"Anyone with the link" → Viewer**. Otherwise the API can't read them.
-6. **Only PDFs are shown.** The app filters for `mimeType='application/pdf'`.
+6. **Supported File Formats:** PDFs, Word documents (`.docx`, `.doc`), PowerPoint slides (`.pptx`, `.ppt`), and ZIP bundles (`.zip`). The app automatically provides distinct icons and type badges for each format.
 
 ### How to Add a New Department
 
@@ -210,9 +203,10 @@ Root Folder (ID stored in GOOGLE_DRIVE_ROOT_FOLDER_ID)
 2. Inside it, create level folders (e.g., "100 Level", "200 Level", etc.).
 3. Inside each level, create semester folders ("1st Semester", "2nd Semester").
 4. Inside each semester, create session folders ("2025/26 Session").
-5. Upload PDFs into the session folders.
-6. Make sure sharing permissions are set correctly.
-7. The department will appear on the website automatically. No code changes needed.
+5. Inside each session folder, create category folders: "Past Question" and "Course Material" (or place files directly if unmigrated).
+6. Upload materials (PDFs, PPTX, DOCX, ZIP) into the appropriate folder.
+7. Make sure sharing permissions are set correctly.
+8. The department will appear on the website automatically. No code changes needed.
 
 ---
 
@@ -222,22 +216,22 @@ The About page pulls team data from two tabs in a Google Sheet:
 
 ### Tab 1: Executives
 
-| Column | Required | Example |
-|---|---|---|
-| `name` | Yes | Jesusegun |
-| `role` | Yes | Founder & Coordinator |
-| `photoUrl` | No | (Google Drive share link to a photo) |
-| `order` | No | 1 (controls display order) |
-| `session` | Yes | 2025/26 |
+| Column     | Required | Example                              |
+| ---------- | -------- | ------------------------------------ |
+| `name`     | Yes      | Jesusegun                            |
+| `role`     | Yes      | Founder & Coordinator                |
+| `photoUrl` | No       | (Google Drive share link to a photo) |
+| `order`    | No       | 1 (controls display order)           |
+| `session`  | Yes      | 2025/26                              |
 
 ### Tab 2: Department Reps
 
-| Column | Required | Example |
-|---|---|---|
-| `department` | Yes | Computer Science |
-| `name` | Yes | John Doe |
-| `photoUrl` | No | (Google Drive share link to a photo) |
-| `session` | Yes | 2025/26 |
+| Column       | Required | Example                              |
+| ------------ | -------- | ------------------------------------ |
+| `department` | Yes      | Computer Science                     |
+| `name`       | Yes      | John Doe                             |
+| `photoUrl`   | No       | (Google Drive share link to a photo) |
+| `session`    | Yes      | 2025/26                              |
 
 ### How It Works
 
@@ -268,20 +262,22 @@ The About page pulls team data from two tabs in a Google Sheet:
 
 These are secrets that must NEVER be in the code or git history.
 
-| Variable | Where to Get It | What It Does |
-|---|---|---|
-| `GOOGLE_DRIVE_API_KEY` | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) | Authenticates API calls to Google Drive |
-| `GOOGLE_DRIVE_ROOT_FOLDER_ID` | The ID from the Drive folder URL | Points to the root folder with all departments |
-| `TEAM_SHEET_EXECUTIVES_URL` | Google Sheets → Publish to web | Published CSV URL for executives tab |
-| `TEAM_SHEET_REPS_URL` | Google Sheets → Publish to web | Published CSV URL for reps tab |
-| `ALLOWED_ORIGIN` | Your production URL | Restricts API access (e.g., `https://curb.yourdomain.com`) |
+| Variable                      | Where to Get It                                                           | What It Does                                               |
+| ----------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `GOOGLE_DRIVE_API_KEY`        | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) | Authenticates API calls to Google Drive                    |
+| `GOOGLE_DRIVE_ROOT_FOLDER_ID` | The ID from the Drive folder URL                                          | Points to the root folder with all departments             |
+| `TEAM_SHEET_EXECUTIVES_URL`   | Google Sheets → Publish to web                                            | Published CSV URL for executives tab                       |
+| `TEAM_SHEET_REPS_URL`         | Google Sheets → Publish to web                                            | Published CSV URL for reps tab                             |
+| `ALLOWED_ORIGIN`              | Your production URL                                                       | Restricts API access (e.g., `https://curb.yourdomain.com`) |
 
 ### How to Find the Root Folder ID
 
 The Google Drive folder URL looks like:
+
 ```
 https://drive.google.com/drive/folders/1ABCDeFgHiJkLmNoPqRsTuVwXyZ_EXAMPLE
 ```
+
 The folder ID is the long string at the end: `1ABCDeFgHiJkLmNoPqRsTuVwXyZ_EXAMPLE`.
 
 ### How to Create/Rotate the Google API Key
@@ -401,24 +397,24 @@ If Vercel is no longer viable, the project can run on any cheap PHP hosting (cPa
 
 ### Things That Do NOT Require Code Changes
 
-| Task | How to Do It |
-|---|---|
-| **Upload new past questions** | Add PDFs to the correct Google Drive folders. |
-| **Add a new department** | Create the folder structure in Google Drive (see above). |
-| **Update team members** | Edit the Google Sheet. |
+| Task                             | How to Do It                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Upload new past questions**    | Add PDFs to the correct Google Drive folders.                                                        |
+| **Add a new department**         | Create the folder structure in Google Drive (see above).                                             |
+| **Update team members**          | Edit the Google Sheet.                                                                               |
 | **Start a new academic session** | Add rows with the new session value in the Google Sheet. Create new session folders in Google Drive. |
-| **Change a team member's photo** | Upload a new photo to Drive, update the URL in the Sheet. |
+| **Change a team member's photo** | Upload a new photo to Drive, update the URL in the Sheet.                                            |
 
 ### Things That DO Require Code Changes
 
-| Task | What to Change |
-|---|---|
-| **Add a new special department like Jupeb** | Update `LEVEL_EXCEPTIONS` in `api/_utils.js` AND `api/_config.php`. |
-| **Change the contact email/WhatsApp** | Edit `index.html` (around line 152-154). |
-| **Change the Google Form for contact** | Edit the iframe `src` in `index.html` (around line 139). |
-| **Update the fallback team data** | Edit `js/config.js` (the `about.executives` and `about.departmentReps` arrays). |
-| **Change the app name or branding** | Edit `index.html`, `manifest.json`, `js/config.js`. |
-| **Change the app colors** | Edit `css/variables.css`. |
+| Task                                        | What to Change                                                                  |
+| ------------------------------------------- | ------------------------------------------------------------------------------- |
+| **Add a new special department like Jupeb** | Update `LEVEL_EXCEPTIONS` in `api/_utils.js`.                                   |
+| **Change the contact email/WhatsApp**       | Edit `index.html` (around line 152-154).                                        |
+| **Change the Google Form for contact**      | Edit the iframe `src` in `index.html` (around line 139).                        |
+| **Update the fallback team data**           | Edit `js/config.js` (the `about.executives` and `about.departmentReps` arrays). |
+| **Change the app name or branding**         | Edit `index.html`, `manifest.json`, `js/config.js`.                             |
+| **Change the app colors**                   | Edit `css/variables.css`.                                                       |
 
 ### Version Bumping
 
@@ -502,21 +498,14 @@ When deploying changes, update the version in these three files to force cache r
 ### Editing Backend (API) Code
 
 1. Make changes to the `.js` file in `api/`.
-2. **Also update the corresponding `.php` file** to keep them in sync.
-3. Test locally.
-4. Commit and push.
-
-> **Critical:** Always keep the JS and PHP handlers in sync. If you change
-> `browse.js`, make the same change in `browse.php`. This ensures you can
-> switch hosting platforms without rewriting the backend.
+2. Test locally using `npx vercel dev` or `node server.js`.
+3. Commit and push.
 
 ### Adding a New API Endpoint
 
 1. Create `api/newname.js` following the pattern of existing handlers.
-2. Create `api/newname.php` with the same logic.
-3. Add a rewrite rule in `.htaccess`: `RewriteRule ^api/newname$ api/newname.php [L,QSA]`
-4. Add the handler mapping in `server.js` (for local dev).
-5. If it has caching, document it in `docs/caching-policy.md`.
+2. Add the handler mapping in `server.js` (for local dev).
+3. If it has caching, document it in `docs/caching-policy.md`.
 
 ---
 
@@ -527,6 +516,7 @@ These are guaranteed future issues. Not if, but when.
 ### 1. Google Drive API v3 Deprecation
 
 Google will eventually deprecate Drive API v3. When this happens:
+
 - The `api/browse.js`, `api/coverage.js` functions will stop working.
 - You'll need to update the API URLs and potentially the response parsing.
 - Check the [Google Drive API documentation](https://developers.google.com/drive/api)
@@ -536,6 +526,7 @@ Google will eventually deprecate Drive API v3. When this happens:
 
 Vercel periodically drops support for older Node.js versions. When your version is
 deprecated, Vercel will warn you in the dashboard. Update by adding to `package.json`:
+
 ```json
 {
   "engines": {
@@ -556,6 +547,7 @@ request a quota increase.
 ### 4. CDN/Library Updates
 
 The site uses these external resources:
+
 - **Font Awesome 6.5.1** from cdnjs (with SRI hash).
 - **Lucide Icons 1.8.0** from unpkg (with SRI hash).
 - **Google Fonts (Inter)** from fonts.googleapis.com.
@@ -574,16 +566,16 @@ Re-publish and update the environment variables.
 
 Before the current team leaves, make sure the new team has access to ALL of these:
 
-| Account | What It Controls | Who Has Access |
-|---|---|---|
-| **GitHub repository** | Source code, auto-deployment | _____________ |
-| **Vercel account** | Hosting, environment variables, domain | _____________ |
-| **Google Cloud Console** | API key, quota management | _____________ |
-| **Google Drive** (owner) | Past question PDFs, folder structure | _____________ |
-| **Google Sheets** (editor) | Team data (executives + reps) | _____________ |
-| **Domain registrar** | DNS records, domain renewal | _____________ |
-| **Google account for contact form** | Google Form responses | _____________ |
-| **Email** (cul.pastquestions@gmail.com) | Contact email | _____________ |
+| Account                                 | What It Controls                       | Who Has Access     |
+| --------------------------------------- | -------------------------------------- | ------------------ |
+| **GitHub repository**                   | Source code, auto-deployment           | **\*\***\_**\*\*** |
+| **Vercel account**                      | Hosting, environment variables, domain | **\*\***\_**\*\*** |
+| **Google Cloud Console**                | API key, quota management              | **\*\***\_**\*\*** |
+| **Google Drive** (owner)                | Past question PDFs, folder structure   | **\*\***\_**\*\*** |
+| **Google Sheets** (editor)              | Team data (executives + reps)          | **\*\***\_**\*\*** |
+| **Domain registrar**                    | DNS records, domain renewal            | **\*\***\_**\*\*** |
+| **Google account for contact form**     | Google Form responses                  | **\*\***\_**\*\*** |
+| **Email** (cul.pastquestions@gmail.com) | Contact email                          | **\*\***\_**\*\*** |
 
 > **Fill in the names/emails above and keep this in a secure location
 > accessible to the incoming team.**
@@ -611,5 +603,5 @@ Env vars needed: GOOGLE_DRIVE_API_KEY
 
 ---
 
-*Last updated: June 2026*
-*Written for the incoming CURB team by the founding technical team.*
+_Last updated: June 2026_
+_Written for the incoming CURB team by the founding technical team._

@@ -97,14 +97,26 @@ describe('Navigator.parseRoute', () => {
         expect(route.semester).toBeNull();
     });
 
-    test('four segments returns files view for standard', () => {
+    test('four segments returns session view for standard', () => {
         window.location.hash = '#/Computer Science/100 Level/1st Semester/2024~25 Session';
         const route = nav.parseRoute();
-        expect(route.view).toBe('files');
+        expect(route.view).toBe('session');
         expect(route.department).toBe('Computer Science');
         expect(route.level).toBe('100 Level');
         expect(route.semester).toBe('1st Semester');
         expect(route.session).toBe('2024~25 Session');
+        expect(route.category).toBeNull();
+    });
+
+    test('five segments returns files view with category for standard', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
+        const route = nav.parseRoute();
+        expect(route.view).toBe('files');
+        expect(route.department).toBe('Cybersecurity');
+        expect(route.level).toBe('300 Level');
+        expect(route.semester).toBe('1st Semester');
+        expect(route.session).toBe('2024~25 Session');
+        expect(route.category).toBe('Course Material');
     });
 
     test('about route is recognized', () => {
@@ -123,7 +135,7 @@ describe('Navigator.parseRoute', () => {
     test('backward compatibility: fixes old session URLs with /', () => {
         window.location.hash = '#/Computer Science/100 Level/1st Semester/2024/25 Session';
         const route = nav.parseRoute();
-        expect(route.view).toBe('files');
+        expect(route.view).toBe('session');
         expect(route.session).toBe('2024~25 Session');
     });
 });
@@ -154,22 +166,45 @@ describe('Navigator.getPageTitle', () => {
     });
 });
 
-describe('Navigator.isValidRoute', () => {
-    test('home is always valid', () => {
-        window.location.hash = '';
+describe('Navigator.getBreadcrumbs', () => {
+    test('breadcrumbs include category when present', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
         nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
+        const crumbs = nav.getBreadcrumbs();
+
+        expect(crumbs.length).toBe(6);
+        expect(crumbs[0].label).toBe('Home');
+        expect(crumbs[1].label).toBe('Cybersecurity');
+        expect(crumbs[2].label).toBe('300 Level');
+        expect(crumbs[3].label).toBe('1st Semester');
+        expect(crumbs[4].label).toBe('2024/25 Session');
+        expect(crumbs[4].active).toBe(false);
+        expect(crumbs[5].label).toBe('Course Material');
+        expect(crumbs[5].active).toBe(true);
     });
 
-    test('any department name is structurally valid', () => {
-        window.location.hash = '#/Anything';
+    test('breadcrumb paths are encoded and lead back to each level', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
         nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
+        const paths = nav.getBreadcrumbs().map(crumb => crumb.path);
+
+        expect(paths).toEqual([
+            '/',
+            '/Cybersecurity',
+            '/Cybersecurity/300%20Level',
+            '/Cybersecurity/300%20Level/1st%20Semester',
+            '/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session',
+            '/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session/Course%20Material'
+        ]);
     });
 
-    test('track route is valid', () => {
-        window.location.hash = '#/track';
+    test('Jupeb breadcrumbs skip the missing semester', () => {
+        window.location.hash = '#/Jupeb/Science/2024~25 Session';
         nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
+        const crumbs = nav.getBreadcrumbs();
+
+        expect(crumbs.map(crumb => crumb.label)).toEqual(['Home', 'Jupeb', 'Science', '2024/25 Session']);
+        expect(crumbs[3].path).toBe('/Jupeb/Science/2024~25%20Session');
+        expect(crumbs[3].active).toBe(true);
     });
 });

@@ -11,6 +11,11 @@ const { URL } = require('url');
 const DEFAULT_PORT = 3000;
 const STATIC_ROOT = path.resolve(__dirname);
 
+// Only these top-level entries are served to browsers. Everything else in the
+// project root (.env, package.json, node_modules, docs, tests, server code) stays private.
+const PUBLIC_FILES = new Set(['index.html', 'offline.html', 'manifest.json', 'sw.js']);
+const PUBLIC_DIRS = new Set(['css', 'js', 'assets']);
+
 /**
  * Build a minimal response wrapper compatible with serverless handlers.
  * @param {http.ServerResponse} res - Node.js response.
@@ -81,11 +86,45 @@ function resolveStaticPath(pathname, staticRoot) {
   const target = normalized === '/' ? '/index.html' : normalized;
   const absolutePath = path.resolve(staticRoot, `.${target}`);
 
-  if (!absolutePath.startsWith(staticRoot)) {
+  if (absolutePath !== staticRoot && !absolutePath.startsWith(staticRoot + path.sep)) {
     return null;
   }
 
   return absolutePath;
+}
+
+/**
+ * Split a resolved static path into its segments relative to the static root.
+ * @param {string} absolutePath - Resolved absolute path.
+ * @param {string} staticRoot - Root directory for static files.
+ * @returns {Array<string>} Path segments.
+ */
+function getRelativeSegments(absolutePath, staticRoot) {
+  return path.relative(staticRoot, absolutePath).split(path.sep).filter(Boolean);
+}
+
+/**
+ * Check whether path segments point at a file that may be served publicly.
+ * @param {Array<string>} segments - Path segments relative to the static root.
+ * @returns {boolean} True when the file is part of the public app.
+ */
+function isPublicPath(segments) {
+  if (segments.length === 0) return false;
+  if (segments.length === 1) return PUBLIC_FILES.has(segments[0]);
+  return PUBLIC_DIRS.has(segments[0]);
+}
+
+/**
+ * Check whether a path exists and is a regular file.
+ * @param {string} filePath - Absolute file path.
+ * @returns {boolean} True when the path is an existing file.
+ */
+function isExistingFile(filePath) {
+  try {
+    return fs.statSync(filePath).isFile();
+  } catch (error) {
+    return false;
+  }
 }
 
 /**
@@ -140,10 +179,22 @@ function serveStatic(pathname, req, res, staticRoot, logger) {
     return;
   }
 
+  const segments = getRelativeSegments(resolvedPath, staticRoot);
+
+  // Never expose dotfiles (.env, .git, ...), not even through the SPA fallback.
+  if (segments.some((segment) => segment.startsWith('.'))) {
+    res.status(404).end('Not Found');
+    return;
+  }
+
   const hasExtension = path.extname(resolvedPath) !== '';
-  const candidatePath = fs.existsSync(resolvedPath)
-    ? resolvedPath
-    : (!hasExtension ? path.join(staticRoot, 'index.html') : null);
+  let candidatePath = null;
+  if (isPublicPath(segments) && isExistingFile(resolvedPath)) {
+    candidatePath = resolvedPath;
+  } else if (!hasExtension) {
+    // SPA-style fallback for extension-less paths
+    candidatePath = path.join(staticRoot, 'index.html');
+  }
 
   if (!candidatePath) {
     res.status(404).end('Not Found');
