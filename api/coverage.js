@@ -1,5 +1,5 @@
 // Serverless Function: Auto-Generated Progress Coverage (Per-Session)
-// Scans a specific department's Drive hierarchy to see if a TARGET SESSION exists and has PDFs.
+// Scans a specific department's Drive hierarchy to see if a TARGET SESSION exists and has files.
 // Very fast because it uses targeted Google Drive queries.
 
 const {
@@ -15,7 +15,7 @@ const coverageCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 const MAX_PARAM_LENGTH = 120;
 
-// Item #13: Rate limiter — track active scans to prevent Google API quota exhaustion.
+// Rate limiter — track active scans to prevent Google API quota exhaustion.
 // In serverless, this only protects within a single warm instance, but that's still valuable.
 let activeScans = 0;
 const MAX_CONCURRENT_SCANS = 5;
@@ -108,19 +108,19 @@ async function hasFiles(folderId, apiKey) {
 }
 
 /**
- * Check whether a folder tree contains at least one PDF (BFS).
- * Handles structures where PDFs are placed in nested course folders.
+ * Check whether a folder tree contains at least one file (BFS).
+ * Handles structures where files are placed in nested course folders.
  * @param {string} rootFolderId - Session folder ID.
  * @param {string} apiKey - Google API key.
- * @returns {Promise<boolean>} True if any PDF exists in the subtree.
+ * @returns {Promise<boolean>} True if any file exists in the subtree.
  */
 async function hasFilesDeep(rootFolderId, apiKey) {
   if (!rootFolderId) return false;
 
   const queue = [{ id: rootFolderId, depth: 0 }];
   const visited = new Set();
-  const MAX_DEPTH = 3;            // Item #13: Tightened from 5 → 3
-  const MAX_FOLDERS_SCANNED = 50; // Item #13: Tightened from 300 → 50
+  const MAX_DEPTH = 3;
+  const MAX_FOLDERS_SCANNED = 50;
   let scannedCount = 0;
 
   while (queue.length > 0) {
@@ -136,8 +136,7 @@ async function hasFilesDeep(rootFolderId, apiKey) {
       break;
     }
 
-    const hasPdfDirectly = await hasFiles(current.id, apiKey);
-    if (hasPdfDirectly) {
+    if (await hasFiles(current.id, apiKey)) {
       return true;
     }
 
@@ -202,7 +201,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({ department: deptNameTarget, session: targetSessionQuery, data: cached.data, cached: true });
   }
 
-  // Item #13: Rate limiter — reject if too many scans active in this instance
+  // Rate limiter — reject if too many scans active in this instance
   if (activeScans >= MAX_CONCURRENT_SCANS) {
     return res.status(429).json({
       error: 'Too many concurrent scans',
@@ -231,34 +230,32 @@ module.exports = async (req, res) => {
 
     const coverageData = [];
 
-    await Promise.all(levels.map(async (level) => {
-      const subFolders = await listFolders(level.id, apiKey);
+    // Record the status of the target session folder under one parent (a semester, or a Jupeb subject).
+    const scanSession = async (parentId, levelName, semesterName) => {
+      const sessionFolder = await findTargetSessionFolder(parentId, targetSessionQuery, apiKey);
+      const hasContent = sessionFolder ? await hasFilesDeep(sessionFolder.id, apiKey) : false;
 
-      if (isJupeb) {
-        const sessionFolder = await findTargetSessionFolder(level.id, targetSessionQuery, apiKey);
-        let hasPdf = false;
-        if (sessionFolder) {
-          hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
-        }
-        coverageData.push({
-          level: level.name,
-          semester: 'Full Year',
-          status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
-        });
-      } else {
-        await Promise.all(subFolders.map(async (semester) => {
-          const sessionFolder = await findTargetSessionFolder(semester.id, targetSessionQuery, apiKey);
-          let hasPdf = false;
-          if (sessionFolder) {
-            hasPdf = await hasFilesDeep(sessionFolder.id, apiKey);
-          }
-          coverageData.push({
-            level: level.name,
-            semester: semester.name,
-            status: hasPdf ? 'uploaded' : (sessionFolder ? 'empty-folder' : 'missing-folder')
-          });
-        }));
+      let status = 'missing-folder';
+      if (hasContent) {
+        status = 'uploaded';
+      } else if (sessionFolder) {
+        status = 'empty-folder';
       }
+
+      coverageData.push({ level: levelName, semester: semesterName, status });
+    };
+
+    await Promise.all(levels.map(async (level) => {
+      if (isJupeb) {
+        // Jupeb has no semester layer: Subject → Session
+        await scanSession(level.id, level.name, 'Full Year');
+        return;
+      }
+
+      const semesters = await listFolders(level.id, apiKey);
+      await Promise.all(
+        semesters.map((semester) => scanSession(semester.id, level.name, semester.name))
+      );
     }));
 
     // Sort properly

@@ -2,6 +2,7 @@ jest.mock('../api/_utils', () => ({
   LEVEL_EXCEPTIONS: {},
   normalizeFolderName: jest.fn((value) => value),
   makeAPIRequest: jest.fn(),
+  listDriveItems: jest.fn(),
   listFolders: jest.fn(),
   setupCors: jest.fn(),
   handlePreflightAndMethodGuard: jest.fn(() => false)

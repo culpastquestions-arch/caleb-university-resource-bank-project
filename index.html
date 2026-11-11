@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Caleb University Resource Bank - Access past questions and study materials for all departments">
   <meta name="theme-color" content="#2E9E58">
-  
+
   <title>Caleb University Resource Bank (CURB)</title>
-  
+
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/logo.png">
-  
+
   <!-- Manifest for PWA -->
   <link rel="manifest" href="manifest.json">
-  
+
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/styles.css">
 
-  <!-- Font Awesome Icons — pinned version with SRI (#11, #12) -->
+  <!-- Font Awesome Icons — pinned version with SRI -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
         integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
@@ -31,7 +31,7 @@
         referrerpolicy="no-referrer"
         id="font-awesome-css">
 
-  <!-- Lucide Icons — pinned to v1.8.0 with SRI (#2, #12) -->
+  <!-- Lucide Icons — pinned to v1.8.0 with SRI -->
   <script src="https://unpkg.com/lucide@1.8.0/dist/umd/lucide.js"
           integrity="sha384-bgSnYl8X5v7B1Jo4mdsVIh2rFFjtrqNJnu7TILKXhwh/dr1HvKK2D1ApUikQ6NCb"
           crossorigin="anonymous"></script>
@@ -39,8 +39,6 @@
   <!-- Google Analytics 4 (GA4) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-M0Q67L6761"></script>
 
-  <!-- Preconnect to Google APIs -->
-  <link rel="preconnect" href="https://apis.google.com">
   <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 </head>
 <body>
@@ -97,7 +95,7 @@
         <div class="footer-section">
           <h3 class="footer-title">About CURB</h3>
           <p class="footer-text">
-            Caleb University Resource Bank provides students with easy access to 
+            Caleb University Resource Bank provides students with easy access to
             past questions and study materials across all departments.
           </p>
         </div>
@@ -116,7 +114,7 @@
         <div class="footer-section">
           <h3 class="footer-title">Need Help?</h3>
           <p class="footer-text">
-            Can't find what you're looking for? Have materials to contribute? 
+            Can't find what you're looking for? Have materials to contribute?
             <a href="#" id="contact-link-footer" class="footer-cta-link">Get in touch</a> with us.
           </p>
         </div>
@@ -135,22 +133,22 @@
     <div class="modal-content">
       <button class="modal-close" aria-label="Close modal">✕</button>
       <h2 class="mb-2">Contact Us</h2>
-      
+
       <div class="contact-form-container">
         <!-- Google Form iframe -->
-        <iframe 
-          src="https://docs.google.com/forms/d/e/1FAIpQLSeXwQsAF0p3UGAVWANf9UF6VM8HiNJx_al5suCd-FhAhX4fzA/viewform?embedded=true" 
-          width="100%" 
-          height="800" 
-          frameborder="0" 
-          marginheight="0" 
+        <iframe
+          src="https://docs.google.com/forms/d/e/1FAIpQLSeXwQsAF0p3UGAVWANf9UF6VM8HiNJx_al5suCd-FhAhX4fzA/viewform?embedded=true"
+          width="100%"
+          height="800"
+          frameborder="0"
+          marginheight="0"
           marginwidth="0"
           style="border: none; border-radius: 8px;">
           Loading…
         </iframe>
-        
+
         <!-- Alternative Contact Methods -->
-        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border-color);">
+        <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--color-border-strong);">
           <div class="contact-info">
             <strong>Prefer direct contact?</strong>
             📧 Email: <a href="mailto:cul.pastquestions@gmail.com">cul.pastquestions@gmail.com</a><br>
@@ -162,8 +160,7 @@
   </div>
 
   <!--
-    Scripts — All inline scripts moved to js/bootstrap.js (#7)
-    so the CSP no longer needs 'unsafe-inline'.
+    Scripts — no inline scripts, so the CSP does not need 'unsafe-inline'.
   -->
   <script src="js/bootstrap.js"></script>
   <script src="js/analytics.js"></script>

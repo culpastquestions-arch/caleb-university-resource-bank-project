@@ -166,27 +166,7 @@ describe('Navigator.getPageTitle', () => {
     });
 });
 
-describe('Navigator.isValidRoute', () => {
-    test('home is always valid', () => {
-        window.location.hash = '';
-        nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
-    });
-
-    test('any department name is structurally valid', () => {
-        window.location.hash = '#/Anything';
-        nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
-    });
-
-    test('track route is valid', () => {
-        window.location.hash = '#/track';
-        nav.currentRoute = nav.parseRoute();
-        expect(nav.isValidRoute()).toBe(true);
-    });
-});
-
-describe('Navigator.getBreadcrumbs and goBack with Category', () => {
+describe('Navigator.getBreadcrumbs', () => {
     test('breadcrumbs include category when present', () => {
         window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
         nav.currentRoute = nav.parseRoute();
@@ -203,23 +183,28 @@ describe('Navigator.getBreadcrumbs and goBack with Category', () => {
         expect(crumbs[5].active).toBe(true);
     });
 
-    test('goBack from category returns to session route', () => {
-        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Past Question';
+    test('breadcrumb paths are encoded and lead back to each level', () => {
+        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session/Course Material';
         nav.currentRoute = nav.parseRoute();
+        const paths = nav.getBreadcrumbs().map(crumb => crumb.path);
 
-        nav.goBack();
-        expect(window.location.hash).toBe('/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session');
-        expect(decodeURIComponent(window.location.hash)).toBe('/Cybersecurity/300 Level/1st Semester/2024~25 Session');
-        expect(nav.getCurrentRoute().view).toBe('session');
+        expect(paths).toEqual([
+            '/',
+            '/Cybersecurity',
+            '/Cybersecurity/300%20Level',
+            '/Cybersecurity/300%20Level/1st%20Semester',
+            '/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session',
+            '/Cybersecurity/300%20Level/1st%20Semester/2024~25%20Session/Course%20Material'
+        ]);
     });
 
-    test('goBack from session returns to semester route', () => {
-        window.location.hash = '#/Cybersecurity/300 Level/1st Semester/2024~25 Session';
+    test('Jupeb breadcrumbs skip the missing semester', () => {
+        window.location.hash = '#/Jupeb/Science/2024~25 Session';
         nav.currentRoute = nav.parseRoute();
+        const crumbs = nav.getBreadcrumbs();
 
-        nav.goBack();
-        expect(window.location.hash).toBe('/Cybersecurity/300%20Level/1st%20Semester');
-        expect(decodeURIComponent(window.location.hash)).toBe('/Cybersecurity/300 Level/1st Semester');
-        expect(nav.getCurrentRoute().view).toBe('sessions');
+        expect(crumbs.map(crumb => crumb.label)).toEqual(['Home', 'Jupeb', 'Science', '2024/25 Session']);
+        expect(crumbs[3].path).toBe('/Jupeb/Science/2024~25%20Session');
+        expect(crumbs[3].active).toBe(true);
     });
 });

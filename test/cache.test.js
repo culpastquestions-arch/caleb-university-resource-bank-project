@@ -101,22 +101,6 @@ describe('PathCacheManager', () => {
         });
     });
 
-    describe('hasFresh and has', () => {
-        test('hasFresh returns true for fresh cached data', () => {
-            cache.set('/test', 'folders', ['data']);
-            expect(cache.hasFresh('/test', 'folders')).toBe(true);
-        });
-
-        test('hasFresh returns false for non-existent path', () => {
-            expect(cache.hasFresh('/nonexistent', 'folders')).toBe(false);
-        });
-
-        test('has returns true for any non-expired cached data', () => {
-            cache.set('/test', 'folders', ['data']);
-            expect(cache.has('/test', 'folders')).toBe(true);
-        });
-    });
-
     describe('invalidatePath', () => {
         test('removes both folders and files cache for a path', () => {
             cache.set('/test', 'folders', ['folders']);
@@ -139,8 +123,8 @@ describe('PathCacheManager', () => {
         });
     });
 
-    describe('getAllCachedPaths', () => {
-        test('uses path-aware staleness for root path entries', () => {
+    describe('path-aware staleness on read', () => {
+        test('root path entry 90 minutes old is not stale', () => {
             const rootKey = cache.getKey('/', 'folders');
             const ninetyMinutesAgo = Date.now() - (90 * 60 * 1000);
 
@@ -151,16 +135,24 @@ describe('PathCacheManager', () => {
                 type: 'folders'
             }));
 
-            const paths = cache.getAllCachedPaths();
-            expect(paths).toHaveLength(1);
-            expect(paths[0].path).toBe('/');
-            expect(paths[0].isStale).toBe(false);
+            const cached = cache.get('/', 'folders');
+            expect(cached.data).toEqual(['dept']);
+            expect(cached.isStale).toBe(false);
+            expect(cached.isExpired).toBe(false);
         });
     });
 
-    describe('isAvailable', () => {
-        test('returns true when localStorage works', () => {
-            expect(cache.isAvailable()).toBe(true);
+    describe('quota handling', () => {
+        test('drops oldest entries and retries when storage is full', () => {
+            cache.set('/old', 'folders', ['old']);
+
+            const quotaError = new Error('full');
+            quotaError.name = 'QuotaExceededError';
+            localStorage.setItem.mockImplementationOnce(() => { throw quotaError; });
+
+            expect(cache.set('/new', 'folders', ['new'])).toBe(true);
+            expect(cache.get('/new', 'folders').data).toEqual(['new']);
+            expect(cache.get('/old', 'folders')).toBeNull();
         });
     });
 });

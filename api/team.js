@@ -21,6 +21,20 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 const FETCH_TIMEOUT_MS = 10000;
 const MAX_REDIRECTS = 3;
 
+// Accepted header names for the photo column, in priority order.
+const PHOTO_COLUMN_NAMES = [
+  'photourl',
+  'photo url',
+  'photo_url',
+  'photo',
+  'imageurl',
+  'image url',
+  'image_url',
+  'image',
+  'picture',
+  'avatar'
+];
+
 const TRUSTED_CSV_HOSTS = new Set([
   'docs.google.com',
   'docs.googleusercontent.com',
@@ -210,23 +224,6 @@ function parseCSVLine(line) {
 }
 
 /**
- * Sanitize text to prevent XSS attacks.
- * @param {string} text - Input text to sanitize.
- * @returns {string} Sanitized text.
- */
-function sanitize(text) {
-  if (!text || typeof text !== 'string') {
-    return '';
-  }
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-/**
  * Check whether a parsed URL uses an allowed protocol.
  * @param {URL} parsedUrl - Parsed URL instance.
  * @returns {boolean} True if protocol is safe for image src.
@@ -322,8 +319,6 @@ function isCacheValid(cacheEntry) {
     (Date.now() - cacheEntry.timestamp) < CACHE_TTL;
 }
 
-// normalizeSessionLabel is imported from ./_utils.js
-
 /**
  * Build a numeric sort key for an academic session label.
  * Higher values represent newer sessions.
@@ -389,112 +384,81 @@ function extractSessions(rows) {
 }
 
 /**
- * Fetch and parse all executives data from Google Sheets (all sessions).
- * @param {string} sheetUrl - Published CSV URL for executives sheet.
- * @returns {Promise<Array>} Array of executive objects with session field.
+ * Fetch, parse and cache one team sheet (all sessions).
+ * Falls back to previously cached rows (even if stale) when the fetch fails.
+ * Text fields are returned raw; the frontend escapes them when rendering.
+ * @param {'executives'|'reps'} cacheKey - Which cache slot / sheet this is.
+ * @param {string} sheetUrl - Published CSV URL for the sheet.
+ * @param {Function} mapRow - Maps a parsed CSV row to a team member object.
+ * @param {Function} compareRows - Sort comparator for the mapped rows.
+ * @param {{bypassCache?: boolean}} [options] - Fetch options.
+ * @returns {Promise<Array>} Array of team member objects with session field.
  */
-async function fetchAllExecutives(sheetUrl, options = {}) {
+async function fetchSheet(cacheKey, sheetUrl, mapRow, compareRows, options = {}) {
   const { bypassCache = false } = options;
 
-  // Check cache first
-  if (!bypassCache && isCacheValid(cache.executives)) {
-    return cache.executives.data;
+  if (!bypassCache && isCacheValid(cache[cacheKey])) {
+    return cache[cacheKey].data;
   }
 
   try {
     const csvText = await fetchUrl(sheetUrl);
-    const data = parseCSV(csvText);
+    const rows = parseCSV(csvText).map(mapRow);
+    rows.sort(compareRows);
 
-    // Transform and sanitize data — preserve session column
-    const executives = data.map(row => ({
-      name: sanitize(row.name || 'TBD'),
-      role: sanitize(row.role || 'Team Member'),
-      photoUrl: formatPhotoUrl(pickRowValue(row, [
-        'photourl',
-        'photo url',
-        'photo_url',
-        'photo',
-        'imageurl',
-        'image url',
-        'image_url',
-        'image',
-        'picture',
-        'avatar'
-      ])), // Convert Drive links to direct image URLs
-
-      order: parseInt(row.order, 10) || 999,
-      session: normalizeSessionLabel(row.session || '')
-    }));
-
-    // Sort by order within each session
-    executives.sort((a, b) => a.order - b.order);
-
-    // Update cache
-    cache.executives = { data: executives, timestamp: Date.now() };
-
-    return executives;
+    cache[cacheKey] = { data: rows, timestamp: Date.now() };
+    return rows;
   } catch (error) {
-    console.error('Failed to fetch executives:', error.message);
+    console.error(`Failed to fetch team sheet "${cacheKey}":`, error.message);
     // Return cached data if available, even if stale
-    if (cache.executives.data) {
-      return cache.executives.data;
+    if (cache[cacheKey].data) {
+      return cache[cacheKey].data;
     }
     throw error;
   }
 }
 
 /**
- * Fetch and parse all department reps data from Google Sheets (all sessions).
+ * Fetch all executives (all sessions), sorted by their "order" column.
+ * @param {string} sheetUrl - Published CSV URL for executives sheet.
+ * @param {{bypassCache?: boolean}} [options] - Fetch options.
+ * @returns {Promise<Array>} Array of executive objects with session field.
+ */
+function fetchAllExecutives(sheetUrl, options = {}) {
+  return fetchSheet(
+    'executives',
+    sheetUrl,
+    (row) => ({
+      name: row.name || 'TBD',
+      role: row.role || 'Team Member',
+      photoUrl: formatPhotoUrl(pickRowValue(row, PHOTO_COLUMN_NAMES)),
+      order: parseInt(row.order, 10) || 999,
+      session: normalizeSessionLabel(row.session || '')
+    }),
+    (a, b) => a.order - b.order,
+    options
+  );
+}
+
+/**
+ * Fetch all department reps (all sessions), sorted by department name.
  * @param {string} sheetUrl - Published CSV URL for reps sheet.
+ * @param {{bypassCache?: boolean}} [options] - Fetch options.
  * @returns {Promise<Array>} Array of department rep objects with session field.
  */
-async function fetchAllDepartmentReps(sheetUrl, options = {}) {
-  const { bypassCache = false } = options;
-
-  // Check cache first
-  if (!bypassCache && isCacheValid(cache.reps)) {
-    return cache.reps.data;
-  }
-
-  try {
-    const csvText = await fetchUrl(sheetUrl);
-    const data = parseCSV(csvText);
-
-    // Transform and sanitize data — preserve session column
-    const reps = data.map(row => ({
-      department: sanitize(row.department || 'Unknown'),
-      name: sanitize(row.name || 'TBD'),
-      photoUrl: formatPhotoUrl(pickRowValue(row, [
-        'photourl',
-        'photo url',
-        'photo_url',
-        'photo',
-        'imageurl',
-        'image url',
-        'image_url',
-        'image',
-        'picture',
-        'avatar'
-      ])), // Convert Drive links to direct image URLs
-
+function fetchAllDepartmentReps(sheetUrl, options = {}) {
+  return fetchSheet(
+    'reps',
+    sheetUrl,
+    (row) => ({
+      department: row.department || 'Unknown',
+      name: row.name || 'TBD',
+      photoUrl: formatPhotoUrl(pickRowValue(row, PHOTO_COLUMN_NAMES)),
       session: normalizeSessionLabel(row.session || '')
-    }));
-
-    // Sort by department name
-    reps.sort((a, b) => a.department.localeCompare(b.department));
-
-    // Update cache
-    cache.reps = { data: reps, timestamp: Date.now() };
-
-    return reps;
-  } catch (error) {
-    console.error('Failed to fetch department reps:', error.message);
-    // Return cached data if available, even if stale
-    if (cache.reps.data) {
-      return cache.reps.data;
-    }
-    throw error;
-  }
+    }),
+    (a, b) => a.department.localeCompare(b.department),
+    options
+  );
 }
 
 /**

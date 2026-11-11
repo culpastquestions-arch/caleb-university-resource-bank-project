@@ -11,6 +11,7 @@ const urlsToCache = [
   '/css/variables.css',
   '/css/styles.css',
   '/js/bootstrap.js',
+  '/js/analytics.js',
   '/js/email-gate.js',
   '/js/config.js',
   '/js/cache.js',
@@ -110,19 +111,20 @@ self.addEventListener('activate', event => {
   const expectedCaches = new Set([APP_SHELL_CACHE, RUNTIME_CACHE, API_CACHE]);
 
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName.startsWith(CACHE_PREFIX) && !expectedCaches.has(cacheName)) {
-            return caches.delete(cacheName);
-          }
-          return null;
-        })
-      );
-    })
+    caches.keys()
+      .then(cacheNames => {
+        return Promise.all(
+          cacheNames.map(cacheName => {
+            if (cacheName.startsWith(CACHE_PREFIX) && !expectedCaches.has(cacheName)) {
+              return caches.delete(cacheName);
+            }
+            return null;
+          })
+        );
+      })
+      // Take control of all pages immediately
+      .then(() => self.clients.claim())
   );
-  // Take control of all pages immediately
-  return self.clients.claim();
 });
 
 // Fetch event - serve from cache, fallback to network

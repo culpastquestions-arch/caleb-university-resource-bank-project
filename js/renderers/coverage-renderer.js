@@ -45,8 +45,8 @@ class CoverageRenderer {
     try {
       const teamData = await renderer.fetchTeamData(undefined, { forceRefresh });
       const departments = await driveAPI.fetchDepartments(forceRefresh);
-      const deptContainer = document.getElementById('coverage-departments');
-      const sessionSelect = document.getElementById('target-session-select');
+      const deptContainer = container.querySelector('#coverage-departments');
+      const sessionSelect = container.querySelector('#target-session-select');
       if (!deptContainer) return;
 
       const sessions = teamData && Array.isArray(teamData.sessions) ? teamData.sessions : [];
@@ -191,7 +191,7 @@ class CoverageRenderer {
         <div class="coverage-summary">
           <span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded: ${summary.uploaded}</span>
           <span class="status-empty"><i class="fas fa-folder-open"></i> Empty: ${summary.emptyFolder}</span>
-          <span class="status-missing"><i class="fas fa-folder-times"></i> Missing: ${summary.missingFolder}</span>
+          <span class="status-missing"><i class="fas fa-folder-minus"></i> Missing: ${summary.missingFolder}</span>
           ${
             summary.other > 0
               ? `<span class="status-no"><i class="fas fa-circle-question"></i> Other: ${summary.other}</span>`
@@ -243,8 +243,7 @@ class CoverageRenderer {
           </div>
         `;
 
-    let html = '<div class="coverage-table-container"><table class="coverage-table">';
-    html = `
+    let html = `
         ${summaryCardsHtml}
         <div class="coverage-table-container"><table class="coverage-table">
       `;
@@ -258,7 +257,7 @@ class CoverageRenderer {
       grouped[item.level].push(item);
     });
 
-    for (const [_levelName, items] of Object.entries(grouped)) {
+    for (const items of Object.values(grouped)) {
       items.forEach((item, idx) => {
         let statusHtml =
           '<span class="status-no"><i class="fas fa-circle-question"></i> Unknown</span>';
@@ -268,10 +267,10 @@ class CoverageRenderer {
             '<span class="status-yes"><i class="fas fa-check-circle"></i> Uploaded</span>';
         } else if (item.status === 'empty-folder') {
           statusHtml =
-            '<span class="status-empty"><i class="fas fa-folder-open"></i> Session Found, No PDFs</span>';
+            '<span class="status-empty"><i class="fas fa-folder-open"></i> Session Found, No Files</span>';
         } else if (item.status === 'missing-folder') {
           statusHtml =
-            '<span class="status-missing"><i class="fas fa-folder-times"></i> Session Folder Missing</span>';
+            '<span class="status-missing"><i class="fas fa-folder-minus"></i> Session Folder Missing</span>';
         }
 
         html += `<tr>

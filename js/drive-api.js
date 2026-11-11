@@ -4,7 +4,6 @@
 class DriveAPI {
   constructor() {
     this.browseEndpoint = '/api/browse';
-    this.loaded = false;
     this.loading = new Map(); // Track in-flight requests by path
   }
 
@@ -16,24 +15,18 @@ class DriveAPI {
     if (apiEndpoint) {
       this.browseEndpoint = apiEndpoint;
     }
-    this.loaded = true;
     return true;
   }
 
   /**
-   * Build the API path from route components
-   * @param {Object} route - Route object with department, level, semester, session
-   * @returns {string} API path
+   * Build the API folder path for a route.
+   * Missing parts are skipped (Jupeb routes have no semester).
+   * @param {Object} route - Route object with department, level, semester, session, category
+   * @returns {string} API path, e.g. "/Law/100 Level/1st Semester"
    */
   buildPath(route) {
-    const parts = [];
-    
-    if (route.department) parts.push(route.department);
-    if (route.level) parts.push(route.level);
-    if (route.semester) parts.push(route.semester);
-    if (route.session) parts.push(route.session);
-    
-    return '/' + parts.join('/');
+    const parts = [route.department, route.level, route.semester, route.session, route.category];
+    return '/' + parts.filter(Boolean).join('/');
   }
 
   /**
@@ -65,11 +58,11 @@ class DriveAPI {
    */
   async fetchPath(path, type = 'folders', forceRefresh = false) {
     const cacheKey = `${path}:${type}`;
-    
+
     // Check cache first (unless force refresh)
     if (!forceRefresh) {
       const cached = pathCache.get(path, type);
-      
+
       if (cached && !cached.isExpired) {
         // If stale but not expired, trigger background refresh
         if (cached.isStale) {
@@ -113,19 +106,8 @@ class DriveAPI {
     }
 
     const url = `${this.browseEndpoint}?${queryParts.join('&')}`;
-    
-    const requestOptions = {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    };
 
-    if (forceRefresh) {
-      requestOptions.cache = 'no-store';
-    }
-
-    const response = await fetch(url, requestOptions);
+    const response = await fetch(url, forceRefresh ? { cache: 'no-store' } : undefined);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -133,10 +115,10 @@ class DriveAPI {
     }
 
     const result = await response.json();
-    
+
     // Cache the result
     pathCache.set(path, type, result.data);
-    
+
     return result.data;
   }
 
@@ -202,30 +184,16 @@ class DriveAPI {
   }
 
   /**
-   * Fetch files for a complete path
-   * @param {string} department - Department name
-   * @param {string} level - Level name
-   * @param {string} semester - Semester name
-   * @param {string} session - Session name
-   * @param {boolean} forceRefresh - Skip cache
-   * @returns {Promise<Array>} Array of file objects
-   */
-  async fetchSessionFiles(department, level, semester, session, forceRefresh = false) {
-    const path = `/${department}/${level}/${semester}/${session}`;
-    return this.fetchFiles(path, forceRefresh);
-  }
-
-  /**
    * Format file size for display
    * @param {number} bytes - File size in bytes
    * @returns {string} Formatted size string
    */
   formatFileSize(bytes) {
     if (!bytes) return 'Unknown';
-    
+
     const kb = bytes / 1024;
     const mb = kb / 1024;
-    
+
     if (mb >= 1) {
       return `${mb.toFixed(2)} MB`;
     } else {
@@ -240,7 +208,7 @@ class DriveAPI {
    */
   formatDate(dateString) {
     if (!dateString) return 'Unknown';
-    
+
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
@@ -265,13 +233,6 @@ class DriveAPI {
    */
   getDownloadLink(file) {
     return file.webContentLink || `https://drive.google.com/uc?export=download&id=${file.id}`;
-  }
-
-  /**
-   * Clear all cached data and force fresh fetch on next navigation
-   */
-  clearCache() {
-    pathCache.clearAll();
   }
 }
 

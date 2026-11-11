@@ -4,7 +4,7 @@ This guide is a simple handover for hosting and long-term upkeep.
 
 ## What You Need
 
-- Hosting that supports Node.js serverless endpoints (for /api/*).
+- Hosting that supports Node.js serverless endpoints (for /api/\*).
 - A domain name connected to the hosting platform.
 - Access to a Google Drive folder that stores the past questions.
 - Access to the Google Sheets that hold team data.
@@ -13,7 +13,7 @@ This guide is a simple handover for hosting and long-term upkeep.
 
 1. Upload the full project to the hosting platform.
 2. Set the required environment variables (see next section).
-3. Build the app by running `npm run build` (or configure your hosting platform's build command to `npm run build`). On Vercel this is usually auto-detected. On other platforms, set it in their dashboard or config.
+3. Install dependencies with `npm install`. There is no separate build step: the version stamp (`scripts/stamp-version.js`) runs automatically as the `postinstall` script whenever the `CI` or `VERCEL` environment variable is set. Vercel sets this for you. On other platforms, set `CI=1` for the install command.
 4. Set the domain name to point to the hosting platform.
 5. Open the site and confirm:
    - Home page loads.
@@ -64,6 +64,7 @@ Do this if any of the following change:
 - Team sheets are replaced with new ones.
 
 Steps:
+
 1. Update the value in the hosting platform.
 2. Save and redeploy if required by the host.
 3. Visit the site and refresh to confirm changes.
@@ -79,7 +80,7 @@ Steps:
   - Confirm the Drive folder is shared publicly.
 
 - Team section is empty:
-  - Confirm TEAM_SHEET_* URLs are published CSV links.
+  - Confirm TEAM*SHEET*\* URLs are published CSV links.
 
 ## If Hosting Platform Changes
 
@@ -87,6 +88,6 @@ If the school changes hosting providers:
 
 1. Copy the full project to the new host.
 2. Set the same environment variables (including ALLOWED_ORIGIN if the domain changes).
-3. Configure the new host to run `npm run build` on deployment.
+3. Configure the new host to run `npm install` with `CI=1` set on deployment (this stamps the version).
 4. Point the domain to the new host.
 5. Test the site.

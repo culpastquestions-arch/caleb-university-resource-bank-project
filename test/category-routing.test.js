@@ -6,9 +6,15 @@
 global.TeamRenderer = class MockTeamRenderer { constructor() {} };
 global.CoverageRenderer = class MockCoverageRenderer { constructor() {} };
 
-// Load Renderer and DriveAPI modules
-const { Renderer } = require('../js/renderer');
+// In the browser these are globals created by earlier <script> tags.
 const { driveAPI } = require('../js/drive-api');
+const { displayName, encodeSegment, buildRoutePath } = require('../js/navigation');
+global.driveAPI = driveAPI;
+global.displayName = displayName;
+global.encodeSegment = encodeSegment;
+global.buildRoutePath = buildRoutePath;
+
+const { Renderer } = require('../js/renderer');
 
 describe('Category and Multi-Format Document Logic', () => {
   let rendererInstance;

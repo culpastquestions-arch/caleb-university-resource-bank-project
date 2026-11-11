@@ -13,7 +13,7 @@
 //   The 'semester' route parameter is skipped entirely
 //
 // NOTE: Folder names containing '/' are encoded as '~' in URLs to prevent
-// path parsing issues. Use encodeSegment/decodeSegment for URL building/parsing.
+// path parsing issues. Use buildRoutePath/decodeSegment for URL building/parsing.
 
 /**
  * Encode a path segment for use in URLs.
@@ -50,6 +50,17 @@ function displayName(name) {
   return name.replace(/~/g, '/');
 }
 
+/**
+ * Build an in-app route path from raw folder names.
+ * Empty segments are skipped (Jupeb routes have no semester).
+ * Example: buildRoutePath('Law', '100 Level') → '/Law/100%20Level'
+ * @param {...(string|null|undefined)} segments - Raw folder names, in order.
+ * @returns {string} Encoded route path starting with '/'.
+ */
+function buildRoutePath(...segments) {
+  return '/' + segments.filter(Boolean).map(encodeSegment).join('/');
+}
+
 class Navigator {
   constructor() {
     this.currentRoute = this.parseRoute();
@@ -58,7 +69,6 @@ class Navigator {
 
   /**
    * Initialize the navigator
-   * Note: With lazy loading, we no longer need preloaded data
    */
   init() {
     // Handle browser back/forward buttons
@@ -181,31 +191,6 @@ class Navigator {
   }
 
   /**
-   * Navigate back one level
-   */
-  goBack() {
-    const route = this.currentRoute;
-    const isJupeb = route.department === 'Jupeb';
-
-    if (route.category) {
-      this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}`);
-    } else if (route.session) {
-      if (isJupeb) {
-        // Jupeb has no semester layer: Subject → Session → Files
-        this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}`);
-      } else {
-        this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}`);
-      }
-    } else if (route.semester) {
-      this.navigateTo(`/${encodeSegment(route.department)}/${encodeSegment(route.level)}`);
-    } else if (route.level) {
-      this.navigateTo(`/${encodeSegment(route.department)}`);
-    } else if (route.department) {
-      this.navigateTo('/');
-    }
-  }
-
-  /**
    * Navigate to home
    */
   goHome() {
@@ -226,46 +211,47 @@ class Navigator {
    */
   getBreadcrumbs() {
     const route = this.currentRoute;
+    const { department, level, semester, session, category } = route;
     const breadcrumbs = [
       { label: 'Home', path: '/', active: route.view === 'home' }
     ];
 
-    if (route.department) {
+    if (department) {
       breadcrumbs.push({
-        label: displayName(route.department),
-        path: `/${encodeSegment(route.department)}`,
+        label: displayName(department),
+        path: buildRoutePath(department),
         active: route.view === 'levels'
       });
     }
 
-    if (route.level) {
+    if (level) {
       breadcrumbs.push({
-        label: displayName(route.level),
-        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}`,
+        label: displayName(level),
+        path: buildRoutePath(department, level),
         active: route.view === 'semesters'
       });
     }
 
-    if (route.semester) {
+    if (semester) {
       breadcrumbs.push({
-        label: displayName(route.semester),
-        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}`,
+        label: displayName(semester),
+        path: buildRoutePath(department, level, semester),
         active: route.view === 'sessions'
       });
     }
 
-    if (route.session) {
+    if (session) {
       breadcrumbs.push({
-        label: displayName(route.session),
-        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}`,
-        active: route.view === 'session' || (route.view === 'files' && !route.category)
+        label: displayName(session),
+        path: buildRoutePath(department, level, semester, session),
+        active: route.view === 'session' || (route.view === 'files' && !category)
       });
     }
 
-    if (route.category) {
+    if (category) {
       breadcrumbs.push({
-        label: displayName(route.category),
-        path: `/${encodeSegment(route.department)}/${encodeSegment(route.level)}/${encodeSegment(route.semester)}/${encodeSegment(route.session)}/${encodeSegment(route.category)}`,
+        label: displayName(category),
+        path: buildRoutePath(department, level, semester, session, category),
         active: route.view === 'files'
       });
     }
@@ -274,44 +260,11 @@ class Navigator {
   }
 
   /**
-   * Check if a route is valid (basic structural validation)
-   * With dynamic departments from Google Drive, we can't validate department names client-side
-   * Actual data existence is validated when fetching from API
-   * @returns {boolean} True if structurally valid
-   */
-  isValidRoute() {
-    const route = this.currentRoute;
-
-    // Home is always valid
-    if (route.view === 'home') return true;
-
-    // Special routes are also valid
-    if (route.view === 'about' || route.view === 'track') return true;
-
-    // If we have a department name, the route is structurally valid
-    // The actual department existence will be validated by the API call
-    // (If folder doesn't exist in Drive, the fetch will return empty/error)
-    if (route.department) {
-      return true;
-    }
-
-    return false;
-  }
-
-  /**
    * Add a listener for route changes
    * @param {Function} callback - Callback function
    */
   addListener(callback) {
     this.listeners.push(callback);
-  }
-
-  /**
-   * Remove a listener
-   * @param {Function} callback - Callback function to remove
-   */
-  removeListener(callback) {
-    this.listeners = this.listeners.filter(cb => cb !== callback);
   }
 
   /**
@@ -365,6 +318,6 @@ const appNavigator = new Navigator();
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Navigator, appNavigator, encodeSegment, decodeSegment, displayName };
+  module.exports = { Navigator, appNavigator, encodeSegment, decodeSegment, displayName, buildRoutePath };
 }
 

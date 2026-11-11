@@ -87,11 +87,68 @@ describe('route-level integration smoke tests', () => {
 
     expect(global.renderer.renderBreadcrumbs).toHaveBeenCalledTimes(1);
     expect(global.appNavigator.updateTitle).toHaveBeenCalledTimes(1);
-    expect(global.renderer.renderHome).toHaveBeenCalledWith(
-      document.getElementById('main-content'),
-      { forceRefresh: false }
-    );
-    expect(app.departments).toEqual(['Computer Science']);
+    const view = document.querySelector('#main-content > .route-view');
+    expect(view).not.toBeNull();
+    expect(global.renderer.renderHome).toHaveBeenCalledWith(view, { forceRefresh: false });
+  });
+
+  test('a slow older navigation cannot overwrite the newer view', async () => {
+    let finishSlowRender;
+    global.renderer.renderLevels.mockImplementation((container) => new Promise((resolve) => {
+      finishSlowRender = () => {
+        container.innerHTML = '<p id="stale">Levels</p>';
+        resolve();
+      };
+    }));
+    global.renderer.renderHome.mockImplementation(async (container) => {
+      container.innerHTML = '<p id="fresh">Home</p>';
+    });
+
+    const app = new App();
+
+    global.appNavigator.getCurrentRoute.mockReturnValue({ view: 'levels', department: 'Law' });
+    const slowNavigation = app.handleRouteChange();
+
+    global.appNavigator.getCurrentRoute.mockReturnValue({ view: 'home' });
+    await app.handleRouteChange();
+
+    finishSlowRender();
+    await slowNavigation;
+
+    expect(document.getElementById('fresh')).not.toBeNull();
+    expect(document.getElementById('stale')).toBeNull();
+  });
+
+  test('refresh reports failure when the view fails to render', async () => {
+    global.renderer.renderHome.mockRejectedValue(new Error('Server error: 500'));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const app = new App();
+    app.showToast = jest.fn();
+
+    await app.handleRefresh();
+
+    expect(app.showToast).toHaveBeenCalledWith(expect.any(String), 'error');
+    expect(app.showToast).not.toHaveBeenCalledWith(expect.any(String), 'success');
+  });
+
+  test('refresh on a Jupeb files route invalidates the full path', async () => {
+    global.appNavigator.getCurrentRoute.mockReturnValue({
+      view: 'files',
+      department: 'Jupeb',
+      level: 'Science',
+      semester: null,
+      session: '2024~25 Session',
+      category: null
+    });
+
+    const app = new App();
+    app.handleRouteChange = jest.fn().mockResolvedValue(true);
+    app.showToast = jest.fn();
+
+    await app.handleRefresh();
+
+    expect(global.pathCache.invalidatePath).toHaveBeenCalledWith('/Jupeb/Science/2024~25 Session');
   });
 
   test('deep navigation route renders files view', async () => {
@@ -107,7 +164,7 @@ describe('route-level integration smoke tests', () => {
     await app.handleRouteChange();
 
     expect(global.renderer.renderFiles).toHaveBeenCalledWith(
-      document.getElementById('main-content'),
+      document.querySelector('#main-content > .route-view'),
       expect.objectContaining({
         view: 'files',
         department: 'Computer Science',
@@ -132,7 +189,7 @@ describe('route-level integration smoke tests', () => {
     await app.handleRouteChange();
 
     expect(global.renderer.renderSessionContent).toHaveBeenCalledWith(
-      document.getElementById('main-content'),
+      document.querySelector('#main-content > .route-view'),
       expect.objectContaining({
         view: 'session',
         department: 'Cybersecurity',
@@ -151,7 +208,7 @@ describe('route-level integration smoke tests', () => {
     await app.handleRouteChange();
 
     expect(global.renderer.renderAboutPage).toHaveBeenCalledWith(
-      document.getElementById('main-content'),
+      document.querySelector('#main-content > .route-view'),
       { forceRefresh: false }
     );
   });

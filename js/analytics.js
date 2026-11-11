@@ -1,3 +1,4 @@
+/* exported trackLogin */
 /**
  * @fileoverview Google Analytics 4 (GA4) integration for CURB.
  * Initializes the gtag data layer and provides helpers for tracking
@@ -87,11 +88,8 @@ function trackDownload(fileName, downloadUrl) {
  */
 document.addEventListener('click', (e) => {
   try {
-    const downloadLink = e.target.closest('a.btn-primary');
+    const downloadLink = e.target.closest('.file-card a[data-download], .file-card a.btn-primary');
     if (!downloadLink) return;
-
-    const linkText = (downloadLink.textContent || '').trim();
-    if (linkText !== 'Download') return;
 
     const fileCard = downloadLink.closest('.file-card');
     const fileNameEl = fileCard ? fileCard.querySelector('.file-name') : null;

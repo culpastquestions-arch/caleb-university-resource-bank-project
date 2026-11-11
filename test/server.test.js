@@ -84,6 +84,51 @@ describe('CURB server', () => {
     expect(response.statusCode).toBe(404);
   });
 
+  test('does not serve private project files', async () => {
+    const { server, port } = await startTestServer({
+      staticRoot: path.resolve(__dirname, '..')
+    });
+
+    const privatePaths = ['/.env', '/.gitignore', '/package.json', '/server.js', '/api/browse.js'];
+    const statusCodes = [];
+    for (const privatePath of privatePaths) {
+      const response = await httpRequest({
+        hostname: 'localhost',
+        port,
+        path: privatePath,
+        method: 'GET'
+      });
+      statusCodes.push(response.statusCode);
+    }
+
+    server.close();
+
+    // /api/* is routed to API handlers, which also answer 404 for unknown endpoints.
+    expect(statusCodes).toEqual([404, 404, 404, 404, 404]);
+  });
+
+  test('serves public app assets', async () => {
+    const { server, port } = await startTestServer({
+      staticRoot: path.resolve(__dirname, '..')
+    });
+
+    const publicPaths = ['/js/app.js', '/css/styles.css', '/manifest.json', '/sw.js', '/offline.html'];
+    const statusCodes = [];
+    for (const publicPath of publicPaths) {
+      const response = await httpRequest({
+        hostname: 'localhost',
+        port,
+        path: publicPath,
+        method: 'GET'
+      });
+      statusCodes.push(response.statusCode);
+    }
+
+    server.close();
+
+    expect(statusCodes).toEqual([200, 200, 200, 200, 200]);
+  });
+
   test('routes API requests to handler', async () => {
     const apiHandlers = {
       browse: (req, res) => {

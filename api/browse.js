@@ -5,7 +5,7 @@
 const {
   LEVEL_EXCEPTIONS,
   normalizeFolderName,
-  makeAPIRequest,
+  listDriveItems,
   listFolders,
   setupCors,
   handlePreflightAndMethodGuard
@@ -26,11 +26,11 @@ const ALLOWED_TYPES = new Set(['folders', 'files']);
  * @returns {Promise<Array>} Array of file objects
  */
 async function listFiles(folderId, apiKey) {
-  const query = encodeURIComponent(`'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`);
-  const url = `https://www.googleapis.com/drive/v3/files?q=${query}&fields=files(id,name,modifiedTime,size,webViewLink,webContentLink,mimeType)&orderBy=name&key=${apiKey}`;
-
-  const response = await makeAPIRequest(url);
-  return response.files || [];
+  return listDriveItems(
+    `'${folderId}' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed=false`,
+    'files(id,name,modifiedTime,size,webViewLink,webContentLink,mimeType)',
+    apiKey
+  );
 }
 
 /**
@@ -161,8 +161,8 @@ module.exports = async (req, res) => {
 
     if (cached) {
       res.setHeader('X-Cache', 'HIT');
-      // Item #4: CDN-level caching. s-maxage lets Vercel's edge cache serve
-      // the same response to all 200 concurrent students without invoking the function.
+      // CDN-level caching: s-maxage lets the edge cache serve the same response
+      // to concurrent students without invoking the function.
       res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
       res.status(200).json({
         path,
@@ -219,7 +219,7 @@ module.exports = async (req, res) => {
     let data;
 
     if (type === 'files') {
-      // Get PDF files in this folder
+      // Get files in this folder
       data = await listFiles(currentFolderId, apiKey);
     } else {
       // Get subfolders
@@ -261,7 +261,7 @@ module.exports = async (req, res) => {
     if (forceRefresh) {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
     } else {
-      // Item #4: CDN-level caching for scalability
+      // CDN-level caching for scalability
       res.setHeader('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=3600');
     }
     res.status(200).json({
